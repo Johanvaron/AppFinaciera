@@ -8,6 +8,29 @@ Un dashboard financiero completo y profesional construido con Vue 3, TypeScript,
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-38B2AC?logo=tailwind-css)
 ![Tests](https://img.shields.io/badge/Tests-25/25-success)
 
+## 📋 ¿Para qué sirve este Dashboard Financiero?
+
+Este proyecto es una **herramienta de gestión financiera personal** diseñada para ayudarte a tener el control total de tu dinero. Te permite:
+
+### 💡 Control Financiero Total
+- **📊 Visualiza tus finanzas**: Ten una vista clara de tus ingresos y gastos mensuales en tiempo real
+- **💰 Conoce tu balance**: Sabe exactamente cuánto dinero te queda después de cubrir tus gastos
+- **📈 Identifica patrones**: Descubre en qué categorías gastas más y optimiza tus finanzas
+- **🎯 Toma mejores decisiones**: Con datos claros, puedes planificar mejor tus compras y ahorros
+
+### 🔍 ¿Cómo funciona?
+
+1. **Registra tus transacciones**: Agrega fácilmente cada ingreso o gasto con su monto, categoría y fecha
+2. **Visualiza tu información**: El dashboard procesa automáticamente tus datos y los presenta en gráficos intuitivos
+3. **Filtra y analiza**: Usa los filtros para ver transacciones específicas por tipo, categoría o fecha
+4. **Entiende tus hábitos**: Los gráficos te muestran tendencias y patrones de gasto para que sepas dónde va tu dinero
+
+### 🎁 Beneficios clave
+- ✅ **Claridad financiera**: Nunca más te preguntarás "¿en qué gasté mi dinero?"
+- ✅ **Control de gastos**: Identifica gastos innecesarios y ajusta tu presupuesto
+- ✅ **Planificación inteligente**: Proyecta tus finanzas y establece metas realistas
+- ✅ **Ahorro consciente**: Al ver tus números, es más fácil encontrar oportunidades de ahorro
+
 ## ✨ Características Principales
 
 ### 🎯 Funcionalidades Core
