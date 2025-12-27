@@ -24,6 +24,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/DashboardView.vue')
       },
       {
+        path: 'transactions',
+        name: 'transactions',
+        component: () => import('@/views/TransactionsView.vue')
+      },
+      {
         path: 'add-transaction',
         name: 'add-transaction',
         component: () => import('@/views/AddTransactionView.vue')
