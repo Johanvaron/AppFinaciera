@@ -1,0 +1,553 @@
+{
+  "users": [
+    {
+      "id": "1",
+      "email": "demo@alegra.com",
+      "password": "demo123",
+      "name": "Usuario Demo",
+      "avatar": "https://ui-avatars.com/api/?name=Usuario+Demo&background=0ea5e9&color=fff"
+    }
+  ],
+  "transactions": [
+    {
+      "id": "txn-001",
+      "description": "Salario Diciembre",
+      "amount": 3500000,
+      "type": "income",
+      "category": "Salario",
+      "date": "2025-12-01",
+      "createdAt": "2025-12-01T08:00:00.000Z"
+    },
+    {
+      "id": "txn-002",
+      "description": "Mercado del mes",
+      "amount": 450000,
+      "type": "expense",
+      "category": "Alimentación",
+      "date": "2025-12-05",
+      "createdAt": "2025-12-05T10:30:00.000Z"
+    },
+    {
+      "id": "txn-003",
+      "description": "Transporte público",
+      "amount": 120000,
+      "type": "expense",
+      "category": "Transporte",
+      "date": "2025-12-07",
+      "createdAt": "2025-12-07T07:15:00.000Z"
+    },
+    {
+      "id": "txn-004",
+      "description": "Freelance - Diseño web",
+      "amount": 800000,
+      "type": "income",
+      "category": "Freelance",
+      "date": "2025-12-10",
+      "createdAt": "2025-12-10T16:20:00.000Z"
+    },
+    {
+      "id": "txn-005",
+      "description": "Luz y agua",
+      "amount": 180000,
+      "type": "expense",
+      "category": "Servicios Públicos",
+      "date": "2025-12-12",
+      "createdAt": "2025-12-12T09:00:00.000Z"
+    },
+    {
+      "id": "txn-006",
+      "description": "Netflix y Spotify",
+      "amount": 45000,
+      "type": "expense",
+      "category": "Entretenimiento",
+      "date": "2025-12-15",
+      "createdAt": "2025-12-15T12:00:00.000Z"
+    },
+    {
+      "id": "txn-007",
+      "description": "Arriendo",
+      "amount": 1200000,
+      "type": "expense",
+      "category": "Arriendo",
+      "date": "2025-12-01",
+      "createdAt": "2025-12-01T08:00:00.000Z"
+    },
+    {
+      "id": "txn-008",
+      "description": "Gimnasio",
+      "amount": 150000,
+      "type": "expense",
+      "category": "Salud",
+      "date": "2025-12-18",
+      "createdAt": "2025-12-18T14:30:00.000Z"
+    },
+    {
+      "id": "txn-009",
+      "description": "Compras navideñas",
+      "amount": 380000,
+      "type": "expense",
+      "category": "Compras",
+      "date": "2025-12-20",
+      "createdAt": "2025-12-20T11:45:00.000Z"
+    },
+    {
+      "id": "txn-010",
+      "description": "Bono navideño",
+      "amount": 500000,
+      "type": "income",
+      "category": "Bonos",
+      "date": "2025-12-22",
+      "createdAt": "2025-12-22T10:00:00.000Z"
+    },
+    {
+      "id": "txn-011",
+      "description": "Restaurante fin de año",
+      "amount": 220000,
+      "type": "expense",
+      "category": "Alimentación",
+      "date": "2025-12-25",
+      "createdAt": "2025-12-25T20:00:00.000Z"
+    },
+    {
+      "id": "txn-012",
+      "description": "Salario Noviembre",
+      "amount": 3500000,
+      "type": "income",
+      "category": "Salario",
+      "date": "2025-11-01",
+      "createdAt": "2025-11-01T08:00:00.000Z"
+    },
+    {
+      "id": "txn-013",
+      "description": "Mercado noviembre",
+      "amount": 420000,
+      "type": "expense",
+      "category": "Alimentación",
+      "date": "2025-11-03",
+      "createdAt": "2025-11-03T10:30:00.000Z"
+    },
+    {
+      "id": "txn-014",
+      "description": "Arriendo noviembre",
+      "amount": 1200000,
+      "type": "expense",
+      "category": "Arriendo",
+      "date": "2025-11-01",
+      "createdAt": "2025-11-01T08:00:00.000Z"
+    },
+    {
+      "id": "txn-015",
+      "description": "Gasolina",
+      "amount": 200000,
+      "type": "expense",
+      "category": "Transporte",
+      "date": "2025-11-05",
+      "createdAt": "2025-11-05T07:15:00.000Z"
+    },
+    {
+      "id": "txn-016",
+      "description": "Consulta médica",
+      "amount": 120000,
+      "type": "expense",
+      "category": "Salud",
+      "date": "2025-11-08",
+      "createdAt": "2025-11-08T14:30:00.000Z"
+    },
+    {
+      "id": "txn-017",
+      "description": "Freelance - App móvil",
+      "amount": 1200000,
+      "type": "income",
+      "category": "Freelance",
+      "date": "2025-11-12",
+      "createdAt": "2025-11-12T16:20:00.000Z"
+    },
+    {
+      "id": "txn-018",
+      "description": "Luz y agua noviembre",
+      "amount": 165000,
+      "type": "expense",
+      "category": "Servicios Públicos",
+      "date": "2025-11-15",
+      "createdAt": "2025-11-15T09:00:00.000Z"
+    },
+    {
+      "id": "txn-019",
+      "description": "Cine y palomitas",
+      "amount": 75000,
+      "type": "expense",
+      "category": "Entretenimiento",
+      "date": "2025-11-18",
+      "createdAt": "2025-11-18T19:00:00.000Z"
+    },
+    {
+      "id": "txn-020",
+      "description": "Ropa",
+      "amount": 350000,
+      "type": "expense",
+      "category": "Compras",
+      "date": "2025-11-22",
+      "createdAt": "2025-11-22T15:30:00.000Z"
+    },
+    {
+      "id": "txn-021",
+      "description": "Salario Octubre",
+      "amount": 3500000,
+      "type": "income",
+      "category": "Salario",
+      "date": "2025-10-01",
+      "createdAt": "2025-10-01T08:00:00.000Z"
+    },
+    {
+      "id": "txn-022",
+      "description": "Arriendo octubre",
+      "amount": 1200000,
+      "type": "expense",
+      "category": "Arriendo",
+      "date": "2025-10-01",
+      "createdAt": "2025-10-01T08:00:00.000Z"
+    },
+    {
+      "id": "txn-023",
+      "description": "Supermercado",
+      "amount": 480000,
+      "type": "expense",
+      "category": "Alimentación",
+      "date": "2025-10-04",
+      "createdAt": "2025-10-04T11:00:00.000Z"
+    },
+    {
+      "id": "txn-024",
+      "description": "Internet fibra óptica",
+      "amount": 95000,
+      "type": "expense",
+      "category": "Servicios Públicos",
+      "date": "2025-10-08",
+      "createdAt": "2025-10-08T10:00:00.000Z"
+    },
+    {
+      "id": "txn-025",
+      "description": "Tanqueo moto",
+      "amount": 85000,
+      "type": "expense",
+      "category": "Transporte",
+      "date": "2025-10-10",
+      "createdAt": "2025-10-10T07:30:00.000Z"
+    },
+    {
+      "id": "txn-026",
+      "description": "Freelance - E-commerce",
+      "amount": 950000,
+      "type": "income",
+      "category": "Freelance",
+      "date": "2025-10-15",
+      "createdAt": "2025-10-15T17:00:00.000Z"
+    },
+    {
+      "id": "txn-027",
+      "description": "Farmacia medicamentos",
+      "amount": 180000,
+      "type": "expense",
+      "category": "Salud",
+      "date": "2025-10-18",
+      "createdAt": "2025-10-18T16:00:00.000Z"
+    },
+    {
+      "id": "txn-028",
+      "description": "Electrodomésticos",
+      "amount": 420000,
+      "type": "expense",
+      "category": "Compras",
+      "date": "2025-10-20",
+      "createdAt": "2025-10-20T14:00:00.000Z"
+    },
+    {
+      "id": "txn-029",
+      "description": "Curso online programación",
+      "amount": 280000,
+      "type": "expense",
+      "category": "Educación",
+      "date": "2025-10-25",
+      "createdAt": "2025-10-25T11:00:00.000Z"
+    },
+    {
+      "id": "txn-030",
+      "description": "Salario Septiembre",
+      "amount": 3500000,
+      "type": "income",
+      "category": "Salario",
+      "date": "2025-09-01",
+      "createdAt": "2025-09-01T08:00:00.000Z"
+    },
+    {
+      "id": "txn-031",
+      "description": "Arriendo septiembre",
+      "amount": 1200000,
+      "type": "expense",
+      "category": "Arriendo",
+      "date": "2025-09-01",
+      "createdAt": "2025-09-01T08:00:00.000Z"
+    },
+    {
+      "id": "txn-032",
+      "description": "Mercado quincenal",
+      "amount": 390000,
+      "type": "expense",
+      "category": "Alimentación",
+      "date": "2025-09-05",
+      "createdAt": "2025-09-05T10:00:00.000Z"
+    },
+    {
+      "id": "txn-033",
+      "description": "Servicios públicos",
+      "amount": 175000,
+      "type": "expense",
+      "category": "Servicios Públicos",
+      "date": "2025-09-10",
+      "createdAt": "2025-09-10T09:00:00.000Z"
+    },
+    {
+      "id": "txn-034",
+      "description": "Taxi y Uber",
+      "amount": 145000,
+      "type": "expense",
+      "category": "Transporte",
+      "date": "2025-09-12",
+      "createdAt": "2025-09-12T18:00:00.000Z"
+    },
+    {
+      "id": "txn-035",
+      "description": "Venta producto usado",
+      "amount": 250000,
+      "type": "income",
+      "category": "Otros Ingresos",
+      "date": "2025-09-14",
+      "createdAt": "2025-09-14T13:00:00.000Z"
+    },
+    {
+      "id": "txn-036",
+      "description": "Salón de belleza",
+      "amount": 95000,
+      "type": "expense",
+      "category": "Cuidado Personal",
+      "date": "2025-09-16",
+      "createdAt": "2025-09-16T15:00:00.000Z"
+    },
+    {
+      "id": "txn-037",
+      "description": "Cena romántica",
+      "amount": 180000,
+      "type": "expense",
+      "category": "Alimentación",
+      "date": "2025-09-20",
+      "createdAt": "2025-09-20T21:00:00.000Z"
+    },
+    {
+      "id": "txn-038",
+      "description": "Freelance - Landing page",
+      "amount": 600000,
+      "type": "income",
+      "category": "Freelance",
+      "date": "2025-09-22",
+      "createdAt": "2025-09-22T10:00:00.000Z"
+    },
+    {
+      "id": "txn-039",
+      "description": "Videojuegos",
+      "amount": 120000,
+      "type": "expense",
+      "category": "Entretenimiento",
+      "date": "2025-09-25",
+      "createdAt": "2025-09-25T16:00:00.000Z"
+    },
+    {
+      "id": "txn-040",
+      "description": "Salario Agosto",
+      "amount": 3500000,
+      "type": "income",
+      "category": "Salario",
+      "date": "2025-08-01",
+      "createdAt": "2025-08-01T08:00:00.000Z"
+    },
+    {
+      "id": "txn-041",
+      "description": "Arriendo agosto",
+      "amount": 1200000,
+      "type": "expense",
+      "category": "Arriendo",
+      "date": "2025-08-01",
+      "createdAt": "2025-08-01T08:00:00.000Z"
+    },
+    {
+      "id": "txn-042",
+      "description": "Compras supermercado",
+      "amount": 510000,
+      "type": "expense",
+      "category": "Alimentación",
+      "date": "2025-08-03",
+      "createdAt": "2025-08-03T12:00:00.000Z"
+    },
+    {
+      "id": "txn-043",
+      "description": "Gimnasio agosto",
+      "amount": 150000,
+      "type": "expense",
+      "category": "Salud",
+      "date": "2025-08-05",
+      "createdAt": "2025-08-05T09:00:00.000Z"
+    },
+    {
+      "id": "txn-044",
+      "description": "Recarga celular",
+      "amount": 50000,
+      "type": "expense",
+      "category": "Servicios Públicos",
+      "date": "2025-08-08",
+      "createdAt": "2025-08-08T14:00:00.000Z"
+    },
+    {
+      "id": "txn-045",
+      "description": "Freelance - Sistema contable",
+      "amount": 1500000,
+      "type": "income",
+      "category": "Freelance",
+      "date": "2025-08-12",
+      "createdAt": "2025-08-12T18:00:00.000Z"
+    },
+    {
+      "id": "txn-046",
+      "description": "Mantenimiento vehículo",
+      "amount": 320000,
+      "type": "expense",
+      "category": "Transporte",
+      "date": "2025-08-15",
+      "createdAt": "2025-08-15T11:00:00.000Z"
+    },
+    {
+      "id": "txn-047",
+      "description": "Libros técnicos",
+      "amount": 180000,
+      "type": "expense",
+      "category": "Educación",
+      "date": "2025-08-18",
+      "createdAt": "2025-08-18T16:00:00.000Z"
+    },
+    {
+      "id": "txn-048",
+      "description": "Concierto",
+      "amount": 250000,
+      "type": "expense",
+      "category": "Entretenimiento",
+      "date": "2025-08-22",
+      "createdAt": "2025-08-22T20:00:00.000Z"
+    },
+    {
+      "id": "txn-049",
+      "description": "Zapatos",
+      "amount": 280000,
+      "type": "expense",
+      "category": "Compras",
+      "date": "2025-08-25",
+      "createdAt": "2025-08-25T14:00:00.000Z"
+    },
+    {
+      "id": "txn-050",
+      "description": "Salario Julio",
+      "amount": 3500000,
+      "type": "income",
+      "category": "Salario",
+      "date": "2025-07-01",
+      "createdAt": "2025-07-01T08:00:00.000Z"
+    },
+    {
+      "id": "txn-051",
+      "description": "Arriendo julio",
+      "amount": 1200000,
+      "type": "expense",
+      "category": "Arriendo",
+      "date": "2025-07-01",
+      "createdAt": "2025-07-01T08:00:00.000Z"
+    },
+    {
+      "id": "txn-052",
+      "description": "Compras del mes",
+      "amount": 465000,
+      "type": "expense",
+      "category": "Alimentación",
+      "date": "2025-07-04",
+      "createdAt": "2025-07-04T11:00:00.000Z"
+    },
+    {
+      "id": "txn-053",
+      "description": "Luz, agua, gas",
+      "amount": 195000,
+      "type": "expense",
+      "category": "Servicios Públicos",
+      "date": "2025-07-08",
+      "createdAt": "2025-07-08T09:00:00.000Z"
+    },
+    {
+      "id": "txn-054",
+      "description": "Transporte julio",
+      "amount": 160000,
+      "type": "expense",
+      "category": "Transporte",
+      "date": "2025-07-10",
+      "createdAt": "2025-07-10T07:00:00.000Z"
+    },
+    {
+      "id": "txn-055",
+      "description": "Freelance - Consultoría",
+      "amount": 700000,
+      "type": "income",
+      "category": "Freelance",
+      "date": "2025-07-15",
+      "createdAt": "2025-07-15T15:00:00.000Z"
+    },
+    {
+      "id": "txn-056",
+      "description": "Dentista",
+      "amount": 220000,
+      "type": "expense",
+      "category": "Salud",
+      "date": "2025-07-18",
+      "createdAt": "2025-07-18T10:00:00.000Z"
+    },
+    {
+      "id": "txn-057",
+      "description": "Restaurantes",
+      "amount": 310000,
+      "type": "expense",
+      "category": "Alimentación",
+      "date": "2025-07-20",
+      "createdAt": "2025-07-20T20:00:00.000Z"
+    },
+    {
+      "id": "txn-058",
+      "description": "Streaming servicios",
+      "amount": 65000,
+      "type": "expense",
+      "category": "Entretenimiento",
+      "date": "2025-07-22",
+      "createdAt": "2025-07-22T12:00:00.000Z"
+    },
+    {
+      "id": "txn-059",
+      "description": "Regalos cumpleaños",
+      "amount": 180000,
+      "type": "expense",
+      "category": "Compras",
+      "date": "2025-07-25",
+      "createdAt": "2025-07-25T16:00:00.000Z"
+    },
+    {
+      "id": "txn-060",
+      "description": "Bono especial",
+      "amount": 400000,
+      "type": "income",
+      "category": "Bonos",
+      "date": "2025-07-28",
+      "createdAt": "2025-07-28T09:00:00.000Z"
+    }
+  ]
+}
