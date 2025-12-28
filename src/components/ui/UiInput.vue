@@ -12,7 +12,7 @@
     <div class="relative">
       <span
         v-if="prefix"
-        class="absolute inset-y-0 left-0 pl-5 flex items-center text-gray-600 dark:text-gray-400 font-bold text-lg"
+        class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-600 dark:text-gray-400 font-bold text-base"
       >
         {{ prefix }}
       </span>
@@ -71,8 +71,7 @@ defineEmits<{
 }>()
 
 const inputClasses = computed(() => {
-  const base = 'w-full px-5 py-4 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all duration-300 bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 font-medium shadow-sm text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
-  
+    const base = 'w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all duration-200 bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 font-medium text-base text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
   const borderColor = props.error 
     ? 'border-red-500 dark:border-red-500' 
     : 'border-gray-200 dark:border-gray-600'

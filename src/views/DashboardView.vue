@@ -1,7 +1,7 @@
 <template>
-  <div class="space-y-8 animate-fadeIn">
+  <div class="space-y-4 sm:space-y-6 lg:space-y-8 animate-fadeIn px-2 sm:px-0">
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
       <UiStatCard
         label="Total Ingresos"
         :value="totalIncome"
@@ -9,10 +9,10 @@
         variant="success"
       >
         <template #icon-small>
-          <CheckCircleIcon class="w-4 h-4" />
+          <CheckCircleIcon class="w-3 h-3 sm:w-4 sm:h-4" />
         </template>
         <template #icon>
-          <ArrowTrendingUpIcon class="w-8 h-8 text-white" />
+          <ArrowTrendingUpIcon class="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-white" />
         </template>
       </UiStatCard>
 
@@ -23,10 +23,10 @@
         variant="danger"
       >
         <template #icon-small>
-          <XCircleIcon class="w-4 h-4" />
+          <XCircleIcon class="w-3 h-3 sm:w-4 sm:h-4" />
         </template>
         <template #icon>
-          <ArrowTrendingDownIcon class="w-8 h-8 text-white" />
+          <ArrowTrendingDownIcon class="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-white" />
         </template>
       </UiStatCard>
 
@@ -34,7 +34,7 @@
     </div>
 
     <!-- Main Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
       <CategoryChart :categories="topCategories" />
       <RecentTransactionsList :transactions="recentTransactions" />
     </div>

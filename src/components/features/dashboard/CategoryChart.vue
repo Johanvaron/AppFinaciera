@@ -2,18 +2,18 @@
   <UiCard padding="lg" hover>
     <template #header>
       <div class="flex items-center justify-between">
-        <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">
+        <h3 class="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-gray-100">
           Top Gastos por Categoría
         </h3>
-        <div class="w-10 h-10 bg-gradient-to-br from-purple-100/80 to-purple-200/80 dark:from-purple-900/50 dark:to-purple-800/50 rounded-xl flex items-center justify-center">
-          <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-purple-100/80 to-purple-200/80 dark:from-purple-900/50 dark:to-purple-800/50 rounded-lg sm:rounded-xl flex items-center justify-center">
+          <svg class="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>
         </div>
       </div>
     </template>
 
-    <div class="space-y-5">
+    <div class="space-y-3 sm:space-y-4 md:space-y-5">
       <CategoryItem 
         v-for="(cat, index) in categories" 
         :key="cat.category"

@@ -1,26 +1,26 @@
 <template>
   <div class="group">
-    <div class="flex items-center justify-between mb-2">
-      <div class="flex items-center gap-2">
-        <span class="w-7 h-7 bg-gradient-to-br from-blue-500/90 to-blue-700/90 rounded-lg flex items-center justify-center text-xs font-bold text-white shadow-sm">
+    <div class="flex items-center justify-between mb-1.5 sm:mb-2">
+      <div class="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+        <span class="w-6 h-6 sm:w-7 sm:h-7 bg-gradient-to-br from-blue-500/90 to-blue-700/90 rounded-md sm:rounded-lg flex items-center justify-center text-[10px] sm:text-xs font-bold text-white shadow-sm flex-shrink-0">
           {{ index + 1 }}
         </span>
-        <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+        <span class="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
           {{ category.category }}
         </span>
       </div>
-      <div class="text-right">
-        <span class="text-sm font-bold text-gray-900 dark:text-gray-100">
+      <div class="text-right flex-shrink-0 ml-2">
+        <span class="text-xs sm:text-sm font-bold text-gray-900 dark:text-gray-100">
           ${{ category.total.toLocaleString('es-CO') }}
         </span>
-        <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">
+        <span class="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 ml-1">
           ({{ category.percentage.toFixed(1) }}%)
         </span>
       </div>
     </div>
-    <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-3 overflow-hidden shadow-inner">
+    <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2.5 sm:h-3 overflow-hidden shadow-inner">
       <div 
-        class="h-3 rounded-full transition-all duration-700 ease-out shadow-sm"
+        class="h-2.5 sm:h-3 rounded-full transition-all duration-700 ease-out shadow-sm"
         :class="gradientClass"
         :style="{ width: `${category.percentage}%` }"
       />

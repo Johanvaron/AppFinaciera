@@ -22,7 +22,7 @@
       </select>
       
       <svg
-        class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500 pointer-events-none"
+        class="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400 dark:text-gray-500 pointer-events-none"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -59,7 +59,7 @@ defineEmits<{
 }>()
 
 const selectClasses = computed(() => {
-  const base = 'w-full appearance-none px-5 py-4 pr-12 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all duration-300 bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 font-medium shadow-sm text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
+  const base = 'w-full appearance-none px-4 py-3 pr-12 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all duration-200 bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 font-medium text-base text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
   
   const borderColor = props.error 
     ? 'border-red-500 dark:border-red-500' 
