@@ -33,7 +33,7 @@
           >
             <a
               href="/dashboard"
-              @click.prevent="$router.push('/dashboard')"
+              @click.prevent="$router.push('/dashboard'); sidebarOpen = false"
               :class="[
                 'flex items-center gap-3 px-4 py-3.5 rounded-xl font-medium transition-all duration-300 group relative overflow-hidden',
                 isActive
@@ -54,7 +54,7 @@
           >
             <a
               href="/add-transaction"
-              @click.prevent="$router.push('/add-transaction')"
+              @click.prevent="$router.push('/add-transaction'); sidebarOpen = false"
               :class="[
                 'flex items-center gap-3 px-4 py-3.5 rounded-xl font-medium transition-all duration-300 group relative overflow-hidden',
                 isActive
@@ -75,7 +75,7 @@
           >
             <a
               href="/transactions"
-              @click.prevent="$router.push('/transactions')"
+              @click.prevent="$router.push('/transactions'); sidebarOpen = false"
               :class="[
                 'flex items-center gap-3 px-4 py-3.5 rounded-xl font-medium transition-all duration-300 group relative overflow-hidden',
                 isActive
