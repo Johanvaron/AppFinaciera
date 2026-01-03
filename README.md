@@ -1,6 +1,6 @@
-# 💰 Dashboard Financiero - Proyecto Profesional
+# 💰 App Financiera - Proyecto Profesional
 
-Un dashboard financiero completo y profesional construido con Vue 3, TypeScript, Pinia y Chart.js. Este proyecto demuestra las mejores prácticas de desarrollo frontend moderno.
+Una aplicación financiera completa y profesional construida con Vue 3, TypeScript, Pinia y Chart.js. Este proyecto demuestra las mejores prácticas de desarrollo frontend moderno.
 
 ![Vue 3](https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vue.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript)
@@ -8,7 +8,7 @@ Un dashboard financiero completo y profesional construido con Vue 3, TypeScript,
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-38B2AC?logo=tailwind-css)
 ![Tests](https://img.shields.io/badge/Tests-25/25-success)
 
-## 📋 ¿Para qué sirve este Dashboard Financiero?
+## 📋 ¿Para qué sirve esta App Financiera?
 
 Este proyecto es una **herramienta de gestión financiera personal** diseñada para ayudarte a tener el control total de tu dinero. Te permite:
 
@@ -107,7 +107,7 @@ Password: demo123
 ## 📁 Estructura del Proyecto
 
 ```
-dashboard-financiero/
+app-financiera/
 ├── src/
 │   ├── components/       # Componentes reutilizables
 │   │   ├── BaseButton.vue
