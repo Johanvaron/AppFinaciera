@@ -74,7 +74,7 @@ function onKeydown(event: KeyboardEvent) {
     </div>
 
     <div class="col-span-2 row-start-2 min-w-0 sm:col-span-1 sm:col-start-2 sm:row-start-1">
-      <ProgressBar :ratio="barRatio(row)":tone="stateTone(row.state)" :label="`Avance de ${name}`" />
+      <ProgressBar :ratio="barRatio(row)" :tone="stateTone(row.state)" :label="`Avance de ${name}`" />
     </div>
 
     <p :class="['col-start-1 row-start-3 min-w-0 truncate text-xs sm:col-start-2 sm:row-start-2', isOver(row) ? 'font-medium text-danger' : 'text-muted']">
@@ -92,8 +92,8 @@ function onKeydown(event: KeyboardEvent) {
     </RouterLink>
 
     <div class="col-start-2 row-start-1 flex justify-end sm:col-start-5 sm:row-span-2">
-      <div v-if="editing" class="w-36 sm:w-full" role="group" :aria-label="`Tope de ${name}`" @keydown="onKeydown" @focusout="emit('commit', typedText($event), 'blur')">
-        <UiMoneyInput ref="input" v-model="draft" placeholder="Sin tope" :invalid="invalid" />
+      <div v-if="editing" class="w-36 sm:w-full" @keydown="onKeydown" @focusout="emit('commit', typedText($event), 'blur')">
+        <UiMoneyInput ref="input" v-model="draft" placeholder="Sin tope" :invalid="invalid" :aria-label="`Tope de ${name}`" />
       </div>
       <button
         v-else

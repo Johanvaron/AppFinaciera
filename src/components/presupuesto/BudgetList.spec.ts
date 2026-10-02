@@ -46,6 +46,7 @@ describe('BudgetList', () => {
     expect(trigger(wrapper, 5).text()).toBe('Poner tope')
     await trigger(wrapper, 5).trigger('click')
     const input = wrapper.get('input')
+    expect(input.attributes('aria-label')).toBe('Tope de Antojos')
     await input.setValue('200k')
     await input.trigger('keydown', { key: 'Enter' })
     expect(api.budgets.set).toHaveBeenCalledTimes(1)
