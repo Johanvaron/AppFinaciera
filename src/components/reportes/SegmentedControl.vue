@@ -5,14 +5,14 @@ const model = defineModel<T>({ required: true })
 </script>
 
 <template>
-  <div role="group" :aria-label="label" class="inline-flex max-w-full gap-1 overflow-x-auto rounded-lg bg-fill p-1">
+  <div role="group" :aria-label="label" class="inline-flex max-w-full gap-1 rounded-lg bg-fill p-1">
     <button
       v-for="option in options"
       :key="option.value"
       type="button"
       :aria-pressed="model === option.value"
       :class="[
-        'h-8 shrink-0 whitespace-nowrap rounded-md px-3 text-[14px] font-medium transition-colors sm:h-6',
+        'h-10 min-w-0 flex-auto whitespace-nowrap rounded-md px-2 text-[14px] font-medium transition-colors sm:h-8 sm:px-3',
         model === option.value ? 'bg-primary text-primary-ink' : 'text-muted hover:text-ink',
       ]"
       @click="model = option.value"
