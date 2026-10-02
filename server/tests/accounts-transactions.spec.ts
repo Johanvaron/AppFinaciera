@@ -126,7 +126,11 @@ describe('transactions', () => {
   it('rejects non-integer and zero amounts, and a broken JSON body', async () => {
     expect((await post({ type: 'expense', categoryId: food, amount: 10.5 })).status).toBe(422)
     expect((await post({ type: 'expense', categoryId: food, amount: 0 })).status).toBe(422)
-    const response = await api.call('POST', '/transactions')
+    const response = await api.app.request('/api/transactions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{ "date": ',
+    })
     expect(response.status).toBe(422)
   })
 

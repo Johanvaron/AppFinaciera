@@ -89,6 +89,25 @@ describe('backup', () => {
   })
 })
 
+describe('cross-site writes', () => {
+  it('refuses a write that is not sent as JSON (what a foreign page can send without a preflight)', async () => {
+    const api = createTestApi()
+    await api.account('Banco', 250_000)
+    const before = await api.ok('GET', '/accounts')
+    const body = JSON.stringify({ app: 'app-financiera', version: 1, accounts: [], categories: [], transactions: [], fixedExpenses: [], fixedMonths: [], budgets: [] })
+    for (const headers of [{ 'Content-Type': 'text/plain' }, undefined]) {
+      const response = await api.app.request('/api/backup/restore', { method: 'POST', body, ...(headers ? { headers } : {}) })
+      expect(response.status).toBe(415)
+      expect(await response.json()).toEqual({ error: 'El cuerpo debe enviarse como application/json' })
+    }
+    expect(before).toHaveLength(1)
+    expect(await api.ok('GET', '/accounts')).toEqual(before)
+
+    const json = await api.app.request('/api/backup/restore', { method: 'POST', body, headers: { 'Content-Type': 'application/json; charset=utf-8' } })
+    expect(json.status).toBe(200)
+  })
+})
+
 describe('database', () => {
   it('records the applied migrations and does not re-run them or the seed', () => {
     let created = 0
