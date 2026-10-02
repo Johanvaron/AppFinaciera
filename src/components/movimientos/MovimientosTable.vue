@@ -126,15 +126,15 @@ function sortIcon(key: SortKey) {
     </table>
   </div>
 
-  <!-- Phones: card-rows, tap to edit -->
+  <!-- Phones: card-rows, tap to edit, trash to delete -->
   <ul class="flex min-w-0 flex-col sm:hidden">
     <template v-for="line in lines" :key="line.key">
       <li v-if="line.kind === 'day'" class="flex items-center justify-between gap-3 rounded-lg bg-fill px-2 py-1.5 text-xs font-semibold text-muted">
         <span class="min-w-0 truncate">{{ line.label }}</span>
         <span v-if="line.spent > 0" class="num font-medium">Gastado {{ formatMoney(line.spent) }}</span>
       </li>
-      <li v-else>
-        <button type="button" class="flex w-full min-w-0 items-center gap-3 rounded-lg px-2 py-2.5 text-left hover:bg-fill/50" :aria-label="`Editar ${line.view.title}`" @click="emit('edit', line.tx)">
+      <li v-else class="flex min-w-0 items-center gap-1">
+        <button type="button" class="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-2.5 text-left hover:bg-fill/50" :aria-label="`Editar ${line.view.title}`" @click="emit('edit', line.tx)">
           <span class="min-w-0 flex-1">
             <span class="flex min-w-0 items-center gap-2">
               <span class="truncate font-medium">{{ line.view.title }}</span>
@@ -149,6 +149,10 @@ function sortIcon(key: SortKey) {
             <span :class="['num block font-medium', line.view.amountClass]">{{ line.view.amountText }}</span>
             <span class="block text-xs text-muted">{{ line.view.dateText }}</span>
           </span>
+        </button>
+        <!-- Phones have no selection bar: this is the only way to delete there (asks for confirmation). -->
+        <button type="button" class="flex size-10 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-danger-soft hover:text-danger" :aria-label="`Eliminar ${line.view.title}`" @click="emit('remove', line.tx)">
+          <Trash2 class="size-4" aria-hidden="true" />
         </button>
       </li>
     </template>
