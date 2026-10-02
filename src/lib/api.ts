@@ -52,6 +52,8 @@ export interface TransactionFilters {
   q?: string
 }
 
+const OFFLINE_MESSAGE = 'No se pudo conectar con el servidor local. ¿Está corriendo "pnpm dev"?'
+
 type Query = Record<string, string | number | undefined | null>
 
 function toQueryString(query?: Query): string {
@@ -73,11 +75,13 @@ async function request<T>(method: string, path: string, options: { body?: unknow
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
     })
   } catch {
-    throw new ApiRequestError(0, 'No se pudo conectar con el servidor local. ¿Está corriendo "pnpm dev"?')
+    throw new ApiRequestError(0, OFFLINE_MESSAGE)
   }
   if (response.status === 204) return undefined as T
   const data: unknown = await response.json().catch(() => null)
   if (!response.ok) {
+    // The API always answers JSON. A 5xx without it comes from the dev proxy: the API is down.
+    if (data === null && response.status >= 500) throw new ApiRequestError(0, OFFLINE_MESSAGE)
     const error = data as ApiError | null
     throw new ApiRequestError(response.status, error?.error ?? `Error ${response.status}`, error?.fields)
   }
