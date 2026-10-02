@@ -10,7 +10,20 @@ import { z } from 'zod'
 
 // ---------- primitives ----------
 export const monthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Mes inválido (YYYY-MM)')
-export const dateSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'Fecha inválida (YYYY-MM-DD)')
+/** True when a well-formed 'YYYY-MM-DD' is a real calendar day (rejects 2026-02-31). Local time, no UTC. */
+function isCalendarDate(value: string): boolean {
+  const year = Number(value.slice(0, 4))
+  const month = Number(value.slice(5, 7))
+  const day = Number(value.slice(8, 10))
+  const date = new Date(2000, 0, 1)
+  date.setFullYear(year, month - 1, day)
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+}
+
+export const dateSchema = z
+  .string()
+  .regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, { error: 'Fecha inválida (YYYY-MM-DD)', abort: true })
+  .refine(isCalendarDate, 'Esa fecha no existe en el calendario')
 export const moneySchema = z.number().int('El monto debe ser en pesos enteros').min(0).max(999_999_999_999)
 export const idSchema = z.number().int().positive()
 

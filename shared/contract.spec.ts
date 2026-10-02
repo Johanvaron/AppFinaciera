@@ -1,4 +1,36 @@
-import { accountInputSchema, accountPatchSchema, categoryPatchSchema, fixedExpensePatchSchema } from './contract.ts'
+import {
+  accountInputSchema,
+  accountPatchSchema,
+  categoryPatchSchema,
+  dateSchema,
+  fixedExpensePatchSchema,
+  fixedPaySchema,
+} from './contract.ts'
+
+describe('dateSchema', () => {
+  const messages = (value: string): string[] => {
+    const result = dateSchema.safeParse(value)
+    return result.success ? [] : result.error.issues.map((issue) => issue.message)
+  }
+
+  it.each(['2026-02-31', '2026-04-31', '2025-02-29', '2026-02-30'])('rejects %s: the day does not exist', (value) => {
+    expect(messages(value)).toEqual(['Esa fecha no existe en el calendario'])
+  })
+
+  it.each(['2024-02-29', '2026-01-31', '2026-12-31', '2026-02-28'])('accepts %s', (value) => {
+    expect(messages(value)).toEqual([])
+  })
+
+  it('reports a malformed date once, with the format message', () => {
+    expect(messages('31/01/2026')).toEqual(['Fecha inválida (YYYY-MM-DD)'])
+    expect(messages('2026-13-01')).toEqual(['Fecha inválida (YYYY-MM-DD)'])
+  })
+
+  it('rejects a fixed-expense payment dated on a day that does not exist', () => {
+    const result = fixedPaySchema.safeParse({ month: '2026-02', amount: 60_000, date: '2026-02-31', accountId: 1 })
+    expect(result.success).toBe(false)
+  })
+})
 
 describe('PATCH schemas', () => {
   it('returns only the fields that were sent, without filling defaults', () => {
