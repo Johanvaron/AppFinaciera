@@ -7,7 +7,8 @@ const numberFormatter = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 
 
 /** 1250000 -> "$ 1.250.000". Negative -> "-$ 1.250.000". */
 export function formatMoney(value: number): string {
-  return copFormatter.format(value).replace(NBSP, ' ')
+  // `|| 0` turns -0 into 0: "-$ 0" is not a figure.
+  return copFormatter.format(value || 0).replace(NBSP, ' ')
 }
 
 /** 1250000 -> "1.250.000" (no symbol, for inputs). */
@@ -20,7 +21,8 @@ export function formatMoneyCompact(value: number): string {
   const abs = Math.abs(value)
   const sign = value < 0 ? '-' : ''
   const oneDecimal = (n: number) => n.toLocaleString('es-CO', { maximumFractionDigits: 1 })
-  if (abs >= 1_000_000) return `${sign}$ ${oneDecimal(abs / 1_000_000)} M`
+  // 999.950 already rounds to "1.000 k": show it as "1 M".
+  if (abs >= 999_950) return `${sign}$ ${oneDecimal(abs / 1_000_000)} M`
   if (abs >= 1_000) return `${sign}$ ${oneDecimal(abs / 1_000)} k`
   return `${sign}$ ${abs}`
 }
@@ -41,25 +43,55 @@ export function formatChange(fraction: number | null): string {
   return text
 }
 
+/** "1.250.000" or "1,250,000": groups of three after a 1-3 digit head that does not start with 0. */
+const grouped = (text: string, separator: string): boolean => {
+  const [head, ...groups] = text.split(separator)
+  return groups.length > 0 && /^[1-9]\d{0,2}$/.test(head!) && groups.every((g) => /^\d{3}$/.test(g))
+}
+
+/**
+ * Reads the digits part. A separator only counts as thousands when it really
+ * groups by three ("1.250.000", "1,500"); otherwise it is the decimal mark
+ * ("1.5", "1500.50", "1,5"). Anything ambiguous or malformed ("1.5.3") is NaN.
+ */
+function parsePlainNumber(digits: string): number {
+  const text = digits.replace(/[.,]$/, '')
+  const lastDot = text.lastIndexOf('.')
+  const lastComma = text.lastIndexOf(',')
+  if (lastDot === -1 && lastComma === -1) return Number(text)
+  if (lastDot !== -1 && lastComma !== -1) {
+    // Both: the last one is the decimal mark, the other one groups thousands.
+    const decimalAt = Math.max(lastDot, lastComma)
+    const thousands = lastDot > lastComma ? ',' : '.'
+    const whole = text.slice(0, decimalAt)
+    const decimals = text.slice(decimalAt + 1)
+    if (!grouped(whole, thousands) || !/^\d+$/.test(decimals)) return NaN
+    return Number(`${whole.split(thousands).join('')}.${decimals}`)
+  }
+  const separator = lastDot !== -1 ? '.' : ','
+  if (grouped(text, separator)) return Number(text.split(separator).join(''))
+  const parts = text.split(separator)
+  return parts.length === 2 ? Number(`${parts[0]}.${parts[1]}`) : NaN
+}
+
 /**
  * Parses what a person types into pesos. Accepts "200k", "1,5m", "1.143.415,93",
  * "$ 78.000", "500". Returns null when it is not a number.
- * With a k/m suffix both "." and "," are decimals; without it "." is the
- * thousands separator and "," the decimal one (Colombian format).
+ * With a k/m suffix a lone "." or "," is always the decimal mark ("1.500k" is 1.500).
  */
 export function parseMoney(text: string): number | null {
   const clean = text.toLowerCase().replace(NBSP, '').replace(/[\s$]/g, '')
   if (!clean) return null
-  const match = /^(\d[\d.,]*)(k|m|mil|millones|millon)?$/.exec(clean)
+  const match = /^(\d[\d.,]*)(k|m|mil|millones|mill[oó]n)?$/.exec(clean)
   if (!match) return null
   const digits = match[1]!
   const suffix = match[2]
   let value: number
   if (suffix) {
-    value = Number(digits.replace(',', '.'))
+    value = /^\d+[.,]\d+$/.test(digits) ? Number(digits.replace(',', '.')) : parsePlainNumber(digits)
     value *= suffix === 'k' || suffix === 'mil' ? 1_000 : 1_000_000
   } else {
-    value = Number(digits.replace(/\./g, '').replace(',', '.'))
+    value = parsePlainNumber(digits)
   }
   if (!Number.isFinite(value)) return null
   return Math.round(value)
