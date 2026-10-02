@@ -15,7 +15,13 @@ const toasts = useToasts()
     >
       <component :is="toast.kind === 'error' ? CircleAlert : CircleCheck" class="size-4 shrink-0" aria-hidden="true" />
       <span class="min-w-0">{{ toast.message }}</span>
-      <button type="button" class="ml-1 shrink-0 opacity-70 hover:opacity-100" aria-label="Cerrar aviso" @click="toasts.dismiss(toast.id)">
+      <!-- 40/32px target; the negative margins keep the toast as tall as its text. -->
+      <button
+        type="button"
+        class="-my-2 -mr-2 flex size-10 shrink-0 items-center justify-center rounded-lg opacity-70 hover:opacity-100 sm:size-8"
+        aria-label="Cerrar aviso"
+        @click="toasts.dismiss(toast.id)"
+      >
         <X class="size-4" aria-hidden="true" />
       </button>
     </div>

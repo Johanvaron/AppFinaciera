@@ -9,8 +9,11 @@
 import { z } from 'zod'
 
 // ---------- primitives ----------
-export const monthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Mes inválido (YYYY-MM)')
-export const dateSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'Fecha inválida (YYYY-MM-DD)')
+// Years 1900-2199 only: a typo such as 0000 or 0026 must not reach the month arithmetic.
+export const monthSchema = z.string().regex(/^(19|20|21)\d{2}-(0[1-9]|1[0-2])$/, 'Mes inválido (YYYY-MM)')
+export const dateSchema = z
+  .string()
+  .regex(/^(19|20|21)\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'Fecha inválida (YYYY-MM-DD)')
 export const moneySchema = z.number().int('El monto debe ser en pesos enteros').min(0).max(999_999_999_999)
 export const idSchema = z.number().int().positive()
 
@@ -200,6 +203,7 @@ export interface FixedMonthItem {
   hasOverride: boolean
   /** Sum of the payments linked to this fixed expense for this month. */
   paidAmount: number
+  /** 'paid' only when paidAmount >= expectedAmount; a partial payment stays pending / overdue. */
   status: FixedStatus
   /** Null when the fixed expense has no dueDay. */
   dueDate: IsoDate | null
@@ -212,11 +216,13 @@ export interface FixedMonthResponse {
   month: Month
   items: FixedMonthItem[]
   totals: {
-    /** Sum of expectedAmount of non-skipped items (paid items count what was actually paid). */
+    /** paid + pending: what the month costs once everything is settled. */
     expected: number
+    /** Sum of paidAmount of non-skipped items, partial payments included. */
     paid: number
-    /** Sum of expectedAmount of pending + overdue items. */
+    /** What is still owed: sum of max(expectedAmount - paidAmount, 0) of pending + overdue items. */
     pending: number
+    /** Items fully paid (paidAmount >= expectedAmount); a partial payment does not count. */
     countPaid: number
     countTotal: number
   }
@@ -271,7 +277,18 @@ export interface BudgetRow {
 export interface BudgetMonthResponse {
   month: Month
   rows: BudgetRow[]
-  totals: { budget: number; spent: number; remaining: number }
+  /**
+   * `spent` and `remaining` measure different things, so budget - spent is NOT remaining:
+   * label them apart when both are shown.
+   */
+  totals: {
+    /** Sum of the budgets of the categories that have one this month. */
+    budget: number
+    /** Every expense of the month, including categories without a budget. */
+    spent: number
+    /** budget minus what was spent in the budgeted categories only; negative when over. */
+    remaining: number
+  }
 }
 
 // ---------- summary (dashboard) ----------

@@ -25,8 +25,18 @@ const TYPES: { value: TransactionType; label: string }[] = [
 
 const quickAdd = useQuickAdd()
 const toasts = useToasts()
-const { data: accounts } = useAccounts()
-const { data: categories } = useCategories()
+const accountsQuery = useAccounts()
+const categoriesQuery = useCategories()
+const { data: accounts } = accountsQuery
+const { data: categories } = categoriesQuery
+
+/** Lists that did not load: without them there is nothing to choose, so the form says why and offers a retry. */
+const failedLists = computed(() => [accountsQuery, categoriesQuery].filter((query) => query.isError.value && query.data.value === undefined))
+const loadError = computed(() => (failedLists.value[0] ? errorMessage(failedLists.value[0].error.value) : ''))
+const retrying = computed(() => failedLists.value.some((query) => query.isFetching.value))
+function retryLoad() {
+  for (const query of failedLists.value) void query.refetch()
+}
 
 const form = reactive({
   type: 'expense' as TransactionType,
@@ -43,6 +53,8 @@ const formError = ref('')
 const amountInput = ref<InstanceType<typeof UiMoneyInput>>()
 
 const editing = computed(() => quickAdd.editing)
+/** The payment of a fixed expense: the server keeps the link and rejects any type other than expense. */
+const isFixedPayment = computed(() => editing.value?.fixedExpenseId != null)
 const activeAccounts = computed(() => (accounts.value ?? []).filter((a) => !a.archived || a.id === form.accountId || a.id === form.toAccountId))
 
 /** Categories of the chosen type, grouped for the <optgroup>s. */
@@ -86,6 +98,8 @@ watch(activeAccounts, (list) => {
 })
 
 function setType(type: TransactionType) {
+  // Clicking the active type must not wipe the chosen category.
+  if (type === form.type) return
   form.type = type
   form.categoryId = null
   form.toAccountId = null
@@ -97,7 +111,20 @@ const save = useApiMutation(
   { silentError: true },
 )
 
+/**
+ * Paints each rejection next to its input. One on anything without an input on
+ * screen right now (the type, an unknown key) goes to the general line, never to nowhere.
+ */
+function showErrors(fields: Record<string, string>, fallback: string) {
+  const shown = ['amount', 'accountId', 'date', 'description', 'note', form.type === 'transfer' ? 'toAccountId' : 'categoryId']
+  const orphans = Object.entries(fields).filter(([field]) => !shown.includes(field))
+  errors.value = fields
+  if (orphans.length > 0) formError.value = orphans.map(([, message]) => message).join(' ')
+  else if (Object.keys(fields).length === 0) formError.value = fallback
+}
+
 async function submit(keepOpen: boolean) {
+  if (save.isPending.value) return
   errors.value = {}
   formError.value = ''
   const parsed = transactionInputSchema.safeParse({
@@ -111,17 +138,21 @@ async function submit(keepOpen: boolean) {
     note: form.note,
   })
   if (!parsed.success) {
+    const fields: Record<string, string> = {}
     for (const issue of parsed.error.issues) {
       const field = String(issue.path[0] ?? '')
-      errors.value[field] ??= field === 'accountId' ? 'Elige una cuenta' : issue.message
+      // Zod's own wording for these two reads like a machine ("se esperaba que número fuera <=999999999999").
+      if (field === 'accountId') fields[field] ??= 'Elige una cuenta'
+      else if (field === 'amount' && issue.code === 'too_big') fields[field] ??= 'El monto es demasiado grande'
+      else fields[field] ??= issue.message
     }
+    showErrors(fields, '')
     return
   }
   try {
     await save.mutateAsync(parsed.data)
   } catch (error) {
-    errors.value = errorFields(error)
-    if (Object.keys(errors.value).length === 0) formError.value = errorMessage(error)
+    showErrors(errorFields(error), errorMessage(error))
     return
   }
   try {
@@ -144,6 +175,11 @@ async function submit(keepOpen: boolean) {
 <template>
   <UiModal v-model:open="quickAdd.open" :title="editing ? 'Editar movimiento' : 'Nuevo movimiento'">
     <form id="transaction-form" class="flex flex-col gap-3" @submit.prevent="submit(false)">
+      <div v-if="loadError" class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-danger-soft px-3 py-2 text-xs text-danger" role="alert">
+        <span class="min-w-0 flex-1">No se pudieron cargar las cuentas y categorías. {{ loadError }}</span>
+        <UiButton :loading="retrying" @click="retryLoad">Reintentar</UiButton>
+      </div>
+
       <div class="flex rounded-lg bg-fill p-1" role="radiogroup" aria-label="Tipo de movimiento">
         <button
           v-for="option in TYPES"
@@ -151,8 +187,9 @@ async function submit(keepOpen: boolean) {
           type="button"
           role="radio"
           :aria-checked="form.type === option.value"
+          :disabled="isFixedPayment && option.value !== 'expense'"
           :class="[
-            'h-9 flex-1 rounded-md text-[14px] font-medium transition-colors sm:h-7',
+            'h-10 flex-1 rounded-md text-[14px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:h-8',
             form.type === option.value ? 'bg-surface text-ink shadow-card' : 'text-muted hover:text-ink',
           ]"
           @click="setType(option.value)"
@@ -161,7 +198,10 @@ async function submit(keepOpen: boolean) {
         </button>
       </div>
 
-      <UiField label="Monto" :error="errors.amount" hint="Puedes escribir 200k o 1,5m">
+      <p v-if="isFixedPayment" class="text-xs text-muted">Este movimiento es el pago de un gasto fijo, así que sigue siendo un gasto.</p>
+
+      <!-- The 200k shortcut needs letters and the phone keypad (inputmode=decimal) has none. -->
+      <UiField label="Monto" :error="errors.amount" hint="Puedes escribir 200k o 1,5m" hint-from-sm>
         <UiMoneyInput ref="amountInput" v-model="form.amount" data-autofocus :invalid="!!errors.amount" />
       </UiField>
 
@@ -193,7 +233,7 @@ async function submit(keepOpen: boolean) {
           <input v-model="form.date" type="date" class="control" />
         </UiField>
 
-        <UiField label="Descripción" :error="errors.description" :class="form.type === 'transfer' ? '' : 'sm:col-span-1'">
+        <UiField label="Descripción" :error="errors.description">
           <input v-model="form.description" type="text" class="control" maxlength="120" placeholder="Opcional" />
         </UiField>
       </div>
