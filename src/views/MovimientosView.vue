@@ -50,7 +50,9 @@ const filters = computed<TransactionFilters>(() => {
 })
 
 // ---------- data ----------
-const { data: transactions, isLoading, isError, error, refetch, isFetching } = useTransactions(filters)
+const { data: transactions, isLoading, isError, error, refetch, isFetching, isPlaceholderData } = useTransactions(filters)
+/** Filters the list on screen was really asked with (the search lags behind typing by the debounce). */
+const filtersApplied = computed(() => Object.keys(filters.value).length > 1)
 const { data: categories } = useCategories()
 const { data: accounts } = useAccounts()
 
@@ -178,19 +180,20 @@ function confirmDelete() {
         <dd :class="['num text-[16px] font-semibold sm:text-[18px]', totals.net < 0 && 'text-danger']">{{ formatMoney(totals.net) }}</dd>
       </div>
       <div class="flex min-w-0 items-baseline justify-between gap-3 sm:flex-col sm:justify-start sm:gap-0">
-        <dt class="text-xs font-medium text-muted">{{ filtersActive ? 'Con estos filtros' : 'En el mes' }}</dt>
+        <dt class="text-xs font-medium text-muted">{{ filtersApplied ? 'Con estos filtros' : 'En el mes' }}</dt>
         <dd class="num text-[16px] font-semibold sm:text-[18px]">{{ countLabel(totals.count) }}</dd>
       </div>
     </dl>
 
     <section class="card flex min-w-0 flex-col gap-3" aria-label="Lista de movimientos">
-      <p v-if="isLoading" class="py-8 text-center text-xs text-muted" role="status">Cargando movimientos…</p>
+      <!-- An empty list kept from the previous filters says nothing about the new ones: wait for the answer. -->
+      <p v-if="isLoading || (isPlaceholderData && rows.length === 0)" class="py-8 text-center text-xs text-muted" role="status">Cargando movimientos…</p>
 
       <EmptyState v-else-if="isError" :icon="CircleAlert" title="No se pudieron cargar los movimientos" :text="errorMessage(error)">
         <UiButton @click="refetch()">Reintentar</UiButton>
       </EmptyState>
 
-      <EmptyState v-else-if="rows.length === 0 && filtersActive" :icon="SearchX" title="Ningún movimiento coincide" text="Prueba con otra búsqueda o quita algún filtro.">
+      <EmptyState v-else-if="rows.length === 0 && (filtersApplied || filtersActive)" :icon="SearchX" title="Ningún movimiento coincide" text="Prueba con otra búsqueda o quita algún filtro.">
         <UiButton @click="clearFilters">Limpiar filtros</UiButton>
       </EmptyState>
 
