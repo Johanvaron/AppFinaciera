@@ -31,8 +31,8 @@ export interface RangeTotals {
   income: number
   expenses: number
   net: number
-  /** Average over the months with any movement; null when there are none. */
-  averageExpense: number | null
+  /** Monthly average over every month of the range, the same denominator as the matrix and the server. */
+  averageExpense: number
   /** Month with the highest expense; null when nothing was spent. */
   peak: MonthlyReportRow | null
 }
@@ -42,7 +42,6 @@ const hasMovement = (row: MonthlyReportRow) => row.income !== 0 || row.expenses 
 export function rangeTotals(rows: MonthlyReportRow[]): RangeTotals {
   const income = rows.reduce((sum, row) => sum + row.income, 0)
   const expenses = rows.reduce((sum, row) => sum + row.expenses, 0)
-  const active = rows.filter(hasMovement).length
   let peak: MonthlyReportRow | null = null
   for (const row of rows) {
     if (row.expenses > 0 && (!peak || row.expenses > peak.expenses)) peak = row
@@ -51,7 +50,7 @@ export function rangeTotals(rows: MonthlyReportRow[]): RangeTotals {
     income,
     expenses,
     net: income - expenses,
-    averageExpense: active > 0 ? Math.round(expenses / active) : null,
+    averageExpense: rows.length ? Math.round(expenses / rows.length) : 0,
     peak,
   }
 }
@@ -61,8 +60,9 @@ export function isEmptyRange(rows: MonthlyReportRow[]): boolean {
   return !rows.some(hasMovement)
 }
 
-export function averageExpenseText(totals: RangeTotals): string {
-  return totals.averageExpense == null ? '—' : formatMoney(totals.averageExpense)
+/** Detail of the average card: says how many months the average is divided by. */
+export function averageDetailText(months: number): string {
+  return months === 1 ? 'Promedio del rango: 1 mes' : `Promedio del rango: ${months} meses`
 }
 
 /** "Octubre 2026 · $ 1.250.000", or "—" when nothing was spent. */

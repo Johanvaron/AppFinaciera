@@ -1,6 +1,6 @@
 import type { Category, CategoryReport, MonthlyReportRow } from '@shared/contract'
 import {
-  averageExpenseText,
+  averageDetailText,
   cellText,
   deriveRange,
   isEmptyRange,
@@ -43,13 +43,26 @@ describe('rangeTotals', () => {
     expect(totals.net).toBe(3_050_000)
   })
 
-  it('averages the expense only over months with movements', () => {
-    // 5.150.000 / 3 active months (July is empty), not / 4.
-    expect(averageExpenseText(rangeTotals(rows))).toBe('$ 1.716.667')
+  it('averages the expense over every month of the range, like the matrix footer', () => {
+    // 5.150.000 / 4 months of the range (empty July included), not / 3 active months.
+    const report: CategoryReport = {
+      months: rows.map((item) => item.month),
+      rows: [
+        { category: category(1, 'Mercado'), totals: [0, 1_000_000, 2_000_000, 600_000], total: 3_600_000, average: 900_000 },
+        { category: category(2, 'Transporte'), totals: [0, 500_000, 750_000, 300_000], total: 1_550_000, average: 387_500 },
+      ],
+    }
+    expect(cellText(rangeTotals(rows).averageExpense)).toBe('$ 1.287.500')
+    expect(cellText(rangeTotals(rows).averageExpense)).toBe(cellText(matrixFooter(report).average))
   })
 
-  it('counts a month with only income as active', () => {
-    expect(averageExpenseText(rangeTotals([row('2026-09', 1_000_000, 0), row('2026-10', 0, 300_000)]))).toBe('$ 150.000')
+  it('divides by the months of the range even when a month only has income', () => {
+    expect(cellText(rangeTotals([row('2026-08', 0, 0), row('2026-09', 1_000_000, 0), row('2026-10', 0, 300_000)]).averageExpense)).toBe('$ 100.000')
+  })
+
+  it('says how many months the average is divided by', () => {
+    expect(averageDetailText(4)).toBe('Promedio del rango: 4 meses')
+    expect(averageDetailText(1)).toBe('Promedio del rango: 1 mes')
   })
 
   it('finds the month with the highest expense', () => {
@@ -62,7 +75,7 @@ describe('rangeTotals', () => {
 
   it('shows dashes when the range has no movements', () => {
     const empty = rangeTotals([row('2026-09', 0, 0), row('2026-10', 0, 0)])
-    expect(averageExpenseText(empty)).toBe('—')
+    expect(cellText(empty.averageExpense)).toBe('—')
     expect(peakMonthText(empty)).toBe('—')
     expect(empty.net).toBe(0)
   })

@@ -4,7 +4,7 @@ import { CalendarRange, Flame, PiggyBank, TrendingDown, TrendingUp } from 'lucid
 import type { MonthlyReportRow } from '@shared/contract'
 import StatCard from '@/components/ui/StatCard.vue'
 import { formatMoney, monthLabel } from '@/lib/format'
-import { averageExpenseText, rangeTotals } from './reports'
+import { averageDetailText, cellText, rangeTotals } from './reports'
 
 const props = defineProps<{ rows: MonthlyReportRow[] }>()
 
@@ -16,7 +16,7 @@ const totals = computed(() => rangeTotals(props.rows))
     <StatCard label="Ingresos totales" :value="formatMoney(totals.income)" :icon="TrendingUp" tone="success" />
     <StatCard label="Gastos totales" :value="formatMoney(totals.expenses)" :icon="TrendingDown" />
     <StatCard label="Ahorro neto" :value="formatMoney(totals.net)" :icon="PiggyBank" :tone="totals.net < 0 ? 'danger' : 'primary'" />
-    <StatCard label="Gasto promedio mensual" :value="averageExpenseText(totals)" :icon="CalendarRange" detail="Solo meses con movimientos" />
+    <StatCard label="Gasto promedio mensual" :value="cellText(totals.averageExpense)" :icon="CalendarRange" :detail="averageDetailText(rows.length)" />
     <StatCard
       label="Mes de mayor gasto"
       :value="totals.peak ? monthLabel(totals.peak.month) : '—'"
