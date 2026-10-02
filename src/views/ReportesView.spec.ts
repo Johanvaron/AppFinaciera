@@ -76,10 +76,11 @@ describe('ReportesView', () => {
     // The retry asks for both reports again and the notice goes away once they answer.
     vi.mocked(api.reports.monthly).mockImplementation(async (query) => monthlyRows(query))
     vi.mocked(api.reports.categories).mockImplementation(async (query) => categoryReport(query))
-    const callsBefore = [vi.mocked(api.reports.monthly).mock.calls.length, vi.mocked(api.reports.categories).mock.calls.length]
+    const monthlyCalls = vi.mocked(api.reports.monthly).mock.calls.length
+    const categoryCalls = vi.mocked(api.reports.categories).mock.calls.length
     await pressOption(wrapper, 'Reintentar')
-    expect(vi.mocked(api.reports.monthly).mock.calls.length).toBe(callsBefore[0] + 1)
-    expect(vi.mocked(api.reports.categories).mock.calls.length).toBe(callsBefore[1] + 1)
+    expect(vi.mocked(api.reports.monthly).mock.calls.length).toBe(monthlyCalls + 1)
+    expect(vi.mocked(api.reports.categories).mock.calls.length).toBe(categoryCalls + 1)
     expect(wrapper.text()).toContain('$ 24.000.000')
     expect(wrapper.text()).not.toContain('No se pudo conectar')
     expect(wrapper.text()).not.toContain('Reintentar')
