@@ -111,4 +111,30 @@ describe('BudgetList', () => {
     expect(wrapper.get('input').attributes('aria-invalid')).toBe('true')
     expect(api.budgets.set).not.toHaveBeenCalled()
   })
+
+  it('does not save a half-typed cap when the window loses the focus', async () => {
+    const hasFocus = vi.spyOn(document, 'hasFocus').mockReturnValue(false)
+    const wrapper = mountList()
+    await trigger(wrapper, 3).trigger('click')
+    await wrapper.get('input').setValue('5')
+    await wrapper.get('input').trigger('focusout')
+    expect(api.budgets.set).not.toHaveBeenCalled()
+    expect((wrapper.get('input').element as HTMLInputElement).value).toBe('5')
+
+    await wrapper.get('input').setValue('')
+    await wrapper.get('input').trigger('focusout')
+    expect(api.budgets.set).not.toHaveBeenCalled()
+    expect(wrapper.find('input').exists()).toBe(true)
+
+    // Leaving the field inside the window still saves.
+    hasFocus.mockReturnValue(true)
+    await wrapper.get('input').setValue('650.000')
+    await wrapper.get('input').trigger('focusout')
+    expect(api.budgets.set).toHaveBeenCalledTimes(1)
+    expect(api.budgets.set).toHaveBeenCalledWith({ categoryId: 3, month: '2026-10', amount: 650000 })
+    expect(wrapper.find('input').exists()).toBe(false)
+    expect(trigger(wrapper, 3).text()).toBe('$ 650.000')
+    hasFocus.mockRestore()
+    await flushPromises()
+  })
 })

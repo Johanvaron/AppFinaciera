@@ -64,6 +64,13 @@ function onKeydown(event: KeyboardEvent) {
     emit('commit', typedText(event), event.shiftKey ? 'previous' : 'next')
   }
 }
+
+function onFocusOut(event: FocusEvent) {
+  // The window lost the focus (Alt+Tab, another app), not the field: a half-typed
+  // cap must not be saved. The input is still focused when the person comes back.
+  if (!document.hasFocus()) return
+  emit('commit', typedText(event), 'blur')
+}
 </script>
 
 <template>
@@ -95,7 +102,7 @@ function onKeydown(event: KeyboardEvent) {
     </div>
 
     <div class="col-start-2 row-start-1 flex justify-end sm:col-start-5 sm:row-span-2">
-      <div v-if="editing" class="w-36 sm:w-full" @keydown="onKeydown" @focusout="emit('commit', typedText($event), 'blur')">
+      <div v-if="editing" class="w-36 sm:w-full" @keydown="onKeydown" @focusout="onFocusOut">
         <UiMoneyInput ref="input" v-model="draft" placeholder="Sin tope" :invalid="invalid" :aria-label="`Tope de ${name}`" />
       </div>
       <button
