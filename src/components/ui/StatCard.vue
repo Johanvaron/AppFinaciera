@@ -33,10 +33,12 @@ const TONES = {
     <span :class="['flex size-10 shrink-0 items-center justify-center rounded-full', TONES[tone].icon]">
       <component :is="icon" class="size-5" aria-hidden="true" />
     </span>
-    <div class="min-w-0">
+    <div class="min-w-0 flex-1">
       <p class="truncate text-xs font-medium text-muted">{{ label }}</p>
       <p :class="['num truncate font-semibold leading-tight', large ? 'text-[26px]' : 'text-[20px]']">{{ value }}</p>
       <p v-if="detail" class="truncate text-xs text-muted">{{ detail }}</p>
+      <!-- Extra content under the figure, e.g. a ProgressBar. -->
+      <slot />
     </div>
   </div>
 </template>
