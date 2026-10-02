@@ -162,9 +162,19 @@ export function dueText(dueDate: IsoDate | null, today: IsoDate = todayIso()): {
   return { text: `Vence ${dateShort(dueDate)}`, overdue: false }
 }
 
-export function expectedAmountText(item: Pick<FixedMonthItem, 'expectedAmount'> & { fixed: Pick<FixedMonthItem['fixed'], 'variableAmount'> }): string {
-  if (item.expectedAmount === 0 && item.fixed.variableAmount) return 'Por definir'
-  return formatMoney(item.expectedAmount)
+export interface UpcomingAmount {
+  /** What is still owed: the same figure "Fijos por pagar" adds up. */
+  text: string
+  /** Variable fixed expense with no amount for the month yet. */
+  toDefine: boolean
+  /** "Abonaste $ 200.000 de $ 500.000" when part of it is already paid. */
+  paidNote: string | null
+}
+
+export function upcomingAmount(item: Pick<FixedMonthItem, 'expectedAmount' | 'paidAmount'> & { fixed: Pick<FixedMonthItem['fixed'], 'variableAmount'> }): UpcomingAmount {
+  const paidNote = item.paidAmount > 0 ? `Abonaste ${formatMoney(item.paidAmount)} de ${formatMoney(item.expectedAmount)}` : null
+  if (item.expectedAmount === 0 && item.fixed.variableAmount && item.paidAmount === 0) return { text: 'Por definir', toDefine: true, paidNote }
+  return { text: formatMoney(Math.max(item.expectedAmount - item.paidAmount, 0)), toDefine: false, paidNote }
 }
 
 // ---------- recent movements ----------

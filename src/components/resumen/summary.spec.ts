@@ -4,7 +4,6 @@ import {
   categoryBars,
   changeDetail,
   dueText,
-  expectedAmountText,
   fixedStat,
   isEmptyMonth,
   paceSeries,
@@ -12,6 +11,7 @@ import {
   savingsStat,
   signedAmount,
   transactionTitle,
+  upcomingAmount,
   WELCOME_STEPS,
   welcomeDate,
 } from './summary'
@@ -155,9 +155,26 @@ describe('upcoming payments', () => {
   })
 
   it('asks for the amount of a variable fixed expense still at zero', () => {
-    expect(expectedAmountText({ expectedAmount: 0, fixed: { variableAmount: true } })).toBe('Por definir')
-    expect(expectedAmountText({ expectedAmount: 185000, fixed: { variableAmount: true } })).toBe('$ 185.000')
-    expect(expectedAmountText({ expectedAmount: 0, fixed: { variableAmount: false } })).toBe('$ 0')
+    expect(upcomingAmount({ expectedAmount: 0, paidAmount: 0, fixed: { variableAmount: true } })).toEqual({ text: 'Por definir', toDefine: true, paidNote: null })
+    expect(upcomingAmount({ expectedAmount: 185000, paidAmount: 0, fixed: { variableAmount: true } })).toEqual({ text: '$ 185.000', toDefine: false, paidNote: null })
+    expect(upcomingAmount({ expectedAmount: 0, paidAmount: 0, fixed: { variableAmount: false } })).toEqual({ text: '$ 0', toDefine: false, paidNote: null })
+  })
+
+  it('shows what is left of a partly paid fixed expense and says how much was paid', () => {
+    expect(upcomingAmount({ expectedAmount: 500000, paidAmount: 200000, fixed: { variableAmount: false } })).toEqual({
+      text: '$ 300.000',
+      toDefine: false,
+      paidNote: 'Abonaste $ 200.000 de $ 500.000',
+    })
+  })
+
+  it('never shows a negative remainder nor "Por definir" once something was paid', () => {
+    expect(upcomingAmount({ expectedAmount: 0, paidAmount: 40000, fixed: { variableAmount: true } })).toEqual({
+      text: '$ 0',
+      toDefine: false,
+      paidNote: 'Abonaste $ 40.000 de $ 0',
+    })
+    expect(upcomingAmount({ expectedAmount: 90000, paidAmount: 120000, fixed: { variableAmount: false } }).text).toBe('$ 0')
   })
 })
 

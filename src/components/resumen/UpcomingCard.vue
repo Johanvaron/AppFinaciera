@@ -4,7 +4,7 @@ import { computed } from 'vue'
 import { CircleCheck } from 'lucide-vue-next'
 import type { FixedMonthItem } from '@shared/contract'
 import CardHeader from './CardHeader.vue'
-import { dueText, expectedAmountText } from './summary'
+import { dueText, upcomingAmount } from './summary'
 
 const MAX_ROWS = 6
 const props = defineProps<{ items: FixedMonthItem[] }>()
@@ -14,8 +14,7 @@ const rows = computed(() =>
     id: item.fixed.id,
     name: item.fixed.name,
     due: dueText(item.dueDate),
-    amount: expectedAmountText(item),
-    undefinedAmount: item.expectedAmount === 0 && item.fixed.variableAmount,
+    amount: upcomingAmount(item),
   })),
 )
 const linkLabel = computed(() => (props.items.length > MAX_ROWS ? `Ver todos (${props.items.length})` : 'Ver todos'))
@@ -29,8 +28,9 @@ const linkLabel = computed(() => (props.items.length > MAX_ROWS ? `Ver todos (${
         <div class="min-w-0">
           <p class="truncate text-[14px] font-medium">{{ row.name }}</p>
           <p :class="['truncate text-xs', row.due.overdue ? 'font-medium text-danger' : 'text-muted']">{{ row.due.text }}</p>
+          <p v-if="row.amount.paidNote" class="num text-xs text-muted">{{ row.amount.paidNote }}</p>
         </div>
-        <span :class="['num shrink-0 text-[14px]', row.undefinedAmount ? 'text-muted' : 'font-semibold']">{{ row.amount }}</span>
+        <span :class="['num shrink-0 text-[14px]', row.amount.toDefine ? 'text-muted' : 'font-semibold']">{{ row.amount.text }}</span>
       </li>
     </ul>
     <div v-else class="flex flex-1 flex-col items-center justify-center gap-2 py-6 text-center">
