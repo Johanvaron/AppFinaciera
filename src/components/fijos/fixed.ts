@@ -74,6 +74,21 @@ export function moveId(ids: readonly number[], id: number, direction: -1 | 1): n
   return next
 }
 
+/**
+ * Splits a 422's field errors: the ones a form paints next to a control, and
+ * one general message with the rest (e.g. `month` when the fixed expense does
+ * not apply to that month) so no server error stays invisible.
+ */
+export function splitFieldErrors(fields: Record<string, string>, visible: readonly string[]): { fields: Record<string, string>; rest: string } {
+  const shown: Record<string, string> = {}
+  const rest: string[] = []
+  for (const [field, message] of Object.entries(fields)) {
+    if (visible.includes(field)) shown[field] = message
+    else rest.push(message)
+  }
+  return { fields: shown, rest: rest.join('. ') }
+}
+
 /** "3 de 8" for the progress figure. */
 export function progressText(countPaid: number, countTotal: number): string {
   return `${countPaid} de ${countTotal}`

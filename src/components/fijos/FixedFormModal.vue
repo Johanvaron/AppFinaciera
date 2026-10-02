@@ -9,6 +9,7 @@ import UiMoneyInput from '@/components/ui/UiMoneyInput.vue'
 import { api } from '@/lib/api'
 import { useToasts } from '@/lib/toasts'
 import { errorFields, errorMessage, useAccounts, useApiMutation, useCategories } from '@/lib/queries'
+import { splitFieldErrors } from './fixed'
 
 const open = defineModel<boolean>('open', { required: true })
 const props = defineProps<{
@@ -108,13 +109,18 @@ async function submit() {
   try {
     await save.mutateAsync(parsed.data)
   } catch (error) {
-    errors.value = errorFields(error)
-    if (Object.keys(errors.value).length === 0) formError.value = errorMessage(error)
+    const split = splitFieldErrors(errorFields(error), VISIBLE_FIELDS)
+    errors.value = split.fields
+    if (split.rest) formError.value = split.rest
+    else if (Object.keys(split.fields).length === 0) formError.value = errorMessage(error)
     return
   }
   toasts.success(props.editing ? 'Gasto fijo actualizado' : 'Gasto fijo agregado')
   open.value = false
 }
+
+/** Fields with a control that can show its own error. */
+const VISIBLE_FIELDS = ['name', 'amount', 'dueDay', 'categoryId', 'accountId', 'startMonth', 'endMonth', 'note']
 
 const FIELD_MESSAGES: Record<string, string> = {
   categoryId: 'Elige una categoría',

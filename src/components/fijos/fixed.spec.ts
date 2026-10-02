@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { FixedMonthItem } from '@shared/contract'
-import { dueText, moveId, needsAmount, progressRatio, progressText, resetOverrideLabel, rowAmount, rowAmountText, statusTone } from './fixed'
+import { dueText, moveId, needsAmount, progressRatio, progressText, resetOverrideLabel, rowAmount, rowAmountText, splitFieldErrors, statusTone } from './fixed'
 
 function item(overrides: Partial<FixedMonthItem> & { variableAmount?: boolean } = {}): FixedMonthItem {
   const { variableAmount = false, ...rest } = overrides
@@ -123,6 +123,23 @@ describe('moveId', () => {
   it('does not mutate the input', () => {
     moveId(ids, 30, -1)
     expect(ids).toEqual([10, 20, 30, 40])
+  })
+})
+
+describe('splitFieldErrors', () => {
+  it('surfaces the out-of-range 422 as a general message, since the pay form has no month field', () => {
+    expect(splitFieldErrors({ month: 'Este gasto fijo no aplica para ese mes' }, ['amount', 'date', 'accountId'])).toEqual({
+      fields: {},
+      rest: 'Este gasto fijo no aplica para ese mes',
+    })
+  })
+
+  it('keeps the errors of visible fields next to their control', () => {
+    expect(splitFieldErrors({ accountId: 'La cuenta no existe', _: 'Cuerpo inválido' }, ['amount', 'date', 'accountId'])).toEqual({
+      fields: { accountId: 'La cuenta no existe' },
+      rest: 'Cuerpo inválido',
+    })
+    expect(splitFieldErrors({}, ['amount'])).toEqual({ fields: {}, rest: '' })
   })
 })
 

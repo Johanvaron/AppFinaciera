@@ -10,6 +10,7 @@ import UiMoneyInput from '@/components/ui/UiMoneyInput.vue'
 import { api } from '@/lib/api'
 import { todayIso } from '@/lib/format'
 import { errorFields, errorMessage, useAccounts, useApiMutation } from '@/lib/queries'
+import { splitFieldErrors } from './fixed'
 
 const open = defineModel<boolean>('open', { required: true })
 const props = defineProps<{ item: FixedMonthItem | null }>()
@@ -67,8 +68,10 @@ async function submit() {
     await pay.mutateAsync({ id: props.item.fixed.id, body: parsed.data })
     open.value = false
   } catch (error) {
-    errors.value = errorFields(error)
-    if (Object.keys(errors.value).length === 0) formError.value = errorMessage(error)
+    const split = splitFieldErrors(errorFields(error), ['amount', 'date', 'accountId'])
+    errors.value = split.fields
+    if (split.rest) formError.value = split.rest
+    else if (Object.keys(split.fields).length === 0) formError.value = errorMessage(error)
   }
 }
 </script>
