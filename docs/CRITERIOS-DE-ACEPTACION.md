@@ -82,8 +82,10 @@ el PR.
 
 ## C. Fechas
 
-- **C1 [B]** "Hoy" y toda fecha que se muestra se derivan en hora local
-  (`todayIso()`), nunca con `toISOString()`.
+- **C1 [B]** "Hoy" y toda fecha de calendario (`IsoDate`, `Month`) se
+  derivan en hora local (`todayIso()`), nunca con `toISOString()`. Las marcas
+  de tiempo (`createdAt`, `exportedAt`, `applied_at`) sí pueden guardarse en
+  UTC con `toISOString()`; si se muestran, se convierten a hora local.
 - **C2 [B]** Los cálculos por mes funcionan en fin de mes, en febrero, al
   cruzar de año, con meses de distinta longitud y en un mes futuro.
 - **C3 [B]** Un pago cuenta para el mes al que aplica (`fixedMonth`), aunque
