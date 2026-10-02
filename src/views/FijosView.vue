@@ -51,14 +51,16 @@ function toggle(item: FixedMonthItem) {
 }
 
 // ---- writes ----
-const override = useApiMutation((input: { id: number; body: FixedMonthOverrideInput }) => api.fixed.override(input.id, month.value, input.body))
-const unpay = useApiMutation((id: number) => api.fixed.unpay(id, month.value), { success: 'Pago borrado' })
+// Every write takes the month from the ROW, not from the store: while a month
+// change is loading the previous month's rows are still on screen.
+const override = useApiMutation((input: { item: FixedMonthItem; body: FixedMonthOverrideInput }) => api.fixed.override(input.item.fixed.id, input.item.month, input.body))
+const unpay = useApiMutation((item: FixedMonthItem) => api.fixed.unpay(item.fixed.id, item.month), { success: 'Pago borrado' })
 const reorder = useApiMutation((ids: number[]) => api.fixed.reorder(ids))
-const end = useApiMutation((id: number) => api.fixed.update(id, { endMonth: month.value }))
+const end = useApiMutation((item: FixedMonthItem) => api.fixed.update(item.fixed.id, { endMonth: item.month }))
 const remove = useApiMutation((id: number) => api.fixed.remove(id), { success: 'Gasto fijo eliminado' })
 
 function saveAmount(item: FixedMonthItem, value: number | null) {
-  override.mutate({ id: item.fixed.id, body: { expectedAmount: value } })
+  override.mutate({ item, body: { expectedAmount: value } })
 }
 
 function move(item: FixedMonthItem, direction: -1 | 1) {
@@ -67,13 +69,12 @@ function move(item: FixedMonthItem, direction: -1 | 1) {
 }
 
 function onAction(item: FixedMonthItem, action: RowAction) {
-  const id = item.fixed.id
   if (action === 'edit') openForm(item.fixed)
-  else if (action === 'skip') override.mutate({ id, body: { skipped: item.status !== 'skipped' } })
+  else if (action === 'skip') override.mutate({ item, body: { skipped: item.status !== 'skipped' } })
   else if (action === 'up') move(item, -1)
   else if (action === 'down') move(item, 1)
   else if (action === 'end') {
-    end.mutate(id, { onSuccess: () => toasts.success(`${item.fixed.name} ya no aparece desde ${monthLabel(addMonths(month.value, 1)).toLowerCase()}`) })
+    end.mutate(item, { onSuccess: () => toasts.success(`${item.fixed.name} ya no aparece desde ${monthLabel(addMonths(item.month, 1)).toLowerCase()}`) })
   } else {
     target.value = item
     removeOpen.value = true
@@ -82,7 +83,7 @@ function onAction(item: FixedMonthItem, action: RowAction) {
 
 async function confirmUnpay() {
   if (!target.value) return
-  await unpay.mutateAsync(target.value.fixed.id).then(() => (unpayOpen.value = false), () => undefined)
+  await unpay.mutateAsync(target.value).then(() => (unpayOpen.value = false), () => undefined)
 }
 
 async function confirmRemove() {
@@ -136,7 +137,7 @@ async function confirmRemove() {
           <ul>
             <FixedRow
               v-for="(item, index) in items"
-              :key="item.fixed.id"
+              :key="`${item.month}-${item.fixed.id}`"
               :item="item"
               :category="categoryById.get(item.fixed.categoryId)"
               :first="index === 0"
