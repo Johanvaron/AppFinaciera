@@ -118,8 +118,11 @@ el PR.
   horizontal de la página en 360, 390, 768, 1280 y 1920 px.
 - **F3 [B]** Ningún texto de menos de 13 px. Ninguna cifra de 8 o 9 dígitos
   se corta ni se desborda en esos cinco anchos.
-- **F4 [B]** Claro y oscuro: todos los colores salen de los tokens; el texto
-  normal cumple contraste 4,5:1.
+- **F4 [B]** Claro y oscuro: los colores salen de los tokens (clases del
+  tema; en gráficas, `tokenColor(...)` recalculado al cambiar de tema). La
+  única excepción es el color de una categoría, con
+  `categoryHex(category.color)` y solo como punto o barrita, nunca como fondo
+  grande. El texto normal cumple contraste 4,5:1.
 - **F5** Controles de 40 px en celular y 32 px en escritorio; a 1920 px no
   quedan huecos grandes sin usar.
 - **F6** Las gráficas van dentro de `ChartBox`, con el alto atado a la
