@@ -31,11 +31,20 @@ export type Month = string
 export type IsoDate = string
 
 /**
- * `?month=YYYY-MM` of GET /fixed, GET /budgets, GET /summary and DELETE /fixed/:id/pay.
+ * `?month=YYYY-MM` of GET /fixed, GET /budgets and GET /summary (reads only).
  * Optional: the server falls back to the current month (local time).
  */
 export const monthQuerySchema = z.strictObject({ month: monthSchema.optional() })
 export type MonthQuery = z.input<typeof monthQuerySchema>
+
+/**
+ * `?month=YYYY-MM` of DELETE /fixed/:id/pay. Required: a write never guesses the month,
+ * because deleting the payments of the wrong month loses money records.
+ */
+export const requiredMonthQuerySchema = z.strictObject({
+  month: z.string({ error: 'Falta el mes (YYYY-MM)' }).pipe(monthSchema),
+})
+export type RequiredMonthQuery = z.input<typeof requiredMonthQuerySchema>
 
 // ---------- accounts ----------
 export const ACCOUNT_TYPES = ['efectivo', 'ahorros', 'corriente', 'tarjeta', 'billetera'] as const
@@ -564,7 +573,7 @@ export interface ApiError {
  * PUT    /fixed/order                   fixedOrderSchema -> 204
  * PUT    /fixed/:id/months/:month       fixedMonthOverrideSchema -> 200 FixedMonthItem
  * POST   /fixed/:id/pay                 fixedPaySchema -> 201 FixedMonthItem
- * DELETE /fixed/:id/pay                 query monthQuerySchema -> 200 FixedMonthItem (deletes that month's payments)
+ * DELETE /fixed/:id/pay                 query requiredMonthQuerySchema -> 200 FixedMonthItem (deletes that month's payments)
  *
  * GET    /budgets                       query monthQuerySchema -> 200 BudgetMonthResponse
  * PUT    /budgets                       budgetInputSchema -> 200 BudgetMonthResponse

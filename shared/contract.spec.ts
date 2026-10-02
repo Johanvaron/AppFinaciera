@@ -9,6 +9,7 @@ import {
   fixedPaySchema,
   monthQuerySchema,
   monthlyReportQuerySchema,
+  requiredMonthQuerySchema,
 } from './contract.ts'
 
 describe('query schemas', () => {
@@ -17,6 +18,16 @@ describe('query schemas', () => {
     expect(monthQuerySchema.parse({ month: '2026-02' })).toEqual({ month: '2026-02' })
     expect(monthQuerySchema.safeParse({ month: '2026-13' }).success).toBe(false)
     expect(monthQuerySchema.safeParse({ mes: '2026-02' }).success).toBe(false)
+  })
+
+  it('required month query: deleting payments never guesses the month', () => {
+    const missing = requiredMonthQuerySchema.safeParse({})
+    expect(missing.success).toBe(false)
+    expect(missing.error?.issues[0]).toMatchObject({ path: ['month'], message: 'Falta el mes (YYYY-MM)' })
+    expect(requiredMonthQuerySchema.parse({ month: '2026-02' })).toEqual({ month: '2026-02' })
+    const invalid = requiredMonthQuerySchema.safeParse({ month: '2026-13' })
+    expect(invalid.error?.issues[0]?.message).toBe('Mes inválido (YYYY-MM)')
+    expect(requiredMonthQuerySchema.safeParse({ month: '2026-02', mes: 'x' }).success).toBe(false)
   })
 
   it('monthly report: months arrives as text, defaults to 12 and stops at 36', () => {
