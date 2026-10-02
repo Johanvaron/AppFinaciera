@@ -20,7 +20,7 @@ const variantClass = computed(
       primary: 'bg-primary text-primary-ink hover:bg-primary/90',
       secondary: 'bg-fill text-ink hover:bg-line/70',
       ghost: 'text-muted hover:bg-fill hover:text-ink',
-      danger: 'bg-danger-soft text-danger hover:bg-danger/20',
+      danger: 'bg-danger-soft text-danger hover:bg-danger hover:text-surface',
     })[props.variant],
 )
 </script>
