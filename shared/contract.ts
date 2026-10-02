@@ -37,6 +37,19 @@ export const accountInputSchema = z.strictObject({
 })
 export type AccountInput = z.input<typeof accountInputSchema>
 
+/**
+ * PATCH /api/accounts/:id. Every field optional and NO defaults: a field that is
+ * not sent is not in the parsed result, so it can never overwrite a stored value.
+ * Never validate a PATCH with `accountInputSchema.partial()`: it fills the defaults.
+ */
+export const accountPatchSchema = z.strictObject({
+  name: accountInputSchema.shape.name.optional(),
+  type: accountInputSchema.shape.type.optional(),
+  initialBalance: accountInputSchema.shape.initialBalance.unwrap().optional(),
+  archived: accountInputSchema.shape.archived.unwrap().optional(),
+})
+export type AccountPatch = z.input<typeof accountPatchSchema>
+
 export interface Account {
   id: number
   name: string
@@ -72,6 +85,16 @@ export const categoryInputSchema = z.strictObject({
   archived: z.boolean().default(false),
 })
 export type CategoryInput = z.input<typeof categoryInputSchema>
+
+/** PATCH /api/categories/:id. Every field optional and NO defaults (see accountPatchSchema). */
+export const categoryPatchSchema = z.strictObject({
+  name: categoryInputSchema.shape.name.optional(),
+  kind: categoryInputSchema.shape.kind.optional(),
+  group: categoryInputSchema.shape.group.optional(),
+  color: categoryInputSchema.shape.color.unwrap().optional(),
+  archived: categoryInputSchema.shape.archived.unwrap().optional(),
+})
+export type CategoryPatch = z.input<typeof categoryPatchSchema>
 
 export interface Category {
   id: number
@@ -165,6 +188,23 @@ export const fixedExpenseInputSchema = z.strictObject({
   note: z.string().trim().max(500).default(''),
 })
 export type FixedExpenseInput = z.input<typeof fixedExpenseInputSchema>
+
+/**
+ * PATCH /api/fixed/:id. Every field optional and NO defaults (see accountPatchSchema).
+ * Sending `null` in dueDay / accountId / endMonth clears it; leaving it out keeps it.
+ */
+export const fixedExpensePatchSchema = z.strictObject({
+  name: fixedExpenseInputSchema.shape.name.optional(),
+  amount: fixedExpenseInputSchema.shape.amount.optional(),
+  variableAmount: fixedExpenseInputSchema.shape.variableAmount.unwrap().optional(),
+  dueDay: fixedExpenseInputSchema.shape.dueDay.unwrap().optional(),
+  categoryId: fixedExpenseInputSchema.shape.categoryId.optional(),
+  accountId: fixedExpenseInputSchema.shape.accountId.unwrap().optional(),
+  startMonth: fixedExpenseInputSchema.shape.startMonth.optional(),
+  endMonth: fixedExpenseInputSchema.shape.endMonth.unwrap().optional(),
+  note: fixedExpenseInputSchema.shape.note.unwrap().optional(),
+})
+export type FixedExpensePatch = z.input<typeof fixedExpensePatchSchema>
 
 export interface FixedExpense {
   id: number
@@ -366,12 +406,12 @@ export interface ApiError {
  *
  * GET    /accounts                         -> Account[]
  * POST   /accounts                         AccountInput -> Account
- * PATCH  /accounts/:id                     Partial<AccountInput> -> Account
+ * PATCH  /accounts/:id                     AccountPatch -> Account
  * DELETE /accounts/:id                     -> 204 (409 if it has movements: archive it instead)
  *
  * GET    /categories                       -> Category[]
  * POST   /categories                       CategoryInput -> Category
- * PATCH  /categories/:id                   Partial<CategoryInput> -> Category
+ * PATCH  /categories/:id                   CategoryPatch -> Category
  * DELETE /categories/:id                   -> 204 (409 if in use: archive it instead)
  *
  * GET    /transactions?TransactionQuery    -> Transaction[] (date desc, id desc)
@@ -382,7 +422,7 @@ export interface ApiError {
  *
  * GET    /fixed?month=YYYY-MM              -> FixedMonthResponse
  * POST   /fixed                            FixedExpenseInput -> FixedExpense
- * PATCH  /fixed/:id                        Partial<FixedExpenseInput> -> FixedExpense
+ * PATCH  /fixed/:id                        FixedExpensePatch -> FixedExpense
  * DELETE /fixed/:id                        -> 204 (its payments stay as normal movements)
  * PUT    /fixed/order                      { ids } -> 204
  * PUT    /fixed/:id/months/:month          FixedMonthOverrideInput -> FixedMonthItem
