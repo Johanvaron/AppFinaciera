@@ -11,14 +11,41 @@ import { z } from 'zod'
 // ---------- primitives ----------
 // Years 1900-2199 only: a typo such as 0000 or 0026 must not reach the month arithmetic.
 export const monthSchema = z.string().regex(/^(19|20|21)\d{2}-(0[1-9]|1[0-2])$/, 'Mes inválido (YYYY-MM)')
+/** True when a well-formed 'YYYY-MM-DD' is a real calendar day (rejects 2026-02-31). Local time, no UTC. */
+function isCalendarDate(value: string): boolean {
+  const year = Number(value.slice(0, 4))
+  const month = Number(value.slice(5, 7))
+  const day = Number(value.slice(8, 10))
+  const date = new Date(2000, 0, 1)
+  date.setFullYear(year, month - 1, day)
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+}
+
 export const dateSchema = z
   .string()
-  .regex(/^(19|20|21)\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'Fecha inválida (YYYY-MM-DD)')
+  .regex(/^(19|20|21)\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, { error: 'Fecha inválida (YYYY-MM-DD)', abort: true })
+  .refine(isCalendarDate, 'Esa fecha no existe en el calendario')
 export const moneySchema = z.number().int('El monto debe ser en pesos enteros').min(0).max(999_999_999_999)
 export const idSchema = z.number().int().positive()
 
 export type Month = string
 export type IsoDate = string
+
+/**
+ * `?month=YYYY-MM` of GET /fixed, GET /budgets and GET /summary (reads only).
+ * Optional: the server falls back to the current month (local time).
+ */
+export const monthQuerySchema = z.strictObject({ month: monthSchema.optional() })
+export type MonthQuery = z.input<typeof monthQuerySchema>
+
+/**
+ * `?month=YYYY-MM` of DELETE /fixed/:id/pay. Required: a write never guesses the month,
+ * because deleting the payments of the wrong month loses money records.
+ */
+export const requiredMonthQuerySchema = z.strictObject({
+  month: z.string({ error: 'Falta el mes (YYYY-MM)' }).pipe(monthSchema),
+})
+export type RequiredMonthQuery = z.input<typeof requiredMonthQuerySchema>
 
 // ---------- accounts ----------
 export const ACCOUNT_TYPES = ['efectivo', 'ahorros', 'corriente', 'tarjeta', 'billetera'] as const
@@ -39,6 +66,19 @@ export const accountInputSchema = z.strictObject({
   archived: z.boolean().default(false),
 })
 export type AccountInput = z.input<typeof accountInputSchema>
+
+/**
+ * PATCH /api/accounts/:id. Every field optional and NO defaults: a field that is
+ * not sent is not in the parsed result, so it can never overwrite a stored value.
+ * Never validate a PATCH with `accountInputSchema.partial()`: it fills the defaults.
+ */
+export const accountPatchSchema = z.strictObject({
+  name: accountInputSchema.shape.name.optional(),
+  type: accountInputSchema.shape.type.optional(),
+  initialBalance: accountInputSchema.shape.initialBalance.unwrap().optional(),
+  archived: accountInputSchema.shape.archived.unwrap().optional(),
+})
+export type AccountPatch = z.input<typeof accountPatchSchema>
 
 export interface Account {
   id: number
@@ -67,6 +107,11 @@ export const CATEGORY_GROUP_LABELS: Record<CategoryGroup, string> = {
 export const CATEGORY_COLORS = ['blue', 'teal', 'green', 'lime', 'amber', 'orange', 'rose', 'pink', 'violet', 'indigo', 'cyan', 'slate'] as const
 export type CategoryColor = (typeof CATEGORY_COLORS)[number]
 
+/**
+ * Rule between fields, validated by the server on the stored result (a PATCH may send
+ * only one of the two) and answered as 422 with `fields`: kind 'income' goes with group
+ * 'ingresos' and only with it; kind 'expense' goes with 'fijos', 'variables' or 'ahorro'.
+ */
 export const categoryInputSchema = z.strictObject({
   name: z.string().trim().min(1, 'Ponle un nombre').max(60),
   kind: z.enum(CATEGORY_KINDS),
@@ -75,6 +120,16 @@ export const categoryInputSchema = z.strictObject({
   archived: z.boolean().default(false),
 })
 export type CategoryInput = z.input<typeof categoryInputSchema>
+
+/** PATCH /api/categories/:id. Every field optional and NO defaults (see accountPatchSchema). */
+export const categoryPatchSchema = z.strictObject({
+  name: categoryInputSchema.shape.name.optional(),
+  kind: categoryInputSchema.shape.kind.optional(),
+  group: categoryInputSchema.shape.group.optional(),
+  color: categoryInputSchema.shape.color.unwrap().optional(),
+  archived: categoryInputSchema.shape.archived.unwrap().optional(),
+})
+export type CategoryPatch = z.input<typeof categoryPatchSchema>
 
 export interface Category {
   id: number
@@ -149,7 +204,18 @@ export const bulkCategorizeSchema = z.strictObject({
 })
 export type BulkCategorizeInput = z.input<typeof bulkCategorizeSchema>
 
+/** Response of POST /api/transactions/bulk-categorize. */
+export interface BulkCategorizeResult {
+  /** How many movements changed category. */
+  updated: number
+}
+
 // ---------- fixed expenses (the monthly checklist) ----------
+/**
+ * Rules between fields, validated by the server on the stored result (a PATCH may send
+ * only one side) and answered as 422 with `fields`: endMonth, when set, is never before
+ * startMonth; categoryId is an existing category of kind 'expense'; accountId exists.
+ */
 export const fixedExpenseInputSchema = z.strictObject({
   name: z.string().trim().min(1, 'Ponle un nombre').max(60),
   /** Expected monthly amount. 0 when it changes every month (e.g. a credit card). */
@@ -168,6 +234,23 @@ export const fixedExpenseInputSchema = z.strictObject({
   note: z.string().trim().max(500).default(''),
 })
 export type FixedExpenseInput = z.input<typeof fixedExpenseInputSchema>
+
+/**
+ * PATCH /api/fixed/:id. Every field optional and NO defaults (see accountPatchSchema).
+ * Sending `null` in dueDay / accountId / endMonth clears it; leaving it out keeps it.
+ */
+export const fixedExpensePatchSchema = z.strictObject({
+  name: fixedExpenseInputSchema.shape.name.optional(),
+  amount: fixedExpenseInputSchema.shape.amount.optional(),
+  variableAmount: fixedExpenseInputSchema.shape.variableAmount.unwrap().optional(),
+  dueDay: fixedExpenseInputSchema.shape.dueDay.unwrap().optional(),
+  categoryId: fixedExpenseInputSchema.shape.categoryId.optional(),
+  accountId: fixedExpenseInputSchema.shape.accountId.unwrap().optional(),
+  startMonth: fixedExpenseInputSchema.shape.startMonth.optional(),
+  endMonth: fixedExpenseInputSchema.shape.endMonth.unwrap().optional(),
+  note: fixedExpenseInputSchema.shape.note.unwrap().optional(),
+})
+export type FixedExpensePatch = z.input<typeof fixedExpensePatchSchema>
 
 export interface FixedExpense {
   id: number
@@ -193,7 +276,22 @@ export const FIXED_STATUS_LABELS: Record<FixedStatus, string> = {
   skipped: 'No aplica este mes',
 }
 
-/** One row of the checklist for a given month. Status is derived, never stored. */
+/**
+ * One row of the checklist for a given month. Status is derived, never stored.
+ *
+ * Status rule, checked in this order:
+ * 1. 'skipped': the month is marked as "does not apply". A skipped month has no payments:
+ *               the server guarantees it by answering 409 when a month that already has
+ *               payments is marked as skipped, and paying a skipped month un-skips it.
+ * 2. 'paid':    paidAmount > 0 AND paidAmount >= expectedAmount. A partial payment is NOT
+ *               'paid'. With expectedAmount 0 (variable amount not set yet) any payment pays it.
+ * 3. 'overdue': not paid and dueDate < today; without dueDate, not paid and month < current month.
+ * 4. 'pending': everything else, including a partially paid item that is not overdue yet.
+ *
+ * Partial payment, expectedAmount 100.000 with one payment of 60.000 and not yet due:
+ * status 'pending', paidAmount 60.000, remainingAmount 40.000. It adds 60.000 to totals.paid,
+ * 40.000 to totals.pending, 100.000 to totals.expected and 40.000 to MonthSummary.pendingFixed.
+ */
 export interface FixedMonthItem {
   fixed: FixedExpense
   month: Month
@@ -201,29 +299,42 @@ export interface FixedMonthItem {
   expectedAmount: number
   /** True when this month has its own expected amount. */
   hasOverride: boolean
-  /** Sum of the payments linked to this fixed expense for this month. */
+  /** Sum of the payments linked to this fixed expense for this month (partial payments included). */
   paidAmount: number
-  /** 'paid' only when paidAmount >= expectedAmount; a partial payment stays pending / overdue. */
+  /**
+   * What is still left to pay this month: max(0, expectedAmount - paidAmount); 0 when
+   * skipped or paid (an overpayment never makes it negative).
+   */
+  remainingAmount: number
   status: FixedStatus
   /** Null when the fixed expense has no dueDay. */
   dueDate: IsoDate | null
-  /** Date of the last payment, when paid. */
+  /** Date of the last payment when status is 'paid', else null (also null while partially paid). */
   paidDate: IsoDate | null
+  /** Every payment of this month, oldest first, whatever the status. */
   transactionIds: number[]
 }
 
 export interface FixedMonthResponse {
   month: Month
   items: FixedMonthItem[]
+  /**
+   * Skipped items are left out of every total. Identity that always holds:
+   * expected = paid + pending.
+   */
   totals: {
-    /** paid + pending: what the month costs once everything is settled. */
+    /**
+     * paid + pending. Equals the sum of expectedAmount, except that an overpaid item
+     * counts what was actually paid.
+     */
     expected: number
-    /** Sum of paidAmount of non-skipped items, partial payments included. */
+    /** Sum of paidAmount of every non-skipped item, partial payments included. */
     paid: number
-    /** What is still owed: sum of max(expectedAmount - paidAmount, 0) of pending + overdue items. */
+    /** Sum of remainingAmount: what is still left to pay on pending + overdue items. */
     pending: number
-    /** Items fully paid (paidAmount >= expectedAmount); a partial payment does not count. */
+    /** Items with status 'paid' (a partially paid item does not count). */
     countPaid: number
+    /** Non-skipped items. */
     countTotal: number
   }
 }
@@ -247,6 +358,7 @@ export type FixedPayInput = z.input<typeof fixedPaySchema>
 
 /** PUT /api/fixed/order */
 export const fixedOrderSchema = z.strictObject({ ids: z.array(idSchema).min(1) })
+export type FixedOrderInput = z.input<typeof fixedOrderSchema>
 
 // ---------- budgets ----------
 /** PUT /api/budgets. A budget applies from `month` onward until a later one replaces it. */
@@ -266,6 +378,7 @@ export interface BudgetRow {
   category: Category
   /** Null when the category has no budget for the month. */
   budget: number | null
+  /** Expenses of the category in the month. Transfers never count. */
   spent: number
   /** budget - spent; negative when over. Null without budget. */
   remaining: number | null
@@ -310,15 +423,25 @@ export interface DailyPoint {
 
 export interface MonthSummary {
   month: Month
+  /** Sum of the month's movements of type 'income'. Transfers never count. */
   income: number
+  /** Sum of the month's movements of type 'expense'. Transfers never count. */
   expenses: number
   /** income - expenses. Can be negative. */
   net: number
   /** net / income as a fraction. Null when income is 0. */
   savingsRate: number | null
-  /** Fixed expenses still unpaid this month (pending + overdue). */
+  /**
+   * What is still left to pay of this month's fixed expenses: exactly
+   * FixedMonthResponse.totals.pending for the same month (sum of remainingAmount of
+   * pending + overdue items). A partial payment lowers it by what was paid.
+   */
   pendingFixed: number
-  /** income - expenses - pendingFixed. Can be negative. */
+  /**
+   * income - expenses - pendingFixed. Can be negative. Nothing is counted twice: a
+   * payment (full or partial) is already inside `expenses`, and pendingFixed only
+   * holds the part not paid yet.
+   */
   availableToSpend: number
   previous: { month: Month; income: number; expenses: number; net: number }
   /** Change vs previous month as a fraction (0.1 = +10 %). Null when previous is 0. */
@@ -337,10 +460,12 @@ export interface MonthSummary {
 }
 
 // ---------- reports ----------
+/** Totals of one month. Transfers count neither as income nor as expense. */
 export interface MonthlyReportRow {
   month: Month
   income: number
   expenses: number
+  /** income - expenses. Can be negative. */
   net: number
 }
 
@@ -349,6 +474,7 @@ export interface CategoryReportRow {
   /** One total per month, same order as `months`. */
   totals: number[]
   total: number
+  /** Monthly average in whole pesos: Math.round(total / months.length). Empty months count as 0. */
   average: number
 }
 
@@ -356,6 +482,32 @@ export interface CategoryReport {
   months: Month[]
   rows: CategoryReportRow[]
 }
+
+export const MONTHLY_REPORT_DEFAULT_MONTHS = 12
+export const MONTHLY_REPORT_MAX_MONTHS = 36
+
+/** GET /api/reports/monthly query: the last `months` months up to `until` (default: current month). */
+export const monthlyReportQuerySchema = z.strictObject({
+  months: z.coerce.number().int().min(1).max(MONTHLY_REPORT_MAX_MONTHS).default(MONTHLY_REPORT_DEFAULT_MONTHS),
+  until: monthSchema.optional(),
+})
+export type MonthlyReportQuery = z.input<typeof monthlyReportQuerySchema>
+
+/**
+ * GET /api/reports/categories query. Defaults: `to` = current month, `from` = 11 months
+ * before `to`. The server also rejects (422) a `from` later than the defaulted `to`.
+ */
+export const categoryReportQuerySchema = z
+  .strictObject({
+    from: monthSchema.optional(),
+    to: monthSchema.optional(),
+    kind: z.enum(CATEGORY_KINDS).default('expense'),
+  })
+  .refine((query) => query.from == null || query.to == null || query.from <= query.to, {
+    path: ['from'],
+    message: 'El mes inicial no puede ser posterior al final',
+  })
+export type CategoryReportQuery = z.input<typeof categoryReportQuerySchema>
 
 // ---------- backup ----------
 export interface BackupFile {
@@ -370,6 +522,32 @@ export interface BackupFile {
   budgets: unknown[]
 }
 
+/** One table of a backup: flat rows of column -> value. */
+const backupRowsSchema = z.array(z.record(z.string(), z.union([z.string(), z.number(), z.null()])))
+
+/**
+ * POST /api/backup/restore body: a BackupFile as downloaded from GET /api/backup.
+ * The server also checks every row against the real columns and restores atomically:
+ * an invalid file is answered with 422 and changes nothing.
+ */
+export const backupRestoreSchema = z.object({
+  app: z.literal('app-financiera', 'Este archivo no es un respaldo de esta app'),
+  version: z.literal(1, 'Versión de respaldo no soportada'),
+  exportedAt: z.string().optional(),
+  accounts: backupRowsSchema,
+  categories: backupRowsSchema,
+  transactions: backupRowsSchema,
+  fixedExpenses: backupRowsSchema,
+  fixedMonths: backupRowsSchema,
+  budgets: backupRowsSchema,
+})
+export type BackupRestoreInput = z.input<typeof backupRestoreSchema>
+
+/** Response of POST /api/backup/restore. */
+export interface BackupRestoreResult {
+  restored: true
+}
+
 // ---------- errors ----------
 /** Every non-2xx response has this body. */
 export interface ApiError {
@@ -379,40 +557,45 @@ export interface ApiError {
 }
 
 /**
- * Routes (all under /api, JSON):
+ * Routes (all under /api, JSON). Each line: schema of the body or query -> success status and response.
  *
- * GET    /accounts                         -> Account[]
- * POST   /accounts                         AccountInput -> Account
- * PATCH  /accounts/:id                     Partial<AccountInput> -> Account
- * DELETE /accounts/:id                     -> 204 (409 if it has movements: archive it instead)
+ * Success: 200 with a body, 201 when a POST creates a record, 204 without body.
+ * Errors (body = ApiError): 404 when the `:id` does not exist or is not a positive integer
+ * (idSchema); 409 where noted; 422 when the body, the query or a `:month` (monthSchema)
+ * fails validation, or when a referenced id does not exist.
  *
- * GET    /categories                       -> Category[]
- * POST   /categories                       CategoryInput -> Category
- * PATCH  /categories/:id                   Partial<CategoryInput> -> Category
- * DELETE /categories/:id                   -> 204 (409 if in use: archive it instead)
+ * GET    /accounts                      -> 200 Account[]
+ * POST   /accounts                      accountInputSchema -> 201 Account
+ * PATCH  /accounts/:id                  accountPatchSchema -> 200 Account
+ * DELETE /accounts/:id                  -> 204 (409 if it has movements: archive it instead)
  *
- * GET    /transactions?TransactionQuery    -> Transaction[] (date desc, id desc)
- * POST   /transactions                     TransactionInput -> Transaction
- * PATCH  /transactions/:id                 TransactionInput (full object) -> Transaction
- * DELETE /transactions/:id                 -> 204
- * POST   /transactions/bulk-categorize     BulkCategorizeInput -> { updated: number }
+ * GET    /categories                    -> 200 Category[]
+ * POST   /categories                    categoryInputSchema -> 201 Category
+ * PATCH  /categories/:id                categoryPatchSchema -> 200 Category
+ * DELETE /categories/:id                -> 204 (409 if in use: archive it instead)
  *
- * GET    /fixed?month=YYYY-MM              -> FixedMonthResponse
- * POST   /fixed                            FixedExpenseInput -> FixedExpense
- * PATCH  /fixed/:id                        Partial<FixedExpenseInput> -> FixedExpense
- * DELETE /fixed/:id                        -> 204 (its payments stay as normal movements)
- * PUT    /fixed/order                      { ids } -> 204
- * PUT    /fixed/:id/months/:month          FixedMonthOverrideInput -> FixedMonthItem
- * POST   /fixed/:id/pay                    FixedPayInput -> FixedMonthItem
- * DELETE /fixed/:id/pay?month=YYYY-MM      -> FixedMonthItem (deletes that month's payments)
+ * GET    /transactions                  query transactionQuerySchema -> 200 Transaction[] (date desc, id desc)
+ * POST   /transactions                  transactionInputSchema -> 201 Transaction
+ * PATCH  /transactions/:id              transactionInputSchema (full object) -> 200 Transaction
+ * DELETE /transactions/:id              -> 204
+ * POST   /transactions/bulk-categorize  bulkCategorizeSchema -> 200 BulkCategorizeResult
  *
- * GET    /budgets?month=YYYY-MM            -> BudgetMonthResponse
- * PUT    /budgets                          BudgetInput -> BudgetMonthResponse
+ * GET    /fixed                         query monthQuerySchema -> 200 FixedMonthResponse
+ * POST   /fixed                         fixedExpenseInputSchema -> 201 FixedExpense
+ * PATCH  /fixed/:id                     fixedExpensePatchSchema -> 200 FixedExpense
+ * DELETE /fixed/:id                     -> 204 (its payments stay as normal movements)
+ * PUT    /fixed/order                   fixedOrderSchema -> 204
+ * PUT    /fixed/:id/months/:month       fixedMonthOverrideSchema -> 200 FixedMonthItem (409 if skipped: true and the month already has payments)
+ * POST   /fixed/:id/pay                 fixedPaySchema -> 201 FixedMonthItem
+ * DELETE /fixed/:id/pay                 query requiredMonthQuerySchema -> 200 FixedMonthItem (deletes that month's payments)
  *
- * GET    /summary?month=YYYY-MM            -> MonthSummary
- * GET    /reports/monthly?months=12&until=YYYY-MM   -> MonthlyReportRow[] (oldest first)
- * GET    /reports/categories?from=YYYY-MM&to=YYYY-MM&kind=expense -> CategoryReport
+ * GET    /budgets                       query monthQuerySchema -> 200 BudgetMonthResponse
+ * PUT    /budgets                       budgetInputSchema -> 200 BudgetMonthResponse
  *
- * GET    /backup                           -> BackupFile (download)
- * POST   /backup/restore                   BackupFile -> { restored: true } (replaces everything)
+ * GET    /summary                       query monthQuerySchema -> 200 MonthSummary
+ * GET    /reports/monthly               query monthlyReportQuerySchema -> 200 MonthlyReportRow[] (oldest first)
+ * GET    /reports/categories            query categoryReportQuerySchema -> 200 CategoryReport
+ *
+ * GET    /backup                        -> 200 BackupFile (download)
+ * POST   /backup/restore                backupRestoreSchema -> 200 BackupRestoreResult (replaces everything)
  */
