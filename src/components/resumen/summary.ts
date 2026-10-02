@@ -9,28 +9,49 @@ export type Tone = 'primary' | 'success' | 'warning' | 'danger' | 'neutral'
 
 // ---------- spending pace ----------
 export interface Pace {
-  /** Spent so far this month (last known running total). */
+  /** Spent up to today (or the whole month once it is over). */
   spent: number
-  /** What the previous month had spent by the same day. Null without data. */
+  /** What the previous month had spent by the same day (its total for a closed month). Null without data. */
   previousAtSameDay: number | null
+  /** The previous month has spending, so its line is worth drawing. */
+  previousHasData: boolean
   text: string
 }
 
-/** "Llevas $ X gastados; a esta altura del mes pasado ibas en $ Y". */
-export function paceSummary(summary: Pick<MonthSummary, 'daily' | 'previousDailyCumulative' | 'expenses'>): Pace {
+type PaceInput = Pick<MonthSummary, 'daily' | 'previousDailyCumulative' | 'expenses'> & { previous: Pick<MonthSummary['previous'], 'month'> }
+
+/**
+ * Current month: "Llevas $ X gastados; a esta altura del mes pasado ibas en $ Y".
+ * Closed month: "Gastaste $ X; en septiembre gastaste $ Y" (whole months).
+ * Month that has not started: no pace to talk about yet.
+ */
+export function paceSummary(summary: PaceInput, today: IsoDate = todayIso()): Pace {
+  const { daily, previousDailyCumulative: previous } = summary
   let lastIndex = -1
-  summary.daily.forEach((point, index) => {
+  daily.forEach((point, index) => {
     if (point.cumulative != null) lastIndex = index
   })
-  const spent = lastIndex >= 0 ? summary.daily[lastIndex]!.cumulative! : summary.expenses
+  const previousTotal = previous.length > 0 ? previous[previous.length - 1]! : 0
+  const previousHasData = previousTotal > 0
 
-  const previous = summary.previousDailyCumulative
-  const previousHasData = previous.length > 0 && previous[previous.length - 1]! > 0
-  const previousAtSameDay = previousHasData ? previous[Math.min(Math.max(lastIndex, 0), previous.length - 1)]! : null
+  if (lastIndex < 0) {
+    const text = summary.expenses > 0 ? `Este mes aún no empieza; ya tienes ${formatMoney(summary.expenses)} en gastos con fecha futura` : 'Este mes aún no empieza'
+    return { spent: 0, previousAtSameDay: null, previousHasData, text }
+  }
 
+  const spent = daily[lastIndex]!.cumulative!
+  const closed = daily[daily.length - 1]!.date < today
+  if (closed) {
+    const lead = `Gastaste ${formatMoney(spent)}`
+    const text = previousHasData ? `${lead}; en ${monthNameLower(summary.previous.month)} gastaste ${formatMoney(previousTotal)}` : lead
+    return { spent, previousAtSameDay: previousHasData ? previousTotal : null, previousHasData, text }
+  }
+
+  // Day 31 against a 30-day month compares with that month's last day.
+  const previousAtSameDay = previousHasData ? previous[Math.min(lastIndex, previous.length - 1)]! : null
   const lead = `Llevas ${formatMoney(spent)} gastados`
   const text = previousAtSameDay == null ? lead : `${lead}; a esta altura del mes pasado ibas en ${formatMoney(previousAtSameDay)}`
-  return { spent, previousAtSameDay, text }
+  return { spent, previousAtSameDay, previousHasData, text }
 }
 
 /** Chart series: one slot per day of the longest of both months. */

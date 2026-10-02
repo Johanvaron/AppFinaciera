@@ -19,7 +19,7 @@ const theme = useThemeStore()
 const pace = computed(() => paceSummary(props.summary))
 const series = computed(() => paceSeries(props.summary))
 const previousName = computed(() => monthNameLower(props.summary.previous.month))
-const hasPrevious = computed(() => pace.value.previousAtSameDay != null)
+const hasPrevious = computed(() => pace.value.previousHasData)
 
 /** Token colors are read from CSS, so they are recomputed when the theme flips. */
 const colors = computed(() => {
