@@ -67,7 +67,8 @@ export function errorFields(error: unknown): Record<string, string> {
 
 /**
  * Any write. Every figure in the app derives from the same few tables, so a
- * write invalidates ALL cached queries instead of guessing which ones.
+ * write invalidates ALL cached queries (on success AND on error) instead of
+ * guessing which ones.
  * Errors show a toast unless `silentError` (when the form paints them itself).
  */
 export function useApiMutation<TInput, TOutput>(
