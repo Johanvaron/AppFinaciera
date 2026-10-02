@@ -110,7 +110,7 @@ watch(
       El tope que pongas en un mes sigue vigente los meses siguientes hasta que lo cambies. Deja el campo vacío para quitarlo.
     </p>
 
-    <div :class="[BUDGET_GRID, 'hidden text-xs font-medium text-muted sm:grid']" aria-hidden="true">
+    <div :class="[BUDGET_GRID, 'hidden text-xs font-medium text-muted lg:grid']" aria-hidden="true">
       <span>Categoría</span>
       <span>Avance</span>
       <span class="text-right">%</span>
