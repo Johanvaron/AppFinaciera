@@ -39,7 +39,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
         <span class="text-[15px] font-semibold">Mis finanzas</span>
       </div>
 
-      <button type="button" class="flex h-9 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 text-[14px] font-medium text-primary-ink hover:bg-primary/90" @click="quickAdd.openNew()">
+      <button type="button" class="flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-primary px-2 text-[14px] font-medium text-primary-ink hover:bg-primary/90" @click="quickAdd.openNew()">
         <Plus class="size-4" aria-hidden="true" />
         Nuevo movimiento
         <kbd class="ml-1 rounded bg-primary-ink/20 px-1 text-xs">N</kbd>
