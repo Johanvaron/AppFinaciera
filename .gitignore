@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local data (the SQLite file with the real finances never goes to git)
+data/
