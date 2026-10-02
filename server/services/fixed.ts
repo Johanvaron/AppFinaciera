@@ -127,8 +127,27 @@ export class FixedService {
 
   update(id: number, patch: Partial<FixedData>): FixedExpense {
     const current = this.mustGet(id)
-    this.checkDefinition({ ...current, ...patch })
-    return this.deps.fixed.update(id, patch) as FixedExpense
+    const next = { ...current, ...patch }
+    this.checkDefinition(next)
+    if (next.startMonth === current.startMonth && next.endMonth === current.endMonth) {
+      return this.deps.fixed.update(id, patch) as FixedExpense
+    }
+    this.checkPaymentsInRange(id, next)
+    return this.deps.transact(() => {
+      // Overrides of months that no longer apply would be unreachable leftovers.
+      this.deps.months.deleteOutside(id, next.startMonth, next.endMonth)
+      return this.deps.fixed.update(id, patch) as FixedExpense
+    })
+  }
+
+  /** A month with payments cannot be cut out of the range: its "paid" would vanish while the movements stay. */
+  private checkPaymentsInRange(id: number, range: Pick<FixedData, 'startMonth' | 'endMonth'>): void {
+    const span = this.deps.transactions.fixedPaymentSpan(id)
+    if (!span) return
+    const fields: Record<string, string> = {}
+    if (span.first < range.startMonth) fields.startMonth = 'Hay pagos registrados fuera de ese rango'
+    if (range.endMonth != null && span.last > range.endMonth) fields.endMonth = 'Hay pagos registrados fuera de ese rango'
+    if (Object.keys(fields).length > 0) throw invalid(fields)
   }
 
   /** Its payments stay as plain movements; its overrides go away. */

@@ -124,6 +124,37 @@ describe('fixed expenses checklist', () => {
     expect(reversed.body.fields).toEqual({ endMonth: 'El mes final no puede ser anterior al inicial' })
   })
 
+  it('refuses to cut a month with payments out of the range, and drops the overrides left outside', async () => {
+    const loan = await api.fixed({ name: 'Crédito', amount: 500_000, categoryId: housing, startMonth: '2026-05' })
+    await pay(loan, { month: '2026-06', amount: 510_000, date: '2026-06-03' })
+    await api.ok('PUT', `/fixed/${loan}/months/2026-07`, { expectedAmount: 450_000 })
+    const june = await month('2026-06')
+    expect(june.totals).toMatchObject({ paid: 510_000, countPaid: 1 })
+
+    const laterStart = await api.call('PATCH', `/fixed/${loan}`, { startMonth: '2026-09' })
+    expect(laterStart.status).toBe(422)
+    expect(laterStart.body.fields).toEqual({ startMonth: 'Hay pagos registrados fuera de ese rango' })
+    const earlierEnd = await api.call('PATCH', `/fixed/${loan}`, { endMonth: '2026-05' })
+    expect(earlierEnd.status).toBe(422)
+    expect(earlierEnd.body.fields).toEqual({ endMonth: 'Hay pagos registrados fuera de ese rango' })
+    expect(await month('2026-06')).toEqual(june)
+    expect((await api.ok('GET', '/backup')).fixedMonths).toHaveLength(1)
+
+    // ending right on the paid month is fine; the July override falls outside and goes away
+    expect(await api.ok('PATCH', `/fixed/${loan}`, { endMonth: '2026-06' })).toMatchObject({ startMonth: '2026-05', endMonth: '2026-06' })
+    expect((await api.ok('GET', '/backup')).fixedMonths).toEqual([])
+    expect((await month('2026-06')).totals).toMatchObject({ paid: 510_000, countPaid: 1 })
+
+    // without payments the range moves freely and only the overrides outside it are dropped
+    const gym = await api.fixed({ name: 'Gimnasio', amount: 80_000, categoryId: housing, startMonth: '2026-05' })
+    await api.ok('PUT', `/fixed/${gym}/months/2026-06`, { expectedAmount: 85_000 })
+    await api.ok('PUT', `/fixed/${gym}/months/2026-10`, { expectedAmount: 90_000 })
+    expect((await api.ok('PATCH', `/fixed/${gym}`, { startMonth: '2026-09' })).startMonth).toBe('2026-09')
+    expect((await api.ok('GET', '/backup')).fixedMonths.map((row: any) => [row.fixed_id, row.month, row.expected_amount])).toEqual([
+      [gym, '2026-10', 90_000],
+    ])
+  })
+
   it('counts a payment for its fixedMonth even when its date falls in another month', async () => {
     const rent = await api.fixed({ name: 'Arriendo', amount: 900_000, dueDay: 5, categoryId: housing })
     await pay(rent, { month: '2026-04', amount: 910_000, date: '2026-03-30' })
