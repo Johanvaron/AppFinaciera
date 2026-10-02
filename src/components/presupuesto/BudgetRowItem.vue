@@ -40,7 +40,8 @@ watch(
   () => props.editing,
   async (isEditing) => {
     if (!isEditing) return
-    draft.value = props.row.budget
+    // A cap still being saved is what the person sees, so editing starts from it.
+    draft.value = shownBudget.value
     await nextTick()
     input.value?.focus()
     input.value?.select()

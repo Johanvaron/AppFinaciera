@@ -56,7 +56,8 @@ async function save(input: BudgetInput) {
   } catch {
     // useApiMutation already showed the error toast; the row goes back to the server value.
   } finally {
-    pending.delete(input.categoryId)
+    // A newer save of the same row keeps its own optimistic value.
+    if (pending.get(input.categoryId) === input.amount) pending.delete(input.categoryId)
   }
 }
 
@@ -64,7 +65,9 @@ function commit(row: BudgetRow, text: string, via: CommitVia) {
   const id = row.category.id
   // Closing the input also fires a blur: only the row being edited may commit.
   if (editingId.value !== id) return
-  const edit = resolveBudgetEdit(row.budget, text, id, period.month)
+  // "Unchanged" is measured against what is on screen: a cap in flight counts as the current one.
+  const current = pending.has(id) ? (pending.get(id) ?? null) : row.budget
+  const edit = resolveBudgetEdit(current, text, id, period.month)
 
   if (edit.kind === 'invalid') {
     if (via === 'blur') {

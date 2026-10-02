@@ -71,6 +71,29 @@ describe('BudgetList', () => {
     await flushPromises()
   })
 
+  it('reopens a cap that is still saving with the value on screen, and can put the old one back', async () => {
+    let finish = () => {}
+    vi.mocked(api.budgets.set).mockImplementationOnce(() => new Promise((resolve) => (finish = () => resolve({ month: '2026-10', rows: [], totals: { budget: 0, spent: 0, remaining: 0 } }))))
+    const wrapper = mountList()
+    await trigger(wrapper, 3).trigger('click')
+    await wrapper.get('input').setValue('900k')
+    await wrapper.get('input').trigger('keydown', { key: 'Enter' })
+    expect(trigger(wrapper, 3).text()).toBe('$ 900.000')
+
+    await trigger(wrapper, 3).trigger('click')
+    expect((wrapper.get('input').element as HTMLInputElement).value).toBe('900.000')
+    await wrapper.get('input').trigger('keydown', { key: 'Enter' })
+    expect(api.budgets.set).toHaveBeenCalledTimes(1)
+
+    await trigger(wrapper, 3).trigger('click')
+    await wrapper.get('input').setValue('500.000')
+    await wrapper.get('input').trigger('keydown', { key: 'Enter' })
+    expect(api.budgets.set).toHaveBeenCalledTimes(2)
+    expect(api.budgets.set).toHaveBeenLastCalledWith({ categoryId: 3, month: '2026-10', amount: 500000 })
+    finish()
+    await flushPromises()
+  })
+
   it('does not call the API on Esc, on an unchanged value or on garbage', async () => {
     const wrapper = mountList()
     await trigger(wrapper, 3).trigger('click')
