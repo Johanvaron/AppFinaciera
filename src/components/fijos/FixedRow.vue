@@ -59,6 +59,14 @@ const draft = ref<number | null>(null)
 const draftText = ref('')
 const draftError = ref('')
 const moneyInput = ref<InstanceType<typeof UiMoneyInput>>()
+/** The button that shows the amount (or "Poner monto"): where the focus goes back to. */
+const amountButton = ref<HTMLButtonElement>()
+
+/** The focused control is about to leave the page: without this the focus falls to <body> and Tab restarts from the top. */
+async function focusAmountButton() {
+  await nextTick()
+  amountButton.value?.focus()
+}
 
 async function startEdit() {
   draft.value = props.item.expectedAmount > 0 ? props.item.expectedAmount : null
@@ -71,7 +79,7 @@ async function startEdit() {
 }
 
 /** Enter and blur both land here; the flag keeps the second one from saving twice. */
-function commit() {
+function commit(fromKeyboard: boolean) {
   if (!editing.value) return
   const entry = amountEntry(draftText.value)
   // Not a number: nothing is sent and the field stays open so it can be fixed (Esc leaves).
@@ -84,6 +92,7 @@ function commit() {
     // Emptying the field takes this month's own amount away, when it has one.
     if (props.item.hasOverride) emit('amount', null)
   } else if (draft.value != null && draft.value !== props.item.expectedAmount) emit('amount', draft.value)
+  if (fromKeyboard) void focusAmountButton()
 }
 
 function onDraftInput(event: Event) {
@@ -93,6 +102,13 @@ function onDraftInput(event: Event) {
 
 function cancel() {
   editing.value = false
+  void focusAmountButton()
+}
+
+function resetOverride() {
+  emit('amount', null)
+  // This button goes away once the month has no amount of its own.
+  void focusAmountButton()
 }
 </script>
 
@@ -127,7 +143,7 @@ function cancel() {
         <span v-if="partial" class="num">{{ partial }}</span>
         <span v-if="item.hasOverride && !paid && !skipped" class="inline-flex items-center gap-1.5">
           <span>Solo este mes</span>
-          <button type="button" class="rounded font-medium text-primary hover:underline" @click="emit('amount', null)">
+          <button type="button" class="rounded font-medium text-primary hover:underline" @click="resetOverride">
             {{ resetOverrideLabel(item.fixed.amount) }}
           </button>
         </span>
@@ -135,13 +151,14 @@ function cancel() {
     </div>
 
     <div :class="['text-right', skipped && 'opacity-60']">
-      <div v-if="editing" class="w-32 sm:w-40" @keydown.enter.prevent="commit" @keydown.esc.stop="cancel" @focusout="commit">
+      <div v-if="editing" class="w-32 sm:w-40" @keydown.enter.prevent="commit(true)" @keydown.esc.stop="cancel" @focusout="commit(false)">
         <UiMoneyInput ref="moneyInput" v-model="draft" :invalid="!!draftError" :aria-label="`Monto de ${name} este mes`" @input="onDraftInput" />
         <p v-if="draftError" class="mt-1 text-xs text-danger" role="alert">{{ draftError }}</p>
       </div>
       <span v-else-if="paid || skipped" class="num text-[15px] font-semibold">{{ amountText }}</span>
       <button
         v-else-if="amountText === null"
+        ref="amountButton"
         type="button"
         class="h-10 rounded-lg px-2 text-[14px] font-medium text-primary hover:bg-primary-soft sm:h-8"
         @click="startEdit"
@@ -150,6 +167,7 @@ function cancel() {
       </button>
       <button
         v-else
+        ref="amountButton"
         type="button"
         class="num -mr-2 h-10 rounded-lg px-2 text-[15px] font-semibold hover:bg-fill sm:h-8"
         :aria-label="partial ? `Falta ${amountText} de ${name}. Cambiar el monto de este mes, ahora ${formatMoney(item.expectedAmount)}` : `Cambiar el monto de ${name} este mes, ahora ${amountText}`"

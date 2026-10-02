@@ -44,6 +44,27 @@ describe('FixedRow: amount edited in the row', () => {
     expect(wrapper.emitted('amount')).toEqual([[null]])
   })
 
+  it('gives the focus back to the amount button after Enter and after Esc', async () => {
+    mountRow(fixedItem({ expectedAmount: 600_000 }))
+    await typeAndEnter('650000')
+    await vi.waitFor(() => expect(document.activeElement).toBe(amountButton().element))
+
+    await amountButton().trigger('click')
+    expect(document.activeElement).toBe(field().element)
+    await field().trigger('keydown', { key: 'Escape' })
+    await vi.waitFor(() => expect(document.activeElement).toBe(amountButton().element))
+    expect(wrapper.emitted('amount')).toEqual([[650_000]])
+  })
+
+  it('gives the focus to the amount button after "Volver a $ 600.000"', async () => {
+    mountRow(fixedItem({ expectedAmount: 650_000, hasOverride: true }))
+    const reset = wrapper.findAll('button').find((b) => b.text() === 'Volver a $ 600.000')!
+    reset.element.focus()
+    await reset.trigger('click')
+    expect(wrapper.emitted('amount')).toEqual([[null]])
+    await vi.waitFor(() => expect(document.activeElement).toBe(amountButton().element))
+  })
+
   it('sends nothing when an amount that is not of this month is emptied', async () => {
     mountRow(fixedItem({ expectedAmount: 600_000, hasOverride: false }))
     await typeAndEnter('')
