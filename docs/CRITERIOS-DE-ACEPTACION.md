@@ -16,6 +16,20 @@ nuevo, las veces que haga falta.
      arreglar y cómo comprobar que quedó.
 4. Tras la corrección revisa un revisor nuevo, sin el contexto del anterior.
 
+Evidencia de los criterios visuales (F2, F3 y el contraste de F4): los
+revisores no usan navegador, así que vale cualquiera de estas dos:
+
+- Revisión del template con archivo:línea: la raíz es `.page` sin
+  `max-width` de página, lo ancho va dentro de `.table-wrap`, los flex/grid
+  con texto largo o cifras llevan `min-w-0`, ninguna clase baja de 13 px
+  (`text-[11px]`, `text-[12px]`), las cifras llevan `num` y el color del
+  texto sale de un token.
+- QA visual del orquestador: capturas adjuntas al PR en 360, 390, 768, 1280
+  y 1920 px, en claro y oscuro, con una cifra de 9 dígitos a la vista.
+
+Si ninguna de las dos alcanza para decidir, el criterio queda `no cumple`
+hasta que exista la captura.
+
 Los criterios marcados **[B]** son bloqueantes. Los demás se anotan y se
 corrigen si el arreglo es pequeño; si no, quedan como pendiente explícito en
 el PR.
@@ -123,9 +137,11 @@ el PR.
 - **F1 [B]** Sin gradientes decorativos, sin bordes decorativos ni look "en
   caja", sin tarjetas anidadas.
 - **F2 [B]** Página a todo el ancho (sin `max-width` de página) y sin scroll
-  horizontal de la página en 360, 390, 768, 1280 y 1920 px.
+  horizontal de la página en 360, 390, 768, 1280 y 1920 px. Evidencia: ver
+  "Cómo se revisa".
 - **F3 [B]** Ningún texto de menos de 13 px. Ninguna cifra de 8 o 9 dígitos
-  se corta ni se desborda en esos cinco anchos.
+  se corta ni se desborda en esos cinco anchos. Evidencia: ver "Cómo se
+  revisa".
 - **F4 [B]** Claro y oscuro: los colores salen de los tokens (clases del
   tema; en gráficas, `tokenColor(...)` recalculado al cambiar de tema). La
   única excepción es el color de una categoría, con
