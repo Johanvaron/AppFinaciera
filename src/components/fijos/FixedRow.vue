@@ -11,7 +11,7 @@ import UiMoneyInput from '@/components/ui/UiMoneyInput.vue'
 import { formatMoney } from '@/lib/format'
 import { categoryHex } from '@/lib/palette'
 import RowMenu, { type MenuItem } from './RowMenu.vue'
-import { dueText, partialText, resetOverrideLabel, rowAmountText, statusTone } from './fixed'
+import { amountEntry, dueText, partialText, resetOverrideLabel, rowAmountText, statusTone } from './fixed'
 
 export type RowAction = 'edit' | 'unpay' | 'skip' | 'up' | 'down' | 'end' | 'remove'
 
@@ -55,10 +55,15 @@ const menuItems = computed<MenuItem[]>(() => [
 // ---- inline amount editing (changes ONLY this month) ----
 const editing = ref(false)
 const draft = ref<number | null>(null)
+/** Raw text of the field: tells an empty field from one that is not a number. */
+const draftText = ref('')
+const draftError = ref('')
 const moneyInput = ref<InstanceType<typeof UiMoneyInput>>()
 
 async function startEdit() {
   draft.value = props.item.expectedAmount > 0 ? props.item.expectedAmount : null
+  draftText.value = draft.value == null ? '' : String(draft.value)
+  draftError.value = ''
   editing.value = true
   await nextTick()
   moneyInput.value?.focus()
@@ -68,8 +73,22 @@ async function startEdit() {
 /** Enter and blur both land here; the flag keeps the second one from saving twice. */
 function commit() {
   if (!editing.value) return
+  const entry = amountEntry(draftText.value)
+  // Not a number: nothing is sent and the field stays open so it can be fixed (Esc leaves).
+  if (entry === 'invalid') {
+    draftError.value = 'Eso no es un monto'
+    return
+  }
   editing.value = false
-  if (draft.value != null && draft.value !== props.item.expectedAmount) emit('amount', draft.value)
+  if (entry === 'empty') {
+    // Emptying the field takes this month's own amount away, when it has one.
+    if (props.item.hasOverride) emit('amount', null)
+  } else if (draft.value != null && draft.value !== props.item.expectedAmount) emit('amount', draft.value)
+}
+
+function onDraftInput(event: Event) {
+  draftText.value = (event.target as HTMLInputElement).value
+  draftError.value = ''
 }
 
 function cancel() {
@@ -117,7 +136,8 @@ function cancel() {
 
     <div :class="['text-right', skipped && 'opacity-60']">
       <div v-if="editing" class="w-32 sm:w-40" @keydown.enter.prevent="commit" @keydown.esc.stop="cancel" @focusout="commit">
-        <UiMoneyInput ref="moneyInput" v-model="draft" :aria-label="`Monto de ${name} este mes`" />
+        <UiMoneyInput ref="moneyInput" v-model="draft" :invalid="!!draftError" :aria-label="`Monto de ${name} este mes`" @input="onDraftInput" />
+        <p v-if="draftError" class="mt-1 text-xs text-danger" role="alert">{{ draftError }}</p>
       </div>
       <span v-else-if="paid || skipped" class="num text-[15px] font-semibold">{{ amountText }}</span>
       <button
