@@ -26,7 +26,7 @@ const ratio = computed(() => overallRatio(totals.value))
       :icon="Scale"
       :tone="over ? 'danger' : 'success'"
     />
-    <div class="flex min-w-0 flex-col justify-center gap-2 rounded-card bg-surface p-4 shadow-card">
+    <div class="card flex min-w-0 flex-col justify-center gap-2">
       <div class="flex items-baseline justify-between gap-3">
         <p class="truncate text-xs font-medium text-muted">Uso del presupuesto</p>
         <p class="num text-[20px] font-semibold leading-tight">{{ formatPercent(ratio) }}</p>
