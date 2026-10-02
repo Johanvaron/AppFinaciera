@@ -75,6 +75,7 @@ watch(kind, () => (selectedId.value = null))
         v-model:selected-id="selectedId"
         :report="categories.data.value"
         :loading="categories.isPending.value"
+        :stale="categories.isPlaceholderData.value"
         :error="categoriesError"
         @retry="categories.refetch()"
       />

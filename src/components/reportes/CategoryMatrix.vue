@@ -10,6 +10,8 @@ import { cellText, matrixFooter, maxCellIndex } from './reports'
 const props = defineProps<{
   report: CategoryReport | undefined
   loading: boolean
+  /** The report on screen belongs to the previous kind or range while the new one loads. */
+  stale: boolean
   error: string | null
 }>()
 defineEmits<{ retry: [] }>()
@@ -27,6 +29,7 @@ const rows = computed(() => (props.report?.rows ?? []).map((row) => ({ ...row, p
 const footer = computed(() => (props.report ? matrixFooter(props.report) : null))
 
 function toggle(id: number) {
+  if (props.stale) return
   selectedId.value = selectedId.value === id ? null : id
 }
 </script>
@@ -50,7 +53,7 @@ function toggle(id: number) {
       {{ kind === 'expense' ? 'No hay gastos en este rango.' : 'No hay ingresos en este rango.' }}
     </p>
 
-    <div v-else-if="report && footer" class="table-wrap">
+    <div v-else-if="report && footer" :class="['table-wrap transition-opacity', stale ? 'pointer-events-none opacity-50' : '']" :aria-busy="stale">
       <table class="table">
         <thead>
           <tr>
@@ -66,6 +69,7 @@ function toggle(id: number) {
               <button
                 type="button"
                 class="flex max-w-[42vw] items-center gap-2 rounded text-left sm:max-w-none"
+                :disabled="stale"
                 :aria-pressed="selectedId === row.category.id"
                 :aria-label="`Ver tendencia de ${row.category.name}`"
                 @click.stop="toggle(row.category.id)"
