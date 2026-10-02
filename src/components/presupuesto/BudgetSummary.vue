@@ -6,7 +6,7 @@ import type { BudgetMonthResponse } from '@shared/contract'
 import ProgressBar from '@/components/ui/ProgressBar.vue'
 import StatCard from '@/components/ui/StatCard.vue'
 import { formatMoney, formatPercent } from '@/lib/format'
-import { hasAnyBudget, overallRatio, ratioState, stateTone } from './budget'
+import { hasAnyBudget, overallRatio, ratioState, spentDetail, stateTone } from './budget'
 
 const props = defineProps<{ data: BudgetMonthResponse }>()
 
@@ -19,7 +19,7 @@ const ratio = computed(() => overallRatio(totals.value))
 <template>
   <div v-if="budgeted" class="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
     <StatCard label="Presupuestado" :value="formatMoney(totals.budget)" :icon="Target" tone="primary" />
-    <StatCard label="Gastado" :value="formatMoney(totals.spent)" :icon="ReceiptText" />
+    <StatCard label="Gastado en el mes" :value="formatMoney(totals.spent)" :icon="ReceiptText" :detail="spentDetail(totals)" />
     <StatCard
       :label="over ? 'Te pasaste por' : 'Disponible'"
       :value="formatMoney(Math.abs(totals.remaining))"
@@ -31,7 +31,7 @@ const ratio = computed(() => overallRatio(totals.value))
         <p class="truncate text-xs font-medium text-muted">Uso del presupuesto</p>
         <p class="num text-[20px] font-semibold leading-tight">{{ formatPercent(ratio) }}</p>
       </div>
-      <ProgressBar :ratio="ratio" :tone="stateTone(ratioState(ratio))" label="Gastado sobre presupuestado" />
+      <ProgressBar :ratio="ratio" :tone="stateTone(ratioState(ratio))" label="Gastado en categorías con tope sobre lo presupuestado" />
     </div>
   </div>
 

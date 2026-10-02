@@ -1,5 +1,8 @@
 import type { BudgetRow, BudgetState, Category, CategoryGroup } from '@shared/contract'
 import {
+  barRatio,
+  budgetedSpent,
+  spentDetail,
   groupRows,
   groupSubtotalText,
   hasAnyBudget,
@@ -62,9 +65,21 @@ describe('tone by state', () => {
     expect(ratioState(1.01)).toBe('over')
     expect(ratioState(null)).toBe('none')
   })
-  it('computes spent over budget, and nothing without budget', () => {
-    expect(overallRatio({ budget: 2000000, spent: 500000, remaining: 1500000 })).toBe(0.25)
-    expect(overallRatio({ budget: 0, spent: 500000, remaining: -500000 })).toBeNull()
+  it('measures the overall bar with the capped spending only, like "Disponible"', () => {
+    // 900.000 spent in the month, but only 500.000 of it in capped categories.
+    const totals = { budget: 2000000, spent: 900000, remaining: 1500000 }
+    expect(budgetedSpent(totals)).toBe(500000)
+    expect(overallRatio(totals)).toBe(0.25)
+    expect(spentDetail(totals)).toBe('$ 500.000 en categorías con tope')
+    expect(overallRatio({ budget: 0, spent: 500000, remaining: 0 })).toBeNull()
+  })
+  it('adds no detail when all the spending is capped', () => {
+    expect(spentDetail({ budget: 2000000, spent: 500000, remaining: 1500000 })).toBeUndefined()
+  })
+  it('fills the bar of a zero cap with spending', () => {
+    expect(barRatio({ ratio: 0.4, state: 'ok' })).toBe(0.4)
+    expect(barRatio({ ratio: null, state: 'over' })).toBe(1)
+    expect(barRatio({ ratio: null, state: 'none' })).toBeNull()
   })
 })
 

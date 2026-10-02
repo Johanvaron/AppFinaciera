@@ -12,7 +12,7 @@ import UiBadge from '@/components/ui/UiBadge.vue'
 import UiMoneyInput from '@/components/ui/UiMoneyInput.vue'
 import { formatMoney, formatPercent } from '@/lib/format'
 import { categoryHex } from '@/lib/palette'
-import { isOver, stateTone, statusText, type CommitVia } from './budget'
+import { barRatio, isOver, stateTone, statusText, type CommitVia } from './budget'
 import { BUDGET_GRID } from './layout'
 
 const props = defineProps<{
@@ -74,7 +74,7 @@ function onKeydown(event: KeyboardEvent) {
     </div>
 
     <div class="col-span-2 row-start-2 min-w-0 sm:col-span-1 sm:col-start-2 sm:row-start-1">
-      <ProgressBar :ratio="row.ratio" :tone="stateTone(row.state)" :label="`Avance de ${name}`" />
+      <ProgressBar :ratio="barRatio(row)":tone="stateTone(row.state)" :label="`Avance de ${name}`" />
     </div>
 
     <p :class="['col-start-1 row-start-3 min-w-0 truncate text-xs sm:col-start-2 sm:row-start-2', isOver(row) ? 'font-medium text-danger' : 'text-muted']">

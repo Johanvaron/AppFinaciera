@@ -44,9 +44,29 @@ export function ratioState(ratio: number | null): BudgetState {
   return 'ok'
 }
 
-/** Spent over budget as a fraction; null when nothing is budgeted. */
+/**
+ * Spending that counts against the caps. `totals.spent` is ALL the month's
+ * expenses (capped or not), while `totals.remaining` only discounts the capped
+ * categories, so this is the figure that matches "Disponible".
+ */
+export function budgetedSpent(totals: BudgetMonthResponse['totals']): number {
+  return totals.budget - totals.remaining
+}
+
+/** Capped spending over budget as a fraction; null when nothing is budgeted. */
 export function overallRatio(totals: BudgetMonthResponse['totals']): number | null {
-  return totals.budget > 0 ? totals.spent / totals.budget : null
+  return totals.budget > 0 ? budgetedSpent(totals) / totals.budget : null
+}
+
+/** Line under "Gastado" when part of the spending is in categories without cap. */
+export function spentDetail(totals: BudgetMonthResponse['totals']): string | undefined {
+  const capped = budgetedSpent(totals)
+  return capped === totals.spent ? undefined : `${formatMoney(capped)} en categorías con tope`
+}
+
+/** Fill of the row bar. A cap of $ 0 has no ratio: any spending fills it. */
+export function barRatio(row: Pick<BudgetRow, 'ratio' | 'state'>): number | null {
+  return row.ratio ?? (row.state === 'over' ? 1 : null)
 }
 
 export function hasAnyBudget(rows: BudgetRow[]): boolean {
