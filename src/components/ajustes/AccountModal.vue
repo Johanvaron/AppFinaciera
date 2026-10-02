@@ -41,12 +41,10 @@ watch(
   { immediate: true },
 )
 
-// The checkbox stays visible for any account that already carries a negative start.
-const showDebt = computed(() => form.type === 'tarjeta' || form.isDebt)
 const balanceHint = computed(() =>
   form.type === 'tarjeta'
     ? 'Si ya debes plata en la tarjeta, marca "es deuda". El saldo actual = saldo inicial + movimientos.'
-    : 'El saldo actual = saldo inicial + movimientos.',
+    : 'Si la cuenta empieza en negativo (un sobregiro), marca "es deuda". El saldo actual = saldo inicial + movimientos.',
 )
 
 const save = useApiMutation(
@@ -103,7 +101,7 @@ async function submit() {
         <UiMoneyInput v-model="form.amount" :invalid="!!errors.initialBalance" />
       </UiField>
 
-      <label v-if="showDebt" class="flex min-h-10 items-center gap-2 sm:min-h-8">
+      <label class="flex min-h-10 items-center gap-2 sm:min-h-8">
         <input v-model="form.isDebt" type="checkbox" class="size-4 shrink-0 accent-primary" />
         <span>Es deuda (el saldo inicial se guarda en negativo)</span>
       </label>
