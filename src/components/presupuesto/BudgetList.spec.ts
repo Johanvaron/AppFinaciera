@@ -42,6 +42,12 @@ describe('BudgetList', () => {
     expect(text).toContain('$ 64.000')
   })
 
+  it('links the spent figure of each row to the movements of its category', () => {
+    const wrapper = mountList()
+    expect(wrapper.get('a[aria-label="Gastado en Mercado: $ 380.000. Ver movimientos"]').attributes('href')).toBe('/movimientos?categoryId=3')
+    expect(wrapper.get('a[aria-label="Gastado en Antojos: $ 64.000. Ver movimientos"]').attributes('href')).toBe('/movimientos?categoryId=5')
+  })
+
   it('saves a typed cap with Enter', async () => {
     const wrapper = mountList()
     expect(trigger(wrapper, 5).text()).toBe('Poner tope')

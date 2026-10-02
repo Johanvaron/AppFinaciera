@@ -93,7 +93,7 @@ function onFocusOut(event: FocusEvent) {
         {{ statusText(row) }}
       </p>
       <RouterLink
-        to="/movimientos"
+        :to="{ path: '/movimientos', query: { categoryId: row.category.id } }"
         class="num ml-auto rounded text-xs hover:text-primary hover:underline sm:col-start-4 sm:row-span-2 sm:row-start-1 sm:ml-0 sm:justify-self-end sm:text-[14px]"
         :aria-label="`Gastado en ${name}: ${formatMoney(row.spent)}. Ver movimientos`"
       >
