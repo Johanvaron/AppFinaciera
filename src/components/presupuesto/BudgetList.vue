@@ -11,7 +11,7 @@ import { useApiMutation } from '@/lib/queries'
 import { useToasts } from '@/lib/toasts'
 import { usePeriodStore } from '@/stores/period'
 import BudgetRowItem from './BudgetRowItem.vue'
-import { groupRows, groupSubtotalText, neighborId, resolveBudgetEdit, type CommitVia } from './budget'
+import { groupRows, groupSubtotalText, groupUncappedText, neighborId, resolveBudgetEdit, type CommitVia } from './budget'
 import { BUDGET_GRID } from './layout'
 
 const props = defineProps<{ rows: BudgetRow[] }>()
@@ -118,7 +118,10 @@ watch(
     <div v-for="group in groups" :key="group.group" class="flex min-w-0 flex-col gap-1">
       <div class="flex min-h-10 min-w-0 flex-wrap items-center justify-between gap-x-3 rounded-lg bg-fill px-3 py-1.5">
         <h2 class="text-[14px] font-semibold">{{ group.label }}</h2>
-        <p class="num text-xs text-muted">{{ groupSubtotalText(group) }}</p>
+        <p class="flex min-w-0 flex-wrap justify-end gap-x-2 text-xs text-muted">
+          <span class="num">{{ groupSubtotalText(group) }}</span>
+          <span v-if="groupUncappedText(group)" class="num">{{ groupUncappedText(group) }}</span>
+        </p>
       </div>
       <ul class="flex min-w-0 flex-col">
         <BudgetRowItem

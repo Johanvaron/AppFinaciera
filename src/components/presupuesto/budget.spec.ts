@@ -5,6 +5,7 @@ import {
   spentDetail,
   groupRows,
   groupSubtotalText,
+  groupUncappedText,
   hasAnyBudget,
   isOver,
   neighborId,
@@ -115,12 +116,22 @@ describe('grouping and order', () => {
     const variables = groupRows(rows).find((g) => g.group === 'variables')!
     expect(variables.budget).toBe(1150000)
     expect(variables.spent).toBe(950000)
-    expect(groupSubtotalText(variables)).toBe('$ 950.000 de $ 1.150.000')
+    expect(variables.cappedSpent).toBe(795000)
+  })
+
+  it('compares only the capped spending against the caps of the group', () => {
+    const variables = groupRows(rows).find((g) => g.group === 'variables')!
+    expect(groupSubtotalText(variables)).toBe('$ 795.000 de $ 1.150.000')
+    expect(groupUncappedText(variables)).toBe('+ $ 155.000 sin tope')
+    const fijos = groupRows(rows).find((g) => g.group === 'fijos')!
+    expect(groupSubtotalText(fijos)).toBe('$ 1.200.000 de $ 1.200.000')
+    expect(groupUncappedText(fijos)).toBeUndefined()
   })
 
   it('shows only the spending when the group has no caps', () => {
     const group = groupRows([row('Antojos', 'variables', null, 60000), row('Regalos', 'variables', null, 95000)])[0]!
     expect(groupSubtotalText(group)).toBe('$ 155.000 gastado')
+    expect(groupUncappedText(group)).toBeUndefined()
     expect(hasAnyBudget(group.rows)).toBe(false)
   })
 

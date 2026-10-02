@@ -33,7 +33,8 @@ describe('BudgetList', () => {
   it('shows each row as the person reads it', () => {
     const text = mountList().text()
     expect(text).toContain('Gastos variables')
-    expect(text).toContain('$ 444.000 de $ 500.000')
+    expect(text).toContain('$ 380.000 de $ 500.000')
+    expect(text).toContain('+ $ 64.000 sin tope')
     expect(text).toContain('Te quedan $ 120.000')
     expect(text).toContain('76 %')
     expect(text).toContain('Sin tope')

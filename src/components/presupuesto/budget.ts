@@ -27,6 +27,8 @@ export interface BudgetGroup {
   budget: number
   /** Sum of everything spent in the group, with or without cap. */
   spent: number
+  /** Spent in the capped categories only: the figure that compares against `budget`. */
+  cappedSpent: number
   hasBudget: boolean
 }
 
@@ -139,14 +141,24 @@ export function groupRows(rows: BudgetRow[], frozenOrder?: number[] | null): Bud
       rows: groupRowsSorted,
       budget: groupRowsSorted.reduce((sum, row) => sum + (row.budget ?? 0), 0),
       spent: groupRowsSorted.reduce((sum, row) => sum + row.spent, 0),
+      cappedSpent: groupRowsSorted.reduce((sum, row) => sum + (row.budget != null ? row.spent : 0), 0),
       hasBudget: hasAnyBudget(groupRowsSorted),
     }
   }).filter((group) => group.rows.length > 0)
 }
 
-/** Group header figure: "$ 850.000 de $ 1.200.000", or "$ 850.000 gastado" without caps. */
-export function groupSubtotalText(group: Pick<BudgetGroup, 'budget' | 'spent' | 'hasBudget'>): string {
-  return group.hasBudget ? `${formatMoney(group.spent)} de ${formatMoney(group.budget)}` : `${formatMoney(group.spent)} gastado`
+/**
+ * Group header figure: "$ 850.000 de $ 1.200.000" (capped spending over the
+ * caps, like the overall bar), or "$ 850.000 gastado" without caps.
+ */
+export function groupSubtotalText(group: Pick<BudgetGroup, 'budget' | 'spent' | 'cappedSpent' | 'hasBudget'>): string {
+  return group.hasBudget ? `${formatMoney(group.cappedSpent)} de ${formatMoney(group.budget)}` : `${formatMoney(group.spent)} gastado`
+}
+
+/** Spending of the group left out of the subtotal because its category has no cap. */
+export function groupUncappedText(group: Pick<BudgetGroup, 'spent' | 'cappedSpent' | 'hasBudget'>): string | undefined {
+  const uncapped = group.spent - group.cappedSpent
+  return group.hasBudget && uncapped > 0 ? `+ ${formatMoney(uncapped)} sin tope` : undefined
 }
 
 /** How an in-place edit was closed. */
