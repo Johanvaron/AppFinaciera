@@ -48,6 +48,7 @@ const amountInput = () => $<HTMLInputElement>('[role="dialog"] input[inputmode="
 const selects = () => [...document.querySelectorAll<HTMLSelectElement>('[role="dialog"] select')]
 const typeButton = (label: string) => [...document.querySelectorAll<HTMLButtonElement>('[role="radio"]')].find((b) => b.textContent?.trim() === label)!
 const button = (label: string) => [...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find((b) => b.textContent?.trim() === label)!
+const alerts = () => [...document.querySelectorAll('[role="dialog"] [role="alert"]')].map((el) => el.textContent?.trim())
 const dialogText = () => $('[role="dialog"]').textContent ?? ''
 
 async function type(input: HTMLInputElement, text: string) {
@@ -156,8 +157,16 @@ describe('TransactionModal', () => {
     )
     await open(() => quickAdd.openEdit({ ...RENT_PAYMENT, fixedExpenseId: null, fixedMonth: null }))
     await submitForm()
-    await vi.waitFor(() => expect(dialogText()).toContain('El pago de un gasto fijo tiene que seguir siendo un gasto'))
+    await vi.waitFor(() => expect(alerts()).toEqual(['El pago de un gasto fijo tiene que seguir siendo un gasto']))
     expect(quickAdd.open).toBe(true)
+  })
+
+  it('shows a local validation failure on a field the form has no input for', async () => {
+    await open(() => quickAdd.openEdit({ ...RENT_PAYMENT, type: 'refund' as Transaction['type'] }))
+    await submitForm()
+    expect(alerts()).toHaveLength(1)
+    expect(alerts()[0]).toContain('"income"|"expense"|"transfer"')
+    expect(api.transactions.update).not.toHaveBeenCalled()
   })
 
   it('shows a server rejection next to its field', async () => {

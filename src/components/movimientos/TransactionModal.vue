@@ -101,9 +101,16 @@ const save = useApiMutation(
   { silentError: true },
 )
 
-/** Inputs on screen right now: an error on anything else has no place to show next to a field. */
-function shownFields(): string[] {
-  return ['amount', 'accountId', 'date', 'description', 'note', form.type === 'transfer' ? 'toAccountId' : 'categoryId']
+/**
+ * Paints each rejection next to its input. One on anything without an input on
+ * screen right now (the type, an unknown key) goes to the general line, never to nowhere.
+ */
+function showErrors(fields: Record<string, string>, fallback: string) {
+  const shown = ['amount', 'accountId', 'date', 'description', 'note', form.type === 'transfer' ? 'toAccountId' : 'categoryId']
+  const orphans = Object.entries(fields).filter(([field]) => !shown.includes(field))
+  errors.value = fields
+  if (orphans.length > 0) formError.value = orphans.map(([, message]) => message).join(' ')
+  else if (Object.keys(fields).length === 0) formError.value = fallback
 }
 
 async function submit(keepOpen: boolean) {
@@ -121,21 +128,18 @@ async function submit(keepOpen: boolean) {
     note: form.note,
   })
   if (!parsed.success) {
+    const fields: Record<string, string> = {}
     for (const issue of parsed.error.issues) {
       const field = String(issue.path[0] ?? '')
-      errors.value[field] ??= field === 'accountId' ? 'Elige una cuenta' : issue.message
+      fields[field] ??= field === 'accountId' ? 'Elige una cuenta' : issue.message
     }
+    showErrors(fields, '')
     return
   }
   try {
     await save.mutateAsync(parsed.data)
   } catch (error) {
-    errors.value = errorFields(error)
-    // A rejected field without an input (the type, an unknown key) goes to the general line, never to nowhere.
-    const shown = shownFields()
-    const orphans = Object.entries(errors.value).filter(([field]) => !shown.includes(field))
-    if (orphans.length > 0) formError.value = orphans.map(([, message]) => message).join(' ')
-    else if (Object.keys(errors.value).length === 0) formError.value = errorMessage(error)
+    showErrors(errorFields(error), errorMessage(error))
     return
   }
   try {
