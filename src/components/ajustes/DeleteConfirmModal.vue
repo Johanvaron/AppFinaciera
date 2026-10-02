@@ -4,7 +4,7 @@
  * (it has movements) it shows the server's message and offers to archive
  * right there instead.
  */
-import { ref, watch } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiModal from '@/components/ui/UiModal.vue'
 import { ApiRequestError } from '@/lib/api'
@@ -25,6 +25,8 @@ const props = defineProps<{
 
 const message = ref('')
 const inUse = ref(false)
+const archiveButton = ref<InstanceType<typeof UiButton>>()
+const cancelButton = ref<InstanceType<typeof UiButton>>()
 
 /**
  * Counts openings and closings. An answer that arrives after the dialog was
@@ -55,6 +57,11 @@ async function confirmRemove() {
     if (asked !== session) return
     message.value = errorMessage(error)
     inUse.value = error instanceof ApiRequestError && error.status === 409
+    if (!inUse.value) return
+    // The focused "Eliminar" button is gone now: move the focus to what is offered instead.
+    await nextTick()
+    const next = archiveButton.value ?? cancelButton.value
+    ;(next?.$el as HTMLElement | undefined)?.focus()
   }
 }
 
@@ -82,8 +89,8 @@ async function confirmArchive() {
       <p v-if="inUse && archived" class="text-xs text-muted">Ya está archivada: no aparece al registrar movimientos nuevos.</p>
     </div>
     <template #footer>
-      <UiButton variant="ghost" @click="open = false">Cancelar</UiButton>
-      <UiButton v-if="inUse && !archived" variant="primary" :loading="archiving.isPending.value" @click="confirmArchive">Archivar</UiButton>
+      <UiButton ref="cancelButton" variant="ghost" @click="open = false">Cancelar</UiButton>
+      <UiButton v-if="inUse && !archived" ref="archiveButton" variant="primary" :loading="archiving.isPending.value" @click="confirmArchive">Archivar</UiButton>
       <UiButton v-if="!inUse" variant="danger" :loading="removal.isPending.value" @click="confirmRemove">Eliminar</UiButton>
     </template>
   </UiModal>

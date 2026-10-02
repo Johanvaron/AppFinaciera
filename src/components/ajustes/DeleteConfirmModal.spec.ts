@@ -100,6 +100,26 @@ describe('DeleteConfirmModal', () => {
     expect(button('Eliminar')).toBeDefined()
   })
 
+  it('on a 409 shows the reason and moves the focus to Archivar', async () => {
+    remove.mockRejectedValueOnce(new ApiRequestError(409, IN_USE))
+    button('Eliminar')!.focus()
+    button('Eliminar')!.click()
+    await settle()
+    expect(alerts()).toEqual([IN_USE])
+    expect(button('Eliminar')).toBeUndefined()
+    expect(document.activeElement).toBe(button('Archivar'))
+  })
+
+  it('on a 409 of something already archived moves the focus to Cancelar', async () => {
+    archived.value = true
+    remove.mockRejectedValueOnce(new ApiRequestError(409, IN_USE))
+    button('Eliminar')!.focus()
+    button('Eliminar')!.click()
+    await settle()
+    expect(button('Archivar')).toBeUndefined()
+    expect(document.activeElement).toBe(button('Cancelar'))
+  })
+
   it('closes after deleting', async () => {
     remove.mockResolvedValueOnce(undefined)
     button('Eliminar')!.click()
