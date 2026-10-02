@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { FixedMonthItem } from '@shared/contract'
-import { dueText, moveId, needsAmount, progressRatio, progressText, resetOverrideLabel, rowAmount, rowAmountText, splitFieldErrors, statusTone } from './fixed'
+import { dueText, moveId, needsAmount, progressRatio, progressText, resetOverrideLabel, rowAmount, rowAmountText, splitFieldErrors, statusTone, unpayLead } from './fixed'
 
 function item(overrides: Partial<FixedMonthItem> & { variableAmount?: boolean } = {}): FixedMonthItem {
   const { variableAmount = false, ...rest } = overrides
@@ -123,6 +123,13 @@ describe('moveId', () => {
   it('does not mutate the input', () => {
     moveId(ids, 30, -1)
     expect(ids).toEqual([10, 20, 30, 40])
+  })
+})
+
+describe('unpayLead', () => {
+  it('says how many payments go away when there are several', () => {
+    expect(unpayLead(1)).toBe('Se borra el pago de')
+    expect(unpayLead(2)).toBe('Se borran los 2 abonos de este mes, que suman')
   })
 })
 

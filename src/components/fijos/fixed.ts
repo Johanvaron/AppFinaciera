@@ -89,6 +89,11 @@ export function splitFieldErrors(fields: Record<string, string>, visible: readon
   return { fields: shown, rest: rest.join('. ') }
 }
 
+/** Start of the "undo payment" sentence; the amount follows it. Unpaying deletes EVERY payment of the month. */
+export function unpayLead(paymentCount: number): string {
+  return paymentCount > 1 ? `Se borran los ${paymentCount} abonos de este mes, que suman` : 'Se borra el pago de'
+}
+
 /** "3 de 8" for the progress figure. */
 export function progressText(countPaid: number, countTotal: number): string {
   return `${countPaid} de ${countTotal}`

@@ -15,7 +15,7 @@ import FixedFormModal from '@/components/fijos/FixedFormModal.vue'
 import FixedRow, { type RowAction } from '@/components/fijos/FixedRow.vue'
 import FixedTotals from '@/components/fijos/FixedTotals.vue'
 import PayModal from '@/components/fijos/PayModal.vue'
-import { moveId } from '@/components/fijos/fixed'
+import { moveId, unpayLead } from '@/components/fijos/fixed'
 import { api } from '@/lib/api'
 import { addMonths, formatMoney, monthLabel } from '@/lib/format'
 import { errorMessage, useApiMutation, useCategories, useFixedMonth } from '@/lib/queries'
@@ -156,7 +156,7 @@ async function confirmRemove() {
 
     <UiModal v-model:open="unpayOpen" :title="`Desmarcar ${target?.fixed.name ?? ''}`" size="sm">
       <p class="text-[14px]">
-        Se borra el pago de <span class="num font-semibold">{{ formatMoney(target?.paidAmount ?? 0) }}</span> y vuelve a quedar pendiente.
+        {{ unpayLead(target?.transactionIds.length ?? 0) }} <span class="num font-semibold">{{ formatMoney(target?.paidAmount ?? 0) }}</span> y vuelve a quedar pendiente.
       </p>
       <template #footer>
         <UiButton variant="ghost" @click="unpayOpen = false">Cancelar</UiButton>
