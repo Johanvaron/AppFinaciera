@@ -111,9 +111,14 @@ describe('category bars', () => {
 
 describe('stat card texts', () => {
   it('describes the change against the previous month by name', () => {
-    expect(changeDetail(0.1, '2026-09')).toBe('+10 % vs septiembre')
-    expect(changeDetail(-0.254, '2026-12')).toBe('-25 % vs diciembre')
-    expect(changeDetail(null, '2026-09')).toBe('Sin datos de septiembre')
+    expect(changeDetail(0.1, '2026-10', '2026-09', '2026-10')).toBe('+10 % vs septiembre')
+    expect(changeDetail(-0.254, '2027-01', '2026-12', '2027-03')).toBe('-25 % vs diciembre')
+    expect(changeDetail(null, '2026-10', '2026-09', '2026-10')).toBe('Sin datos de septiembre')
+  })
+
+  it('does not compare a month that has not started', () => {
+    expect(changeDetail(-1, '2026-11', '2026-10', '2026-10')).toBe('Mes sin empezar')
+    expect(changeDetail(null, '2027-01', '2026-12', '2026-10')).toBe('Mes sin empezar')
   })
 
   it('turns the lead figure red when it is negative', () => {

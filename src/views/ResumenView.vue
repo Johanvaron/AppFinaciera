@@ -62,8 +62,8 @@ const stats = computed(() => {
   if (!s) return null
   return {
     available: availableStat(s.availableToSpend),
-    income: { value: formatMoney(s.income), detail: changeDetail(s.change.income, s.previous.month) },
-    expenses: { value: formatMoney(s.expenses), detail: changeDetail(s.change.expenses, s.previous.month) },
+    income: { value: formatMoney(s.income), detail: changeDetail(s.change.income, s.month, s.previous.month) },
+    expenses: { value: formatMoney(s.expenses), detail: changeDetail(s.change.expenses, s.month, s.previous.month) },
     fixed: fixedStat(s.pendingFixed, s.upcomingFixed.length, fixedCount.value),
     savings: savingsStat(s.net, s.savingsRate),
   }

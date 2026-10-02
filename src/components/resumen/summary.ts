@@ -3,7 +3,7 @@
  * built here so it can be tested without mounting anything.
  */
 import type { Category, CategoryTotal, FixedMonthItem, IsoDate, Month, MonthSummary, Transaction } from '@shared/contract'
-import { dateShort, daysUntil, formatChange, formatMoney, formatPercent, monthLabel, todayIso } from '@/lib/format'
+import { currentMonth, dateShort, daysUntil, formatChange, formatMoney, formatPercent, monthLabel, todayIso } from '@/lib/format'
 
 export type Tone = 'primary' | 'success' | 'warning' | 'danger' | 'neutral'
 
@@ -116,8 +116,12 @@ export function monthNameLower(month: Month): string {
   return monthLabel(month).split(' ')[0]!.toLowerCase()
 }
 
-/** "+10 % vs septiembre"; without a previous figure there is nothing to compare. */
-export function changeDetail(change: number | null, previousMonth: Month): string {
+/**
+ * "+10 % vs septiembre"; without a previous figure there is nothing to compare.
+ * A month that has not started is not compared: its "-100 %" would mean nothing.
+ */
+export function changeDetail(change: number | null, month: Month, previousMonth: Month, thisMonth: Month = currentMonth()): string {
+  if (month > thisMonth) return 'Mes sin empezar'
   const name = monthNameLower(previousMonth)
   return change == null ? `Sin datos de ${name}` : `${formatChange(change)} vs ${name}`
 }
