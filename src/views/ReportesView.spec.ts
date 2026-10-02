@@ -74,6 +74,20 @@ describe('ReportesView', () => {
     wrapper.unmount()
   })
 
+  it('lets go of the open trend when its category is not in the new range', async () => {
+    const { wrapper } = await mountView()
+    await pressOption(wrapper, '12 meses')
+    await wrapper.find('button[aria-label="Ver tendencia de Viajes"]').trigger('click')
+    expect(wrapper.find('[data-test="trend"]').text()).toBe('Viajes')
+    await pressOption(wrapper, '3 meses')
+    expect(wrapper.find('[data-test="trend"]').exists()).toBe(false)
+    // Back in the range that has the category: the trend stays closed until it is chosen again.
+    await pressOption(wrapper, '12 meses')
+    expect(wrapper.text()).toContain('Viajes')
+    expect(wrapper.find('[data-test="trend"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
   it('shows the error with a retry when there is nothing cached to show', async () => {
     vi.mocked(api.reports.monthly).mockRejectedValue(new ApiRequestError(0, 'No se pudo conectar con el servidor local.'))
     const { wrapper } = await mountView()

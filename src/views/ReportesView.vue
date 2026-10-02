@@ -39,6 +39,13 @@ const categoriesError = computed(() => (categories.isError.value && !categories.
 const selectedRow = computed(() => categories.data.value?.rows.find((row) => row.category.id === selectedId.value) ?? null)
 
 watch(kind, () => (selectedId.value = null))
+// A category that is not in the new range lets go of the selection, so its trend does not come back by itself later.
+watch(
+  () => categories.data.value,
+  (report) => {
+    if (report && selectedId.value !== null && !selectedRow.value) selectedId.value = null
+  },
+)
 </script>
 
 <template>
