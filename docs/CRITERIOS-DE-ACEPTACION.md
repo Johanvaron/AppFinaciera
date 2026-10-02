@@ -79,7 +79,11 @@ el PR.
   petición (por ejemplo `POST /transactions/bulk-categorize`): todo o nada.
 - **B2 [B]** No se pierden datos sin confirmación explícita. Todo borrado
   pide confirmación y dice qué más se ve afectado (por ejemplo, que un gasto
-  fijo vuelve a quedar pendiente).
+  fijo vuelve a quedar pendiente). Vaciar uno de los dos campos anulables de
+  A7 **no** es un borrado de B2 y no pide confirmación: es editar un solo
+  valor que el usuario vacía a propósito, no elimina ningún registro
+  dependiente (movimientos, pagos, categorías) y se deshace volviendo a
+  escribir el monto.
 - **B3 [B]** Las consultas de datos (`SELECT`, `INSERT`, `UPDATE`,
   `DELETE`) viven solo en `server/repositories/`. Las únicas excepciones son
   `server/db.ts` (conexión, `PRAGMA`, transacciones y aplicación de
