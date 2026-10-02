@@ -220,8 +220,9 @@ export class FixedService {
   }
 
   /** Deletes every payment of that month. */
-  unpay(id: number, month: Month = monthOf(this.deps.clock())): FixedMonthItem {
+  unpay(id: number, month: Month): FixedMonthItem {
     const fixed = this.mustGet(id)
+    this.assertApplies(fixed, month)
     this.deps.transactions.deleteFixedPayments(id, month)
     return this.item(fixed, month)
   }

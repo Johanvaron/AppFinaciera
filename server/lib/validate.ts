@@ -68,3 +68,6 @@ export function monthParam(c: Context): Month {
 
 /** `?month=YYYY-MM`, optional: services fall back to the current month. */
 export const monthQuerySchema = z.strictObject({ month: monthSchema.optional() })
+
+/** `?month=YYYY-MM`, required: for writes, where guessing the month would touch the wrong one. */
+export const requiredMonthQuerySchema = z.strictObject({ month: z.string('Indica el mes (YYYY-MM)').pipe(monthSchema) })

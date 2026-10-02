@@ -124,6 +124,20 @@ describe('fixed expenses checklist', () => {
     expect(reversed.body.fields).toEqual({ endMonth: 'El mes final no puede ser anterior al inicial' })
   })
 
+  it('DELETE /fixed/:id/pay demands the month instead of guessing the current one', async () => {
+    const rent = await api.fixed({ name: 'Arriendo', amount: 900_000, categoryId: housing, startMonth: '2026-02' })
+    await pay(rent, { amount: 930_000, date: '2026-03-04' })
+
+    const noMonth = await api.call('DELETE', `/fixed/${rent}/pay`)
+    expect(noMonth.status).toBe(422)
+    expect(noMonth.body.fields).toEqual({ month: 'Indica el mes (YYYY-MM)' })
+    const outside = await api.call('DELETE', `/fixed/${rent}/pay?month=2026-01`)
+    expect(outside.status).toBe(422)
+    expect(outside.body.fields).toEqual({ month: 'Este gasto fijo no aplica para ese mes' })
+    expect(await itemOf('2026-03', rent)).toMatchObject({ status: 'paid', paidAmount: 930_000 })
+    expect(await api.ok('GET', '/transactions')).toHaveLength(1)
+  })
+
   it('refuses to cut a month with payments out of the range, and drops the overrides left outside', async () => {
     const loan = await api.fixed({ name: 'Crédito', amount: 500_000, categoryId: housing, startMonth: '2026-05' })
     await pay(loan, { month: '2026-06', amount: 510_000, date: '2026-06-03' })
