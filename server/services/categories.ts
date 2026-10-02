@@ -1,5 +1,6 @@
 import type { z } from 'zod'
 import type { Category, categoryInputSchema } from '../../shared/contract.ts'
+import type { Transact } from '../db.ts'
 import { conflict, notFound } from '../lib/errors.ts'
 import type { BudgetRepository } from '../repositories/budgets.ts'
 import type { CategoryRepository } from '../repositories/categories.ts'
@@ -13,17 +14,20 @@ export class CategoryService {
   private readonly transactions: TransactionRepository
   private readonly fixed: FixedExpenseRepository
   private readonly budgets: BudgetRepository
+  private readonly transact: Transact
 
   constructor(
     categories: CategoryRepository,
     transactions: TransactionRepository,
     fixed: FixedExpenseRepository,
     budgets: BudgetRepository,
+    transact: Transact,
   ) {
     this.categories = categories
     this.transactions = transactions
     this.fixed = fixed
     this.budgets = budgets
+    this.transact = transact
   }
 
   list(): Category[] {
@@ -49,7 +53,11 @@ export class CategoryService {
     if (this.inUse(id)) {
       throw conflict('Esta categoría tiene movimientos, gastos fijos o presupuestos asociados; archívala en su lugar.')
     }
-    this.categories.delete(id)
+    this.transact(() => {
+      // Only "budget removed" rows can be left at this point; the foreign key needs them gone first.
+      this.budgets.deleteByCategory(id)
+      this.categories.delete(id)
+    })
   }
 
   private inUse(id: number): boolean {

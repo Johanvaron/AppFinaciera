@@ -28,7 +28,12 @@ export class BudgetRepository extends BaseRepository<BudgetRecord> {
     )
   }
 
+  /** Real budgets only: a NULL row just records that the budget was removed. */
   countByCategory(categoryId: number): number {
-    return this.count('SELECT COUNT(*) FROM budgets WHERE category_id = ?', categoryId)
+    return this.count('SELECT COUNT(*) FROM budgets WHERE category_id = ? AND amount IS NOT NULL', categoryId)
+  }
+
+  deleteByCategory(categoryId: number): number {
+    return this.run('DELETE FROM budgets WHERE category_id = ?', categoryId)
   }
 }

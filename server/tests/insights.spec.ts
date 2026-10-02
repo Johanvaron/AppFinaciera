@@ -78,6 +78,27 @@ describe('budgets', () => {
     expect(await names('2026-04')).toEqual(['Mercado', 'Restaurantes', 'Compras'])
   })
 
+  it('lets a category be deleted once its budget was removed, or was never set', async () => {
+    const trial = await api.category('Prueba', 'expense')
+    await setBudget(trial, '2026-03', 100_000)
+    const withBudget = await api.call('DELETE', `/categories/${trial}`)
+    expect(withBudget.status).toBe(409)
+    expect(withBudget.body.error).toBe('Esta categoría tiene movimientos, gastos fijos o presupuestos asociados; archívala en su lugar.')
+    await setBudget(trial, '2026-03', null)
+    expect((await api.call('DELETE', `/categories/${trial}`)).status).toBe(204)
+
+    const never = await api.category('Nunca', 'expense')
+    await setBudget(never, '2026-03', null)
+    expect((await api.call('DELETE', `/categories/${never}`)).status).toBe(204)
+    expect((await api.ok('GET', '/backup')).budgets).toEqual([])
+    expect((await api.ok('GET', '/categories')).map((category: any) => category.name)).toEqual([
+      'Mercado',
+      'Restaurantes',
+      'Compras',
+      'Entretenimiento',
+    ])
+  })
+
   it('rejects a budget on an income or missing category', async () => {
     const salary = await api.category('Salario', 'income')
     expect((await api.call('PUT', '/budgets', { categoryId: salary, month: '2026-03', amount: 1 })).status).toBe(422)
