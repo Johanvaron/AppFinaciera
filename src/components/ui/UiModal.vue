@@ -1,3 +1,8 @@
+<script lang="ts">
+/** Keydown handlers of the open modals, bottom to top. Shared by every instance. */
+const openModals: Array<(event: KeyboardEvent) => void> = []
+</script>
+
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { X } from 'lucide-vue-next'
@@ -7,33 +12,78 @@ withDefaults(defineProps<{ title: string; size?: 'sm' | 'md' | 'lg' }>(), { size
 
 const panel = ref<HTMLElement>()
 let lastFocused: HTMLElement | null = null
+let active = false
+
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 function onKeydown(event: KeyboardEvent) {
+  // Every open modal listens on document: only the one on top answers.
+  if (openModals[openModals.length - 1] !== onKeydown) return
   if (event.key === 'Escape') {
     event.stopPropagation()
     open.value = false
+  } else if (event.key === 'Tab') {
+    trapFocus(event)
   }
+}
+
+/** Tab stays inside the dialog: it wraps at both ends and comes back if focus was outside. */
+function trapFocus(event: KeyboardEvent) {
+  const root = panel.value
+  if (!root) return
+  const items = [...root.querySelectorAll<HTMLElement>(FOCUSABLE)]
+  const first = items[0]
+  const last = items[items.length - 1]
+  const current = document.activeElement
+  if (!first || !last) {
+    event.preventDefault()
+    root.focus()
+  } else if (!root.contains(current) || current === root) {
+    event.preventDefault()
+    ;(event.shiftKey ? last : first).focus()
+  } else if (event.shiftKey && current === first) {
+    event.preventDefault()
+    last.focus()
+  } else if (!event.shiftKey && current === last) {
+    event.preventDefault()
+    first.focus()
+  }
+}
+
+function activate() {
+  active = true
+  lastFocused = document.activeElement as HTMLElement | null
+  openModals.push(onKeydown)
+  document.addEventListener('keydown', onKeydown)
+}
+
+function deactivate() {
+  if (!active) return
+  active = false
+  const index = openModals.indexOf(onKeydown)
+  if (index !== -1) openModals.splice(index, 1)
+  document.removeEventListener('keydown', onKeydown)
+  // The opener may be gone (a deleted row): then there is nothing to go back to.
+  if (lastFocused?.isConnected) lastFocused.focus()
+  lastFocused = null
 }
 
 watch(
   open,
   async (isOpen) => {
-    if (isOpen) {
-      lastFocused = document.activeElement as HTMLElement | null
-      document.addEventListener('keydown', onKeydown)
-      await nextTick()
-      // Focus the first field so typing starts right away.
-      const first = panel.value?.querySelector<HTMLElement>('[data-autofocus], input, select, textarea')
-      ;(first ?? panel.value)?.focus()
-    } else {
-      document.removeEventListener('keydown', onKeydown)
-      lastFocused?.focus()
-    }
+    if (!isOpen) return deactivate()
+    activate()
+    await nextTick()
+    // Focus the marked field, else the first one, so typing starts right away.
+    const root = panel.value
+    const first = root?.querySelector<HTMLElement>('[data-autofocus]') ?? root?.querySelector<HTMLElement>('input, select, textarea')
+    ;(first ?? root)?.focus()
   },
   { immediate: true },
 )
 
-onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
+// Unmounted while open (a parent v-if): still give the focus back.
+onBeforeUnmount(deactivate)
 </script>
 
 <template>
