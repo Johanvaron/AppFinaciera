@@ -52,6 +52,10 @@ export interface TransactionFilters {
   q?: string
 }
 
+const OFFLINE_MESSAGE = 'No se pudo conectar con el servidor local. ¿Está corriendo "pnpm dev"?'
+const UNREADABLE_MESSAGE = 'El servidor respondió algo que no se pudo leer. Intenta de nuevo.'
+const NOT_JSON = Symbol('not json')
+
 type Query = Record<string, string | number | undefined | null>
 
 function toQueryString(query?: Query): string {
@@ -73,10 +77,17 @@ async function request<T>(method: string, path: string, options: { body?: unknow
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
     })
   } catch {
-    throw new ApiRequestError(0, 'No se pudo conectar con el servidor local. ¿Está corriendo "pnpm dev"?')
+    throw new ApiRequestError(0, OFFLINE_MESSAGE)
   }
   if (response.status === 204) return undefined as T
-  const data: unknown = await response.json().catch(() => null)
+  // A body that is not JSON is not thrown here: what it means depends on the status, decided right below.
+  const data: unknown = await response.json().catch(() => NOT_JSON)
+  if (data === NOT_JSON) {
+    // The API always answers JSON. A 5xx without it comes from the dev proxy: the API is down.
+    if (response.status >= 500) throw new ApiRequestError(0, OFFLINE_MESSAGE)
+    // A 2xx without it would reach the views as empty data: better an error than a blank or wrong figure.
+    throw new ApiRequestError(response.status, response.ok ? UNREADABLE_MESSAGE : `Error ${response.status}`)
+  }
   if (!response.ok) {
     const error = data as ApiError | null
     throw new ApiRequestError(response.status, error?.error ?? `Error ${response.status}`, error?.fields)
