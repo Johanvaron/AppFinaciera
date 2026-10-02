@@ -4,7 +4,7 @@ import type { FixedMonthItem } from '@shared/contract'
 /** A pending "Moto" of $ 600.000 in October 2026; override what the test is about. */
 export function fixedItem(overrides: Partial<FixedMonthItem> & { variableAmount?: boolean } = {}): FixedMonthItem {
   const { variableAmount = false, ...rest } = overrides
-  return {
+  const item = {
     fixed: {
       id: 1,
       name: 'Moto',
@@ -22,10 +22,13 @@ export function fixedItem(overrides: Partial<FixedMonthItem> & { variableAmount?
     expectedAmount: 600_000,
     hasOverride: false,
     paidAmount: 0,
-    status: 'pending',
+    status: 'pending' as FixedMonthItem['status'],
     dueDate: '2026-10-05',
     paidDate: null,
     transactionIds: [],
     ...rest,
   }
+  // Same rule as the server: nothing left once paid or skipped.
+  const settled = item.status === 'paid' || item.status === 'skipped'
+  return { ...item, remainingAmount: rest.remainingAmount ?? (settled ? 0 : Math.max(item.expectedAmount - item.paidAmount, 0)) }
 }
