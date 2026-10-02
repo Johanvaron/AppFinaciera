@@ -173,8 +173,8 @@ async function confirmRemove() {
         {{ unpayLead(target.transactionIds.length) }} <span class="num font-semibold">{{ formatMoney(target.paidAmount) }}</span> {{ unpayTail(target) }}
       </p>
       <template #footer>
-        <UiButton variant="ghost" @click="unpayOpen = false">Cancelar</UiButton>
-        <UiButton variant="danger" data-autofocus :loading="unpay.isPending.value" @click="confirmUnpay">Borrar el pago</UiButton>
+        <UiButton variant="ghost" data-autofocus @click="unpayOpen = false">Cancelar</UiButton>
+        <UiButton variant="danger" :loading="unpay.isPending.value" @click="confirmUnpay">Borrar el pago</UiButton>
       </template>
     </UiModal>
 

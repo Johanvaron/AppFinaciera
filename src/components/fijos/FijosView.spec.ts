@@ -84,6 +84,15 @@ describe('FijosView', () => {
     expect(cards[1]).toBe('Pagado$ 0')
   })
 
+  it('opens the "delete the payment" confirmation with the focus on Cancelar, so a held Enter deletes nothing', async () => {
+    await mountWith([fixedItem({ status: 'paid', paidAmount: 587_250, paidDate: '2026-10-02', transactionIds: [41] })])
+    button('Desmarcar Moto como pagado')!.click()
+    await vi.waitFor(() => expect(dialog()).not.toBeNull())
+    await nextTick()
+    expect(dialog()!.textContent).toContain('Se borra el pago de $ 587.250 y vuelve a quedar pendiente.')
+    expect(document.activeElement?.textContent?.trim()).toBe('Cancelar')
+  })
+
   it('deletes the partial payments of an unpaid row from its menu', async () => {
     const rappi = fixedItem({ expectedAmount: 1_143_416, paidAmount: 500_000, transactionIds: [41] })
     vi.mocked(api.fixed.unpay).mockResolvedValue({ ...rappi, paidAmount: 0, transactionIds: [] })
