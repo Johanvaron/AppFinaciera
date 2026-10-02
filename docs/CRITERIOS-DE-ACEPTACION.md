@@ -61,7 +61,8 @@ el PR.
 
 - **B1 [B]** Toda operación de varios pasos (pagar un fijo, restaurar un
   respaldo, reordenar, borrar con dependencias) es atómica: o se aplica
-  completa o no cambia nada.
+  completa o no cambia nada. Incluye los lotes que viajan en una sola
+  petición (por ejemplo `POST /transactions/bulk-categorize`): todo o nada.
 - **B2 [B]** No se pierden datos sin confirmación explícita. Todo borrado
   pide confirmación y dice qué más se ve afectado (por ejemplo, que un gasto
   fijo vuelve a quedar pendiente).
@@ -108,8 +109,10 @@ el PR.
   llega al usuario como mensaje en español que dice qué pasó.
 - **E2 [B]** Cada vista tiene estado de carga, vacío y error con reintento, y
   no accede a datos sin definir mientras la consulta carga.
-- **E3 [B]** Una operación en lote que falla a medias informa cuántas
-  funcionaron y cuántas no, y deja la pantalla con los datos reales.
+- **E3 [B]** Un lote que el cliente envía como varias peticiones (por
+  ejemplo, pagar varios fijos) y que falla a medias informa cuántas
+  funcionaron y cuántas no, y deja la pantalla con los datos reales. Un lote
+  de una sola petición no puede quedar a medias: cae en B1.
 - **E4** Al cambiar de mes se cierran o descartan los modales y ediciones
   abiertas del mes anterior.
 - **E5** No hay `console.log` de depuración ni `except`/`catch` mudo sin un
