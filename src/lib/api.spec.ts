@@ -53,6 +53,16 @@ describe('api client against what the server really answers', () => {
     await expect(api.accounts.list()).rejects.toMatchObject({ status: 0, message: OFFLINE })
   })
 
+  it('rejects a 200 whose body is not JSON instead of handing the views empty data', async () => {
+    respondWith(new Response('<!doctype html><title>Finanzas</title>', { status: 200, headers: { 'Content-Type': 'text/html' } }))
+    await expect(api.accounts.list()).rejects.toMatchObject({ status: 200, message: 'El servidor respondió algo que no se pudo leer. Intenta de nuevo.' })
+  })
+
+  it('keeps the status of a 4xx without a JSON body', async () => {
+    respondWith(new Response('Not Found', { status: 404 }))
+    await expect(api.accounts.list()).rejects.toMatchObject({ status: 404, message: 'Error 404' })
+  })
+
   it('keeps the message of a real server 500', async () => {
     respondWith(json({ error: 'Error interno del servidor' }, 500))
     await expect(api.accounts.list()).rejects.toMatchObject({ status: 500, message: 'Error interno del servidor' })
