@@ -60,9 +60,10 @@ describe('ReportesView', () => {
     document.body.innerHTML = ''
   })
 
-  it('keeps the report on screen when a background refetch fails', async () => {
+  it('keeps the report on screen and says it is not current when a background refetch fails', async () => {
     const { wrapper, queryClient } = await mountView()
     expect(wrapper.text()).toContain('$ 24.000.000') // income of the 6 months
+    expect(wrapper.text()).not.toContain('Reintentar')
     const down = new ApiRequestError(0, 'No se pudo conectar con el servidor local.')
     vi.mocked(api.reports.monthly).mockRejectedValue(down)
     vi.mocked(api.reports.categories).mockRejectedValue(down)
@@ -70,7 +71,28 @@ describe('ReportesView', () => {
     await flushPromises()
     expect(wrapper.text()).toContain('$ 24.000.000')
     expect(wrapper.text()).toContain('Mercado')
+    expect(wrapper.text()).toContain('No se pudo conectar con el servidor local. Estás viendo los últimos datos cargados.')
+
+    // The retry asks for both reports again and the notice goes away once they answer.
+    vi.mocked(api.reports.monthly).mockImplementation(async (query) => monthlyRows(query))
+    vi.mocked(api.reports.categories).mockImplementation(async (query) => categoryReport(query))
+    const callsBefore = [vi.mocked(api.reports.monthly).mock.calls.length, vi.mocked(api.reports.categories).mock.calls.length]
+    await pressOption(wrapper, 'Reintentar')
+    expect(vi.mocked(api.reports.monthly).mock.calls.length).toBe(callsBefore[0] + 1)
+    expect(vi.mocked(api.reports.categories).mock.calls.length).toBe(callsBefore[1] + 1)
+    expect(wrapper.text()).toContain('$ 24.000.000')
     expect(wrapper.text()).not.toContain('No se pudo conectar')
+    expect(wrapper.text()).not.toContain('Reintentar')
+    wrapper.unmount()
+  })
+
+  it('says the matrix is not current when only the category report fails to refresh', async () => {
+    const { wrapper, queryClient } = await mountView()
+    vi.mocked(api.reports.categories).mockRejectedValue(new ApiRequestError(0, 'No se pudo conectar con el servidor local.'))
+    await queryClient.refetchQueries()
+    await flushPromises()
+    expect(wrapper.text()).toContain('Mercado')
+    expect(wrapper.text()).toContain('No se pudo conectar con el servidor local. Estás viendo los últimos datos cargados.')
     wrapper.unmount()
   })
 

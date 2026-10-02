@@ -35,6 +35,18 @@ const isEmpty = computed(() => isEmptyRange(rows.value))
 // A failed background refetch keeps the cached report on screen: the error only replaces it when there is nothing to show.
 const monthlyFailed = computed(() => monthly.isError.value && !monthly.data.value)
 const categoriesError = computed(() => (categories.isError.value && !categories.data.value ? errorMessage(categories.error.value) : null))
+// The cached figures stay, but never as if they were current: the failed refresh is said above them.
+const staleMessage = computed(() => {
+  if (monthly.isError.value && monthly.data.value) return errorMessage(monthly.error.value)
+  if (categories.isError.value && categories.data.value) return errorMessage(categories.error.value)
+  return null
+})
+const retrying = computed(() => monthly.isFetching.value || categories.isFetching.value)
+
+function retryAll() {
+  void monthly.refetch()
+  void categories.refetch()
+}
 
 const selectedRow = computed(() => categories.data.value?.rows.find((row) => row.category.id === selectedId.value) ?? null)
 
@@ -62,6 +74,11 @@ watch(
 
     <div class="flex flex-wrap items-center gap-2">
       <SegmentedControl v-model="rangeKey" :options="RANGE_OPTIONS" label="Rango de meses" />
+    </div>
+
+    <div v-if="staleMessage" role="alert" class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 rounded-lg bg-warning-soft px-3 py-2">
+      <p class="min-w-0 flex-1 basis-64 text-ink">{{ staleMessage }} Estás viendo los últimos datos cargados.</p>
+      <UiButton :loading="retrying" @click="retryAll">Reintentar</UiButton>
     </div>
 
     <p v-if="monthly.isPending.value" class="card py-10 text-center text-muted">Cargando reportes…</p>
