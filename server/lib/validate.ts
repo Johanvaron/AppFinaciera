@@ -52,9 +52,13 @@ export function parseQuery<S extends z.ZodType>(c: Context, schema: S): z.output
   return validate(schema, c.req.query())
 }
 
+/** Plain decimal digits only: Number() alone would read '0x10' as 16 and '1e1' as 10, and hit another row. */
+const ID_PARAM = /^[1-9]\d*$/
+
 /** Numeric `:id` path param. A malformed id cannot match any row, so it is a 404. */
 export function idParam(c: Context, name = 'id'): number {
-  const result = idSchema.safeParse(Number(c.req.param(name)))
+  const raw = c.req.param(name) ?? ''
+  const result = idSchema.safeParse(ID_PARAM.test(raw) ? Number(raw) : Number.NaN)
   if (!result.success) throw notFound('No encontrado')
   return result.data
 }

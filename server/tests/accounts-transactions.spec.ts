@@ -185,6 +185,21 @@ describe('transactions', () => {
     expect(await api.ok('GET', '/transactions')).toEqual([])
   })
 
+  it('answers 404 to an id that is not plain decimal digits, without touching the row it would convert to', async () => {
+    for (let n = 1; n <= 17; n++) await api.expense('2026-03-10', n * 1_000, bank, food)
+    const before = await api.ok('GET', '/transactions')
+    expect(before).toHaveLength(17)
+
+    for (const id of ['0x10', '1e1', '1e2', '5.0', '05', '0', '-1', '%205']) {
+      const removed = await api.call('DELETE', `/transactions/${id}`)
+      expect([id, removed.status, removed.body]).toEqual([id, 404, { error: 'No encontrado' }])
+      const patched = await api.call('PATCH', `/transactions/${id}`, { ...pick(before[0]), amount: 999 })
+      expect([id, patched.status]).toEqual([id, 404])
+    }
+    expect(await api.ok('GET', '/transactions')).toEqual(before)
+    expect((await api.call('DELETE', '/transactions/16')).status).toBe(204)
+  })
+
   it('bulk-categorize only touches movements of the category kind', async () => {
     const other = await api.category('Restaurantes', 'expense')
     const a = await api.expense('2026-03-10', 11_000, bank, food)
