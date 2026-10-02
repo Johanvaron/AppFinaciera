@@ -9,6 +9,7 @@ import {
   paceSeries,
   paceSummary,
   savingsStat,
+  screenState,
   signedAmount,
   transactionTitle,
   upcomingAmount,
@@ -206,6 +207,49 @@ describe('empty month', () => {
 
   it('is not empty while the count of fixed expenses is unknown', () => {
     expect(isEmptyMonth(empty, null)).toBe(false)
+  })
+
+  describe('what the screen shows', () => {
+    const october = { ...empty, month: '2026-10' }
+    const withIncome = { ...october, income: 3200000 }
+    const checklist = (month: string, countTotal: number) => ({ month, totals: { countTotal } })
+    const ok = { isPlaceholder: false, isError: false }
+
+    it('shows the skeleton while there is no summary', () => {
+      expect(screenState(undefined, { data: checklist('2026-10', 4), ...ok })).toEqual({ screen: 'loading', fixedCount: null, fixedFailed: false })
+    })
+
+    it('welcomes a month with no movements and no fixed expenses', () => {
+      expect(screenState(october, { data: checklist('2026-10', 0), ...ok })).toEqual({ screen: 'welcome', fixedCount: 0, fixedFailed: false })
+    })
+
+    it('shows the board when every fixed expense of an otherwise empty month is paid', () => {
+      expect(screenState(october, { data: checklist('2026-10', 4), ...ok })).toEqual({ screen: 'board', fixedCount: 4, fixedFailed: false })
+    })
+
+    it('ignores a checklist that belongs to another month', () => {
+      // September had no fixed expenses; that must not turn an unknown October into the welcome.
+      expect(screenState(october, { data: checklist('2026-09', 0), ...ok })).toEqual({ screen: 'loading', fixedCount: null, fixedFailed: false })
+      expect(screenState(october, { data: checklist('2026-10', 0), isPlaceholder: true, isError: false })).toEqual({ screen: 'loading', fixedCount: null, fixedFailed: false })
+      expect(screenState(withIncome, { data: checklist('2026-09', 7), ...ok })).toEqual({ screen: 'board', fixedCount: null, fixedFailed: false })
+    })
+
+    it('waits for the checklist of a month with no movements', () => {
+      expect(screenState(october, { data: undefined, ...ok })).toEqual({ screen: 'loading', fixedCount: null, fixedFailed: false })
+    })
+
+    it('does not wait for the checklist when the month has movements', () => {
+      expect(screenState(withIncome, { data: undefined, ...ok })).toEqual({ screen: 'board', fixedCount: null, fixedFailed: false })
+    })
+
+    it('shows the board with the error when the checklist fails in a month with no movements', () => {
+      expect(screenState(october, { data: undefined, isPlaceholder: false, isError: true })).toEqual({ screen: 'board', fixedCount: null, fixedFailed: true })
+      expect(screenState(october, { data: checklist('2026-09', 0), isPlaceholder: true, isError: true })).toEqual({ screen: 'board', fixedCount: null, fixedFailed: true })
+    })
+
+    it('keeps the known count when only a refetch of the same month failed', () => {
+      expect(screenState(withIncome, { data: checklist('2026-10', 4), isPlaceholder: false, isError: true })).toEqual({ screen: 'board', fixedCount: 4, fixedFailed: false })
+    })
   })
 
   it('offers the three welcome steps in order', () => {

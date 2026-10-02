@@ -9,7 +9,7 @@ import PaceCard from '@/components/resumen/PaceCard.vue'
 import RecentCard from '@/components/resumen/RecentCard.vue'
 import UpcomingCard from '@/components/resumen/UpcomingCard.vue'
 import WelcomeCard from '@/components/resumen/WelcomeCard.vue'
-import { availableStat, changeDetail, fixedStat, isEmptyMonth, monthNameLower, savingsStat } from '@/components/resumen/summary'
+import { availableStat, changeDetail, fixedStat, monthNameLower, savingsStat, screenState } from '@/components/resumen/summary'
 import StatCard from '@/components/ui/StatCard.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import { formatMoney } from '@/lib/format'
@@ -29,19 +29,8 @@ const {
   isPlaceholderData: fixedIsPlaceholder,
 } = useFixedMonth(() => period.month)
 
-/**
- * Null while the checklist of the month on screen is not known: loading, failed or still the previous month's.
- * Both queries resolve on their own, so the count is only used when it belongs to the summary's month.
- */
-const fixedCount = computed(() => {
-  const checklist = fixedMonth.value
-  if (!checklist || fixedIsPlaceholder.value || checklist.month !== summary.value?.month) return null
-  return checklist.totals.countTotal
-})
-const fixedFailed = computed(() => fixedIsError.value && fixedCount.value == null)
-const empty = computed(() => (summary.value ? isEmptyMonth(summary.value, fixedCount.value) : false))
-/** A month with no movements waits for the checklist before choosing between the welcome and the board. */
-const awaitingFixed = computed(() => fixedCount.value == null && !fixedIsError.value && !!summary.value && isEmptyMonth(summary.value, 0))
+/** Skeleton, welcome or board, and what is known about the fixed expenses of the month on screen. */
+const state = computed(() => screenState(summary.value, { data: fixedMonth.value, isPlaceholder: fixedIsPlaceholder.value, isError: fixedIsError.value }))
 const hasAccounts = computed(() => (summary.value?.accounts ?? []).some((account) => !account.archived))
 
 /**
@@ -63,7 +52,7 @@ const stats = computed(() => {
     available: availableStat(s.availableToSpend),
     income: { value: formatMoney(s.income), detail: changeDetail(s.change.income, s.month, s.previous.month) },
     expenses: { value: formatMoney(s.expenses), detail: changeDetail(s.change.expenses, s.month, s.previous.month) },
-    fixed: fixedStat(s.pendingFixed, s.upcomingFixed.length, fixedCount.value),
+    fixed: fixedStat(s.pendingFixed, s.upcomingFixed.length, state.value.fixedCount),
     savings: savingsStat(s.net, s.savingsRate),
   }
 })
@@ -82,7 +71,7 @@ const stats = computed(() => {
       <UiButton variant="primary" :loading="isFetching" @click="refetch()">Reintentar</UiButton>
     </div>
 
-    <div v-else-if="isPending || !summary || !stats || awaitingFixed" class="flex flex-col gap-4" aria-busy="true">
+    <div v-else-if="isPending || !summary || !stats || state.screen === 'loading'" class="flex flex-col gap-4" aria-busy="true">
       <span class="sr-only">Cargando el resumen del mes</span>
       <div class="grid grid-cols-1 gap-4 min-[500px]:grid-cols-2 md:grid-cols-6 2xl:grid-cols-5">
         <div v-for="n in 5" :key="n" :class="['h-[84px] animate-pulse rounded-card bg-fill', n === 1 ? STAT_SPANS.lead : n === 2 ? STAT_SPANS.wide : STAT_SPANS.third]" />
@@ -94,14 +83,14 @@ const stats = computed(() => {
     </div>
 
     <!-- While the next month loads, the previous one stays on screen dimmed and marked busy. -->
-    <div v-else-if="empty" :class="['grid grid-cols-12 gap-4', isPlaceholderData && 'opacity-60']" :aria-busy="isPlaceholderData">
+    <div v-else-if="state.screen === 'welcome'":class="['grid grid-cols-12 gap-4', isPlaceholderData && 'opacity-60']" :aria-busy="isPlaceholderData">
       <WelcomeCard :class="hasAccounts ? 'col-span-12 xl:col-span-8' : 'col-span-12'" :month="summary.month" :month-name="monthNameLower(summary.month)" />
       <AccountsCard v-if="hasAccounts" class="col-span-12 xl:col-span-4" :accounts="summary.accounts" :total-balance="summary.totalBalance" />
       <RecentCard v-if="summary.recent.length" class="col-span-12" :transactions="summary.recent" :categories="categories ?? []" />
     </div>
 
     <div v-else :class="['flex min-w-0 flex-col gap-4', isPlaceholderData && 'opacity-60']" :aria-busy="isPlaceholderData">
-      <div v-if="fixedFailed" class="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-card bg-danger-soft p-4" role="alert">
+      <div v-if="state.fixedFailed"class="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-card bg-danger-soft p-4" role="alert">
         <div class="min-w-0">
           <p class="text-[14px] font-medium">No se pudieron cargar los gastos fijos del mes</p>
           <p class="text-xs text-muted">{{ errorMessage(fixedError) }}</p>

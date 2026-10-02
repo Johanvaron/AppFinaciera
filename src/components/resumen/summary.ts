@@ -2,7 +2,7 @@
  * Pure logic of the Resumen screen: every text and figure the owner reads is
  * built here so it can be tested without mounting anything.
  */
-import type { Category, CategoryTotal, FixedMonthItem, IsoDate, Month, MonthSummary, Transaction } from '@shared/contract'
+import type { Category, CategoryTotal, FixedMonthItem, FixedMonthResponse, IsoDate, Month, MonthSummary, Transaction } from '@shared/contract'
 import { currentMonth, dateShort, daysUntil, formatChange, formatMoney, formatPercent, monthLabel, monthOf, todayIso } from '@/lib/format'
 
 export type Tone = 'primary' | 'success' | 'warning' | 'danger' | 'neutral'
@@ -198,6 +198,38 @@ export function signedAmount(tx: Pick<Transaction, 'amount' | 'type'>): { text: 
  */
 export function isEmptyMonth(summary: Pick<MonthSummary, 'income' | 'expenses' | 'pendingFixed' | 'upcomingFixed'>, fixedCount: number | null): boolean {
   return summary.income === 0 && summary.expenses === 0 && summary.pendingFixed === 0 && summary.upcomingFixed.length === 0 && fixedCount === 0
+}
+
+// ---------- what the screen shows ----------
+export interface ScreenState {
+  /** 'loading' = skeleton, 'welcome' = empty month, 'board' = the figures. */
+  screen: 'loading' | 'welcome' | 'board'
+  /** Fixed expenses that apply to the summary's month; null while unknown (loading, failed or another month's checklist). */
+  fixedCount: number | null
+  /** The checklist failed and there is no count to fall back on: the board says so and offers a retry. */
+  fixedFailed: boolean
+}
+
+export interface ChecklistQuery {
+  data: { month: Month; totals: Pick<FixedMonthResponse['totals'], 'countTotal'> } | undefined
+  isPlaceholder: boolean
+  isError: boolean
+}
+
+/**
+ * The summary and the checklist resolve on their own, so the count is only used
+ * when it belongs to the summary's month. A month with no movements waits for
+ * the checklist before choosing between the welcome and the board; if the
+ * checklist failed it shows the board with the error instead of waiting forever.
+ */
+export function screenState(summary: (Pick<MonthSummary, 'income' | 'expenses' | 'pendingFixed' | 'upcomingFixed'> & { month: Month }) | undefined, checklist: ChecklistQuery): ScreenState {
+  const known = summary != null && checklist.data != null && !checklist.isPlaceholder && checklist.data.month === summary.month
+  const fixedCount = known ? checklist.data!.totals.countTotal : null
+  const fixedFailed = checklist.isError && fixedCount == null
+  if (!summary) return { screen: 'loading', fixedCount, fixedFailed }
+  if (isEmptyMonth(summary, fixedCount)) return { screen: 'welcome', fixedCount, fixedFailed }
+  const awaitingChecklist = fixedCount == null && !checklist.isError && isEmptyMonth(summary, 0)
+  return { screen: awaitingChecklist ? 'loading' : 'board', fixedCount, fixedFailed }
 }
 
 export interface WelcomeStep {
