@@ -1,6 +1,6 @@
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { VueQueryPlugin } from '@tanstack/vue-query'
+import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import { nextTick } from 'vue'
 import type { Account, Category, Transaction } from '@shared/contract'
 import { api, ApiRequestError } from '@/lib/api'
@@ -192,5 +192,29 @@ describe('TransactionModal', () => {
     await submitForm()
     await vi.waitFor(() => expect(dialogText()).toContain('Elige una categoría de gastos'))
     expect(dialogText()).not.toContain('Revisa los datos del formulario')
+  })
+})
+
+describe('TransactionModal with the API down', () => {
+  const OFFLINE = 'No se pudo conectar con el servidor local. ¿Está corriendo "pnpm dev"?'
+
+  it('says the lists did not load and loads them with Reintentar', async () => {
+    vi.mocked(api.accounts.list).mockReset().mockRejectedValue(new ApiRequestError(0, OFFLINE))
+    vi.mocked(api.categories.list).mockReset().mockRejectedValue(new ApiRequestError(0, OFFLINE))
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const wrapper = mount(TransactionModal, { attachTo: document.body, global: { plugins: [pinia, [VueQueryPlugin, { queryClient }]] } })
+    useQuickAdd().openNew()
+
+    await vi.waitFor(() => expect(alerts()).toEqual([`No se pudieron cargar las cuentas y categorías. ${OFFLINE}Reintentar`]))
+
+    vi.mocked(api.accounts.list).mockResolvedValue(ACCOUNTS)
+    vi.mocked(api.categories.list).mockResolvedValue(CATEGORIES)
+    button('Reintentar').click()
+    await vi.waitFor(() => expect(alerts()).toEqual([]))
+    expect([...selects()[0]!.options].map((o) => o.textContent)).toEqual(['Elige una categoría', 'Arriendo', 'Mercado'])
+    expect(selects()[1]!.value).toBe('3')
+    wrapper.unmount()
   })
 })

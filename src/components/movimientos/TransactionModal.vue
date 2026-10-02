@@ -25,8 +25,18 @@ const TYPES: { value: TransactionType; label: string }[] = [
 
 const quickAdd = useQuickAdd()
 const toasts = useToasts()
-const { data: accounts } = useAccounts()
-const { data: categories } = useCategories()
+const accountsQuery = useAccounts()
+const categoriesQuery = useCategories()
+const { data: accounts } = accountsQuery
+const { data: categories } = categoriesQuery
+
+/** Lists that did not load: without them there is nothing to choose, so the form says why and offers a retry. */
+const failedLists = computed(() => [accountsQuery, categoriesQuery].filter((query) => query.isError.value && query.data.value === undefined))
+const loadError = computed(() => (failedLists.value[0] ? errorMessage(failedLists.value[0].error.value) : ''))
+const retrying = computed(() => failedLists.value.some((query) => query.isFetching.value))
+function retryLoad() {
+  for (const query of failedLists.value) void query.refetch()
+}
 
 const form = reactive({
   type: 'expense' as TransactionType,
@@ -165,6 +175,11 @@ async function submit(keepOpen: boolean) {
 <template>
   <UiModal v-model:open="quickAdd.open" :title="editing ? 'Editar movimiento' : 'Nuevo movimiento'">
     <form id="transaction-form" class="flex flex-col gap-3" @submit.prevent="submit(false)">
+      <div v-if="loadError" class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-danger-soft px-3 py-2 text-xs text-danger" role="alert">
+        <span class="min-w-0 flex-1">No se pudieron cargar las cuentas y categorías. {{ loadError }}</span>
+        <UiButton :loading="retrying" @click="retryLoad">Reintentar</UiButton>
+      </div>
+
       <div class="flex rounded-lg bg-fill p-1" role="radiogroup" aria-label="Tipo de movimiento">
         <button
           v-for="option in TYPES"
