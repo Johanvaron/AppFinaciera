@@ -8,7 +8,7 @@ import {
   type CategoryGroup,
   type CategoryKind,
 } from '@shared/contract'
-import { dateLong } from '@/lib/format'
+import { dateLong, todayIso } from '@/lib/format'
 
 /** The group decides the kind; the form never asks for it separately. */
 export function kindForGroup(group: CategoryGroup): CategoryKind {
@@ -72,7 +72,15 @@ export const BACKUP_ERRORS = {
   incomplete: 'El respaldo está incompleto: le faltan datos.',
 } as const
 
-const COUNTED = ['accounts', 'categories', 'transactions', 'fixedExpenses'] as const
+/** Every list the server requires in POST /backup/restore. */
+const REQUIRED_LISTS = ['accounts', 'categories', 'transactions', 'fixedExpenses', 'fixedMonths', 'budgets'] as const
+
+/** `exportedAt` is a UTC instant: the day shown is the LOCAL one (a backup made at 8 pm in Colombia is still today's). */
+function exportedDateLabel(exportedAt: unknown): string {
+  if (typeof exportedAt !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(exportedAt)) return 'fecha desconocida'
+  const instant = new Date(exportedAt)
+  return Number.isNaN(instant.getTime()) ? 'fecha desconocida' : dateLong(todayIso(instant))
+}
 
 /** Validates the text of a backup file and summarizes what it would restore. */
 export function checkBackup(text: string): BackupCheck {
@@ -86,10 +94,9 @@ export function checkBackup(text: string): BackupCheck {
   const raw = data as Record<string, unknown>
   if (raw.app !== 'app-financiera') return { ok: false, message: BACKUP_ERRORS.app }
   if (raw.version !== 1) return { ok: false, message: BACKUP_ERRORS.version }
-  if (COUNTED.some((key) => !Array.isArray(raw[key]))) return { ok: false, message: BACKUP_ERRORS.incomplete }
+  if (REQUIRED_LISTS.some((key) => !Array.isArray(raw[key]))) return { ok: false, message: BACKUP_ERRORS.incomplete }
 
   const file = data as BackupFile
-  const datePart = typeof raw.exportedAt === 'string' ? raw.exportedAt.slice(0, 10) : ''
   return {
     ok: true,
     file,
@@ -99,8 +106,9 @@ export function checkBackup(text: string): BackupCheck {
         plural(file.categories.length, 'categoría', 'categorías'),
         plural(file.transactions.length, 'movimiento', 'movimientos'),
         plural(file.fixedExpenses.length, 'gasto fijo', 'gastos fijos'),
+        plural(file.budgets.length, 'presupuesto', 'presupuestos'),
       ],
-      dateLabel: /^\d{4}-\d{2}-\d{2}$/.test(datePart) ? dateLong(datePart) : 'fecha desconocida',
+      dateLabel: exportedDateLabel(raw.exportedAt),
     },
   }
 }

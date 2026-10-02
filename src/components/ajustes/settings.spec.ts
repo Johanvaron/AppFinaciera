@@ -114,27 +114,28 @@ describe('checkBackup', () => {
   const valid = {
     app: 'app-financiera',
     version: 1,
-    exportedAt: '2026-10-02T23:41:07.000Z',
+    // 9:30 pm local on Oct 2: in Colombia the UTC text already says Oct 3.
+    exportedAt: new Date(2026, 9, 2, 21, 30).toISOString(),
     accounts: [1, 2, 3],
     categories: Array.from({ length: 14 }, () => 0),
     transactions: Array.from({ length: 1250 }, () => 0),
     fixedExpenses: [1],
     fixedMonths: [],
-    budgets: [],
+    budgets: [1, 2, 3, 4, 5, 6, 7],
   }
 
   it('summarizes a valid file with distinct counts and the date', () => {
     const result = checkBackup(JSON.stringify(valid))
     if (!result.ok) throw new Error(result.message)
-    expect(result.summary.lines).toEqual(['3 cuentas', '14 categorías', '1.250 movimientos', '1 gasto fijo'])
+    expect(result.summary.lines).toEqual(['3 cuentas', '14 categorías', '1.250 movimientos', '1 gasto fijo', '7 presupuestos'])
     expect(result.summary.dateLabel).toBe('2 de octubre de 2026')
     expect(result.file.accounts).toHaveLength(3)
   })
 
   it('uses singular and zero forms', () => {
-    const result = checkBackup(JSON.stringify({ ...valid, accounts: [1], categories: [1], transactions: [], fixedExpenses: [1, 2] }))
+    const result = checkBackup(JSON.stringify({ ...valid, accounts: [1], categories: [1], transactions: [], fixedExpenses: [1, 2], budgets: [1] }))
     if (!result.ok) throw new Error(result.message)
-    expect(result.summary.lines).toEqual(['1 cuenta', '1 categoría', '0 movimientos', '2 gastos fijos'])
+    expect(result.summary.lines).toEqual(['1 cuenta', '1 categoría', '0 movimientos', '2 gastos fijos', '1 presupuesto'])
   })
 
   it('tolerates a missing or broken date', () => {
@@ -172,6 +173,14 @@ describe('checkBackup', () => {
     const incomplete: Record<string, unknown> = { ...valid }
     delete incomplete.transactions
     expect(checkBackup(JSON.stringify(incomplete))).toEqual({ ok: false, message: 'El respaldo está incompleto: le faltan datos.' })
+  })
+
+  it('rejects a file without the lists the server also requires', () => {
+    for (const key of ['fixedMonths', 'budgets']) {
+      const incomplete: Record<string, unknown> = { ...valid }
+      delete incomplete[key]
+      expect(checkBackup(JSON.stringify(incomplete))).toEqual({ ok: false, message: BACKUP_ERRORS.incomplete })
+    }
   })
 })
 
