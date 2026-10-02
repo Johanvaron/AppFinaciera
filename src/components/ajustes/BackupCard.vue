@@ -5,7 +5,7 @@ import { Download, Upload } from 'lucide-vue-next'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiField from '@/components/ui/UiField.vue'
 import UiModal from '@/components/ui/UiModal.vue'
-import { api } from '@/lib/api'
+import { api, ApiRequestError } from '@/lib/api'
 import { errorMessage, useApiMutation } from '@/lib/queries'
 import { checkBackup, isRestoreConfirmed, RESTORE_WORD, type BackupCheck } from './settings'
 
@@ -54,7 +54,9 @@ async function confirmRestore() {
   try {
     await restore.mutateAsync(pending.value.file)
   } catch (error) {
-    restoreError.value = errorMessage(error)
+    // A 422 with field paths is the server's generic form message: say what it means for a file.
+    const badShape = error instanceof ApiRequestError && error.status === 422 && Object.keys(error.fields).length > 0
+    restoreError.value = badShape ? 'El respaldo no tiene el formato que esta aplicación espera. No se cambió nada.' : errorMessage(error)
     return
   }
   confirmOpen.value = false
