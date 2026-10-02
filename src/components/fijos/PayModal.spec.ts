@@ -46,6 +46,23 @@ describe('PayModal', () => {
     expect(amountInput()!.value).toBe('643.416')
   })
 
+  it('follows an amount that changes under the open dialog', async () => {
+    const moto = fixedItem({ expectedAmount: 600_000 })
+    await openWith(moto)
+    expect(amountInput()!.value).toBe('600.000')
+    await wrapper.setProps({ item: { ...moto, expectedAmount: 650_000, hasOverride: true } })
+    expect(amountInput()!.value).toBe('650.000')
+  })
+
+  it('keeps what the person typed when the row changes', async () => {
+    const moto = fixedItem({ expectedAmount: 600_000 })
+    await openWith(moto)
+    amountInput()!.value = '200k'
+    amountInput()!.dispatchEvent(new Event('input', { bubbles: true }))
+    await wrapper.setProps({ item: { ...moto, expectedAmount: 650_000, hasOverride: true } })
+    expect(amountInput()!.value).toBe('200k')
+  })
+
   it('pays what is still owed when confirming with Enter', async () => {
     const rappi = fixedItem({ expectedAmount: 1_143_416, paidAmount: 500_000, transactionIds: [41] })
     vi.mocked(api.fixed.pay).mockResolvedValue({ ...rappi, status: 'paid', paidAmount: 1_143_416 })

@@ -38,6 +38,16 @@ const unpayOpen = ref(false)
 const removeOpen = ref(false)
 /** Row the open pay / unpay / delete dialog is about. */
 const target = ref<FixedMonthItem | null>(null)
+/**
+ * The same row as it is on screen NOW. `target` is the copy taken at the click:
+ * an inline amount edit that saves on blur lands after it, and paying with the
+ * old copy would leave the difference unpaid.
+ */
+const liveTarget = computed(() => {
+  const picked = target.value
+  if (!picked) return null
+  return items.value.find((item) => item.fixed.id === picked.fixed.id && item.month === picked.month) ?? picked
+})
 
 function openForm(fixed: FixedExpense | null) {
   formEditing.value = fixed
@@ -156,7 +166,7 @@ async function confirmRemove() {
     </template>
 
     <FixedFormModal v-model:open="formOpen" :editing="formEditing" :month="month" />
-    <PayModal v-model:open="payOpen" :item="target" />
+    <PayModal v-model:open="payOpen" :item="liveTarget" />
 
     <UiModal v-model:open="unpayOpen" :title="`${unpayTitle} ${target?.fixed.name ?? ''}`" size="sm">
       <p v-if="target" class="text-[14px]">

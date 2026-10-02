@@ -35,14 +35,28 @@ function defaultAmount(item: FixedMonthItem): number | null {
   return remaining > 0 ? remaining : null
 }
 
+/** Amount the dialog last put in the field; a different one means the person typed over it. */
+let offered: number | null = null
+
 watch(open, (isOpen) => {
   if (!isOpen || !props.item) return
-  form.amount = defaultAmount(props.item)
+  offered = defaultAmount(props.item)
+  form.amount = offered
   form.date = todayIso()
   form.accountId = defaultAccount()
   errors.value = {}
   formError.value = ''
 })
+// The row can change under the open dialog (an inline amount edit that saves on blur
+// right before the click on the check): follow it until the person types an amount.
+watch(
+  () => (props.item ? defaultAmount(props.item) : null),
+  (next) => {
+    if (!open.value || pay.isPending.value || form.amount !== offered) return
+    offered = next
+    form.amount = next
+  },
+)
 // Accounts may arrive after the dialog opens.
 watch(usableAccounts, () => {
   if (open.value && form.accountId == null) form.accountId = defaultAccount()
