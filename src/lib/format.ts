@@ -34,13 +34,12 @@ export function formatPercent(fraction: number | null, decimals = 0): string {
   return `${pct} %`
 }
 
-/** Signed change for "vs last month": 0.1 -> "+10 %". */
+/** Signed change for "vs last month": 0.1 -> "+10 %". A change that rounds to zero carries no sign. */
 export function formatChange(fraction: number | null): string {
   if (fraction == null || !Number.isFinite(fraction)) return '—'
   const text = formatPercent(Math.abs(fraction))
-  if (fraction > 0) return `+${text}`
-  if (fraction < 0) return `-${text}`
-  return text
+  if (text === formatPercent(0)) return text
+  return fraction > 0 ? `+${text}` : `-${text}`
 }
 
 /** "1.250.000" or "1,250,000": groups of three after a 1-3 digit head that does not start with 0. */

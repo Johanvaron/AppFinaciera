@@ -25,6 +25,14 @@ describe('money as the owner reads it', () => {
     expect(formatChange(-0.254)).toBe('-25 %')
     expect(formatChange(null)).toBe('—')
   })
+
+  it('a change that rounds to zero has no sign', () => {
+    expect(formatChange(0.004)).toBe('0 %')
+    expect(formatChange(-0.004)).toBe('0 %')
+    expect(formatChange(0)).toBe('0 %')
+    expect(formatChange(0.006)).toBe('+1 %')
+    expect(formatChange(-0.006)).toBe('-1 %')
+  })
 })
 
 describe('parseMoney: what gets typed in', () => {
