@@ -8,6 +8,8 @@ import { formatNumber, parseMoney } from '@/lib/format'
 
 const model = defineModel<number | null>({ required: true })
 defineProps<{ placeholder?: string; disabled?: boolean; invalid?: boolean }>()
+// Attributes (data-autofocus, aria-label, id) belong on the <input>, not on the wrapper.
+defineOptions({ inheritAttrs: false })
 
 const text = ref(model.value == null ? '' : formatNumber(model.value))
 const input = ref<HTMLInputElement>()
@@ -34,6 +36,7 @@ defineExpose({ focus: () => input.value?.focus(), select: () => input.value?.sel
     <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-muted">$</span>
     <input
       ref="input"
+      v-bind="$attrs"
       :value="text"
       type="text"
       inputmode="decimal"
