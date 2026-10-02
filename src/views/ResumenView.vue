@@ -27,6 +27,18 @@ const empty = computed(() => (summary.value ? isEmptyMonth(summary.value, fixedC
 const steps = computed(() => (summary.value ? welcomeSteps(summary.value, fixedCount.value) : []))
 const hasAccounts = computed(() => (summary.value?.accounts ?? []).some((account) => !account.archived))
 
+/**
+ * Figures row. Every card keeps room for a 9-digit or negative figure without
+ * truncating: one column on narrow phones, two from 500px, then 3+3 / 2+2+2 on
+ * a 6-column grid (the 26px lead figure needs half the row), five across at 2xl.
+ * No styling reaches inside StatCard.
+ */
+const STAT_SPANS = {
+  lead: 'min-[500px]:col-span-2 md:col-span-3 2xl:col-span-1',
+  wide: 'md:col-span-3 2xl:col-span-1',
+  third: 'md:col-span-2 2xl:col-span-1',
+}
+
 const stats = computed(() => {
   const s = summary.value
   if (!s) return null
@@ -55,8 +67,8 @@ const stats = computed(() => {
 
     <div v-else-if="isPending || !summary || !stats" class="flex flex-col gap-4" aria-busy="true">
       <span class="sr-only">Cargando el resumen del mes</span>
-      <div class="grid grid-cols-2 gap-4 md:grid-cols-6 2xl:grid-cols-5">
-        <div v-for="n in 5" :key="n" :class="['h-[84px] animate-pulse rounded-card bg-fill', n === 1 ? 'col-span-2 2xl:col-span-1' : n > 3 ? 'md:col-span-3 2xl:col-span-1' : 'md:col-span-2 2xl:col-span-1']" />
+      <div class="grid grid-cols-1 gap-4 min-[500px]:grid-cols-2 md:grid-cols-6 2xl:grid-cols-5">
+        <div v-for="n in 5" :key="n" :class="['h-[84px] animate-pulse rounded-card bg-fill', n === 1 ? STAT_SPANS.lead : n === 2 ? STAT_SPANS.wide : STAT_SPANS.third]" />
       </div>
       <div class="grid grid-cols-12 gap-4">
         <div class="col-span-12 h-80 animate-pulse rounded-card bg-fill xl:col-span-8" />
@@ -71,10 +83,9 @@ const stats = computed(() => {
     </div>
 
     <template v-else>
-      <!-- Phones: two columns, and the icon gives its room to the figure. -->
-      <div class="grid grid-cols-2 gap-4 max-sm:[&>div>span:first-child]:hidden md:grid-cols-6 2xl:grid-cols-[1.3fr_1fr_1fr_1fr_1fr]">
+      <div class="grid grid-cols-1 gap-4 min-[500px]:grid-cols-2 md:grid-cols-6 2xl:grid-cols-[1.3fr_1fr_1fr_1fr_1fr]">
         <StatCard
-          class="col-span-2 2xl:col-span-1"
+          :class="STAT_SPANS.lead"
           label="Disponible para gastar"
           :value="stats.available.value"
           :detail="stats.available.detail"
@@ -82,11 +93,11 @@ const stats = computed(() => {
           :icon="Wallet"
           large
         />
-        <StatCard class="md:col-span-2 2xl:col-span-1" label="Ingresos" :value="stats.income.value" :detail="stats.income.detail" tone="success" :icon="ArrowDownLeft" />
-        <StatCard class="md:col-span-2 2xl:col-span-1" label="Gastos" :value="stats.expenses.value" :detail="stats.expenses.detail" :icon="ArrowUpRight" />
-        <StatCard class="md:col-span-3 2xl:col-span-1" label="Fijos por pagar" :value="stats.fixed.value" :detail="stats.fixed.detail" :tone="stats.fixed.tone" :icon="CalendarClock" />
+        <StatCard :class="STAT_SPANS.wide" label="Ingresos" :value="stats.income.value" :detail="stats.income.detail" tone="success" :icon="ArrowDownLeft" />
+        <StatCard :class="STAT_SPANS.third" label="Gastos" :value="stats.expenses.value" :detail="stats.expenses.detail" :icon="ArrowUpRight" />
+        <StatCard :class="STAT_SPANS.third" label="Fijos por pagar" :value="stats.fixed.value" :detail="stats.fixed.detail" :tone="stats.fixed.tone" :icon="CalendarClock" />
         <StatCard
-          class="md:col-span-3 2xl:col-span-1"
+          :class="STAT_SPANS.third"
           label="Ahorro del mes"
           :value="stats.savings.value"
           :detail="stats.savings.detail"
