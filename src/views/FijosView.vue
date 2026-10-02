@@ -148,7 +148,7 @@ async function confirmRemove() {
       <template v-else>
         <FixedTotals :totals="data.totals" :undefined-count="items.filter(needsAmount).length" />
         <section class="card py-2" :aria-label="`Gastos fijos de ${monthLabel(data.month)}`">
-          <ul>
+          <ul class="2xl:grid 2xl:grid-cols-2 2xl:gap-x-10">
             <FixedRow
               v-for="(item, index) in items"
               :key="`${item.month}-${item.fixed.id}`"

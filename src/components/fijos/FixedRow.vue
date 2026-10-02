@@ -113,8 +113,9 @@ function resetOverride() {
 </script>
 
 <template>
+  <!-- The line above each row; from 2xl the list has two columns, so the second row is also a first one. -->
   <li
-    class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 py-2 sm:grid-cols-[auto_minmax(0,1fr)_auto_auto] [&+li]:shadow-[inset_0_1px_0_rgb(var(--fill))]"
+    class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 py-2 sm:grid-cols-[auto_minmax(0,1fr)_auto_auto] [&:not(:first-child)]:shadow-[inset_0_1px_0_rgb(var(--fill))] 2xl:[&:nth-child(2)]:shadow-none"
   >
     <button
       type="button"
