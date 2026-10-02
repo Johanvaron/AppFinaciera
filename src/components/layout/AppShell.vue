@@ -17,8 +17,9 @@ const quickAdd = useQuickAdd()
 
 /** "N" opens a new movement, unless the person is typing somewhere. */
 function onKeydown(event: KeyboardEvent) {
-  if (event.key.toLowerCase() !== 'n' || event.ctrlKey || event.metaKey || event.altKey) return
-  const target = event.target as HTMLElement | null
+  // Autofill fires keydown events without a key; a held key or an IME composition is not a shortcut either.
+  if (event.key?.toLowerCase() !== 'n' || event.ctrlKey || event.metaKey || event.altKey || event.repeat || event.isComposing) return
+  const target = event.target instanceof Element ? event.target : null
   if (target?.closest('input, select, textarea, [contenteditable="true"]') || quickAdd.open) return
   if (document.querySelector('[role="dialog"]')) return
   event.preventDefault()
