@@ -210,14 +210,14 @@ describe('deleteWarning', () => {
   })
 
   it('warns that the fixed expense goes back to pending', () => {
-    expect(deleteWarning([tx({ fixedExpenseId: 3 })]).fixedNotice).toBe('Es el pago de un gasto fijo: ese gasto fijo volverá a quedar pendiente en su mes.')
+    expect(deleteWarning([tx({ fixedExpenseId: 3 })]).fixedNotice).toBe('Es el pago de un gasto fijo: si no le queda otro pago en su mes, ese gasto fijo volverá a quedar pendiente.')
   })
 
   it('counts the selection and the fixed payments in it', () => {
     const warning = deleteWarning([tx({}), tx({ fixedExpenseId: 3 }), tx({ fixedExpenseId: 4 })])
     expect(warning.question).toBe('¿Eliminar 3 movimientos? No se puede deshacer.')
-    expect(warning.fixedNotice).toBe('2 son pagos de gastos fijos: esos gastos fijos volverán a quedar pendientes en su mes.')
-    expect(deleteWarning([tx({}), tx({ fixedExpenseId: 3 })]).fixedNotice).toBe('1 es el pago de un gasto fijo: ese gasto fijo volverá a quedar pendiente en su mes.')
+    expect(warning.fixedNotice).toBe('2 son pagos de gastos fijos: los que queden sin ningún pago en su mes volverán a quedar pendientes.')
+    expect(deleteWarning([tx({}), tx({ fixedExpenseId: 3 })]).fixedNotice).toBe('1 es el pago de un gasto fijo: si no le queda otro pago en su mes, ese gasto fijo volverá a quedar pendiente.')
   })
 })
 

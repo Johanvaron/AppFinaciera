@@ -183,8 +183,9 @@ export function deleteWarning(transactions: Transaction[]): { question: string; 
   const fixed = transactions.filter((tx) => tx.fixedExpenseId != null).length
   const question = count === 1 ? '¿Eliminar este movimiento? No se puede deshacer.' : `¿Eliminar ${count} movimientos? No se puede deshacer.`
   let fixedNotice = ''
-  if (fixed > 0 && count === 1) fixedNotice = 'Es el pago de un gasto fijo: ese gasto fijo volverá a quedar pendiente en su mes.'
-  else if (fixed === 1) fixedNotice = '1 es el pago de un gasto fijo: ese gasto fijo volverá a quedar pendiente en su mes.'
-  else if (fixed > 1) fixedNotice = `${fixed} son pagos de gastos fijos: esos gastos fijos volverán a quedar pendientes en su mes.`
+  // A fixed expense stays paid while it keeps any payment of that month (partial payments exist).
+  if (fixed > 0 && count === 1) fixedNotice = 'Es el pago de un gasto fijo: si no le queda otro pago en su mes, ese gasto fijo volverá a quedar pendiente.'
+  else if (fixed === 1) fixedNotice = '1 es el pago de un gasto fijo: si no le queda otro pago en su mes, ese gasto fijo volverá a quedar pendiente.'
+  else if (fixed > 1) fixedNotice = `${fixed} son pagos de gastos fijos: los que queden sin ningún pago en su mes volverán a quedar pendientes.`
   return { question, fixedNotice }
 }
