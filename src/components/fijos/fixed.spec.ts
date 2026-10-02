@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dueText, moveId, needsAmount, partialText, progressRatio, progressText, remainingAmount, resetOverrideLabel, rowAmount, rowAmountText, splitFieldErrors, statusTone, unpayLead, unpayTail } from './fixed'
+import { dueText, moveId, needsAmount, partialText, progressRatio, progressText, remainingAmount, resetOverrideLabel, rowAmount, rowAmountText, splitFieldErrors, statusTone, undefinedAmountNote, unpayLead, unpayTail } from './fixed'
 import { fixedItem as item } from './fixtures'
 
 describe('dueText', () => {
@@ -150,6 +150,12 @@ describe('badge and progress', () => {
     expect(statusTone('pending')).toBe('neutral')
     expect(statusTone('overdue')).toBe('danger')
     expect(statusTone('skipped')).toBe('neutral')
+  })
+
+  it('warns that rows without an amount are not in the totals', () => {
+    expect(undefinedAmountNote(0)).toBeNull()
+    expect(undefinedAmountNote(1)).toBe('Sin contar 1 con monto por definir')
+    expect(undefinedAmountNote(2)).toBe('Sin contar 2 con monto por definir')
   })
 
   it('writes the progress as "paid de total"', () => {

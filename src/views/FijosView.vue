@@ -15,7 +15,7 @@ import FixedFormModal from '@/components/fijos/FixedFormModal.vue'
 import FixedRow, { type RowAction } from '@/components/fijos/FixedRow.vue'
 import FixedTotals from '@/components/fijos/FixedTotals.vue'
 import PayModal from '@/components/fijos/PayModal.vue'
-import { moveId, unpayLead, unpayTail } from '@/components/fijos/fixed'
+import { moveId, needsAmount, unpayLead, unpayTail } from '@/components/fijos/fixed'
 import { api } from '@/lib/api'
 import { addMonths, formatMoney, monthLabel } from '@/lib/format'
 import { errorMessage, useApiMutation, useCategories, useFixedMonth } from '@/lib/queries'
@@ -146,7 +146,7 @@ async function confirmRemove() {
       </section>
 
       <template v-else>
-        <FixedTotals :totals="data.totals" />
+        <FixedTotals :totals="data.totals" :undefined-count="items.filter(needsAmount).length" />
         <section class="card py-2" :aria-label="`Gastos fijos de ${monthLabel(data.month)}`">
           <ul>
             <FixedRow

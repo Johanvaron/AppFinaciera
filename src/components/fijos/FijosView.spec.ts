@@ -75,6 +75,15 @@ describe('FijosView', () => {
     expect(vi.mocked(api.fixed.override).mock.calls).toEqual([[1, '2026-10', { expectedAmount: 650_000 }]])
   })
 
+  it('says under both totals how many rows are not counted because they have no amount yet', async () => {
+    const card = (id: number, name: string) => fixedItem({ variableAmount: true, expectedAmount: 0, fixed: { ...fixedItem().fixed, id, name, amount: 0, variableAmount: true } })
+    await mountWith([fixedItem({ expectedAmount: 1_578_416 }), card(2, 'BBVA 1'), card(3, 'BBVA 2')])
+    const cards = wrapper.findAll('.stat-card').map((c) => c.text())
+    expect(cards[0]).toBe('Total del mes$ 1.578.416Sin contar 2 con monto por definir')
+    expect(cards[2]).toBe('Falta por pagar$ 1.578.416Sin contar 2 con monto por definir')
+    expect(cards[1]).toBe('Pagado$ 0')
+  })
+
   it('deletes the partial payments of an unpaid row from its menu', async () => {
     const rappi = fixedItem({ expectedAmount: 1_143_416, paidAmount: 500_000, transactionIds: [41] })
     vi.mocked(api.fixed.unpay).mockResolvedValue({ ...rappi, paidAmount: 0, transactionIds: [] })

@@ -46,6 +46,14 @@ export function needsAmount(item: AmountFields): boolean {
   return (item.status === 'pending' || item.status === 'overdue') && item.fixed.variableAmount && item.expectedAmount === 0
 }
 
+/**
+ * Caveat under the month totals: rows that still need an amount add 0 to
+ * "Total del mes" and "Falta por pagar". Null when every row has one.
+ */
+export function undefinedAmountNote(count: number): string | null {
+  return count > 0 ? `Sin contar ${count} con monto por definir` : null
+}
+
 /** What is still owed of the month: the expected amount minus the partial payments, never negative. */
 export function remainingAmount(item: Pick<FixedMonthItem, 'expectedAmount' | 'paidAmount'>): number {
   return Math.max(item.expectedAmount - item.paidAmount, 0)
