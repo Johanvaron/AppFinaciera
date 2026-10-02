@@ -5,6 +5,7 @@ import {
   amountText,
   applicableCategories,
   bulkCategoryRule,
+  categorizedText,
   countLabel,
   deleteResultText,
   deleteWarning,
@@ -217,6 +218,14 @@ describe('deleteWarning', () => {
     expect(warning.question).toBe('¿Eliminar 3 movimientos? No se puede deshacer.')
     expect(warning.fixedNotice).toBe('2 son pagos de gastos fijos: esos gastos fijos volverán a quedar pendientes en su mes.')
     expect(deleteWarning([tx({}), tx({ fixedExpenseId: 3 })]).fixedNotice).toBe('1 es el pago de un gasto fijo: ese gasto fijo volverá a quedar pendiente en su mes.')
+  })
+})
+
+describe('categorizedText', () => {
+  it('says how many movements the server changed', () => {
+    expect(categorizedText(1)).toBe('Categoría actualizada en 1 movimiento')
+    expect(categorizedText(7)).toBe('Categoría actualizada en 7 movimientos')
+    expect(categorizedText(0)).toBe('Ningún movimiento cambió de categoría')
   })
 })
 

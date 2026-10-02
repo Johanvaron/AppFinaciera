@@ -171,7 +171,13 @@ export function deleteResultText({ deleted, failed }: BulkDeleteResult): string 
   return deleted === 1 ? 'Movimiento eliminado' : `${deleted} movimientos eliminados`
 }
 
-/** Text of the delete confirmation;warns when fixed-expense payments are involved. */
+/** Toast after a bulk category change, with the count the server really changed. */
+export function categorizedText(updated: number): string {
+  if (updated === 0) return 'Ningún movimiento cambió de categoría'
+  return updated === 1 ? 'Categoría actualizada en 1 movimiento' : `Categoría actualizada en ${updated} movimientos`
+}
+
+/** Text of the delete confirmation; warns when fixed-expense payments are involved. */
 export function deleteWarning(transactions: Transaction[]): { question: string; fixedNotice: string } {
   const count = transactions.length
   const fixed = transactions.filter((tx) => tx.fixedExpenseId != null).length

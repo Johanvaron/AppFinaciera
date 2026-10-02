@@ -8,7 +8,7 @@ import PageHeader from '@/components/layout/PageHeader.vue'
 import MovimientosBulkBar from '@/components/movimientos/MovimientosBulkBar.vue'
 import MovimientosFilters from '@/components/movimientos/MovimientosFilters.vue'
 import MovimientosTable from '@/components/movimientos/MovimientosTable.vue'
-import { countLabel, deleteResultText, deleteWarning, filteredTotals, removeEach, sortTransactions, type SortDir, type SortKey } from '@/components/movimientos/transactions'
+import { categorizedText, countLabel, deleteResultText, deleteWarning, filteredTotals, removeEach, sortTransactions, type SortDir, type SortKey } from '@/components/movimientos/transactions'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiModal from '@/components/ui/UiModal.vue'
@@ -97,12 +97,22 @@ function clearSelection() {
 watch(() => period.month, clearSelection)
 
 // ---------- writes ----------
-const categorize = useApiMutation(api.transactions.bulkCategorize, { success: 'Categoría actualizada' })
+const categorize = useApiMutation(api.transactions.bulkCategorize)
 // Resolves even when some deletes fail, so the cache is always refreshed with what really happened.
 const removeMany = useApiMutation((ids: number[]) => removeEach(ids, api.transactions.remove))
 
 function onCategorize(newCategoryId: number) {
-  categorize.mutate({ ids: selected.value.map((tx) => tx.id), categoryId: newCategoryId }, { onSuccess: clearSelection })
+  categorize.mutate(
+    { ids: selected.value.map((tx) => tx.id), categoryId: newCategoryId },
+    {
+      // The server only changes movements of the category's kind and says how many.
+      onSuccess: ({ updated }) => {
+        clearSelection()
+        if (updated > 0) toasts.success(categorizedText(updated))
+        else toasts.error(categorizedText(updated))
+      },
+    },
+  )
 }
 
 /** Rows waiting for the delete confirmation (one from its row action, or the whole selection). */
