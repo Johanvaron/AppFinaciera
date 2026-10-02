@@ -12,7 +12,8 @@ import {
   savingsStat,
   signedAmount,
   transactionTitle,
-  welcomeSteps,
+  WELCOME_STEPS,
+  welcomeDate,
 } from './summary'
 
 const category = (id: number, name: string): Category => ({ id, name, kind: 'expense', group: 'variables', color: 'blue', archived: false })
@@ -190,10 +191,13 @@ describe('empty month', () => {
     expect(isEmptyMonth(empty, null)).toBe(false)
   })
 
-  it('marks each welcome step from the data', () => {
-    expect(welcomeSteps(empty, 0).map((s) => s.done)).toEqual([false, false, false])
-    expect(welcomeSteps({ ...empty, income: 5000 }, 0).map((s) => s.done)).toEqual([false, true, false])
-    expect(welcomeSteps({ ...empty, expenses: 5000 }, 3).map((s) => s.done)).toEqual([true, false, true])
-    expect(welcomeSteps(empty, 0).map((s) => s.title)).toEqual(['Agrega tus gastos fijos', 'Registra tu ingreso del mes', 'Registra un gasto'])
+  it('offers the three welcome steps in order', () => {
+    expect(WELCOME_STEPS.map((s) => s.title)).toEqual(['Agrega tus gastos fijos', 'Registra tu ingreso del mes', 'Registra un gasto'])
+  })
+
+  it('dates a movement added from the welcome inside the month on screen', () => {
+    expect(welcomeDate('2026-10', '2026-10-02')).toBe('2026-10-02')
+    expect(welcomeDate('2026-11', '2026-10-02')).toBe('2026-11-01')
+    expect(welcomeDate('2025-12', '2026-10-02')).toBe('2025-12-01')
   })
 })

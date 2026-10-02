@@ -9,7 +9,7 @@ import PaceCard from '@/components/resumen/PaceCard.vue'
 import RecentCard from '@/components/resumen/RecentCard.vue'
 import UpcomingCard from '@/components/resumen/UpcomingCard.vue'
 import WelcomeCard from '@/components/resumen/WelcomeCard.vue'
-import { availableStat, changeDetail, fixedStat, isEmptyMonth, monthNameLower, savingsStat, welcomeSteps } from '@/components/resumen/summary'
+import { availableStat, changeDetail, fixedStat, isEmptyMonth, monthNameLower, savingsStat } from '@/components/resumen/summary'
 import StatCard from '@/components/ui/StatCard.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import { formatMoney } from '@/lib/format'
@@ -42,7 +42,6 @@ const fixedFailed = computed(() => fixedIsError.value && fixedCount.value == nul
 const empty = computed(() => (summary.value ? isEmptyMonth(summary.value, fixedCount.value) : false))
 /** A month with no movements waits for the checklist before choosing between the welcome and the board. */
 const awaitingFixed = computed(() => fixedCount.value == null && !fixedIsError.value && !!summary.value && isEmptyMonth(summary.value, 0))
-const steps = computed(() => (summary.value ? welcomeSteps(summary.value, fixedCount.value ?? 0) : []))
 const hasAccounts = computed(() => (summary.value?.accounts ?? []).some((account) => !account.archived))
 
 /**
@@ -96,7 +95,7 @@ const stats = computed(() => {
 
     <!-- While the next month loads, the previous one stays on screen dimmed and marked busy. -->
     <div v-else-if="empty" :class="['grid grid-cols-12 gap-4', isPlaceholderData && 'opacity-60']" :aria-busy="isPlaceholderData">
-      <WelcomeCard :class="hasAccounts ? 'col-span-12 xl:col-span-8' : 'col-span-12'" :steps="steps" :month-name="monthNameLower(summary.month)" />
+      <WelcomeCard :class="hasAccounts ? 'col-span-12 xl:col-span-8' : 'col-span-12'" :month="summary.month" :month-name="monthNameLower(summary.month)" />
       <AccountsCard v-if="hasAccounts" class="col-span-12 xl:col-span-4" :accounts="summary.accounts" :total-balance="summary.totalBalance" />
       <RecentCard v-if="summary.recent.length" class="col-span-12" :transactions="summary.recent" :categories="categories ?? []" />
     </div>

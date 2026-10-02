@@ -3,7 +3,7 @@
  * built here so it can be tested without mounting anything.
  */
 import type { Category, CategoryTotal, FixedMonthItem, IsoDate, Month, MonthSummary, Transaction } from '@shared/contract'
-import { currentMonth, dateShort, daysUntil, formatChange, formatMoney, formatPercent, monthLabel, todayIso } from '@/lib/format'
+import { currentMonth, dateShort, daysUntil, formatChange, formatMoney, formatPercent, monthLabel, monthOf, todayIso } from '@/lib/format'
 
 export type Tone = 'primary' | 'success' | 'warning' | 'danger' | 'neutral'
 
@@ -194,13 +194,16 @@ export interface WelcomeStep {
   key: 'fixed' | 'income' | 'expense'
   title: string
   text: string
-  done: boolean
 }
 
-export function welcomeSteps(summary: Pick<MonthSummary, 'income' | 'expenses' | 'upcomingFixed'>, fixedCount: number): WelcomeStep[] {
-  return [
-    { key: 'fixed', title: 'Agrega tus gastos fijos', text: 'Arriendo, servicios, cuotas: lo que pagas todos los meses.', done: fixedCount > 0 || summary.upcomingFixed.length > 0 },
-    { key: 'income', title: 'Registra tu ingreso del mes', text: 'Con eso sabrás cuánto te queda disponible para gastar.', done: summary.income > 0 },
-    { key: 'expense', title: 'Registra un gasto', text: 'Cada gasto alimenta el ritmo del mes y tus categorías.', done: summary.expenses > 0 },
-  ]
+/** The welcome only shows for an empty month, so no step is ever done while it is on screen. */
+export const WELCOME_STEPS: readonly WelcomeStep[] = [
+  { key: 'fixed', title: 'Agrega tus gastos fijos', text: 'Arriendo, servicios, cuotas: lo que pagas todos los meses.' },
+  { key: 'income', title: 'Registra tu ingreso del mes', text: 'Con eso sabrás cuánto te queda disponible para gastar.' },
+  { key: 'expense', title: 'Registra un gasto', text: 'Cada gasto alimenta el ritmo del mes y tus categorías.' },
+]
+
+/** Date a movement added from the welcome starts with, so it lands in the month on screen: today, or day 1 of another month. */
+export function welcomeDate(month: Month, today: IsoDate = todayIso()): IsoDate {
+  return monthOf(today) === month ? today : `${month}-01`
 }
