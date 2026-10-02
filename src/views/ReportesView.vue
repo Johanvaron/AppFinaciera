@@ -120,8 +120,13 @@ watch(
         :error="categoriesError"
         @retry="categories.refetch()"
       />
-      <!-- The scroll margin clears the bottom tab bar on phones. -->
-      <div v-if="selectedRow && categories.data.value" ref="trendBox" class="min-w-0 scroll-mb-24 lg:scroll-mb-4">
+      <!-- The scroll margin clears the bottom tab bar on phones. Dimmed while it still shows the previous range. -->
+      <div
+        v-if="selectedRow && categories.data.value"
+        ref="trendBox"
+        :class="['min-w-0 scroll-mb-24 transition-opacity lg:scroll-mb-4', categories.isPlaceholderData.value ? 'opacity-50' : '']"
+        :aria-busy="categories.isPlaceholderData.value"
+      >
         <CategoryTrend :row="selectedRow" :months="categories.data.value.months" @close="selectedId = null" />
       </div>
     </template>

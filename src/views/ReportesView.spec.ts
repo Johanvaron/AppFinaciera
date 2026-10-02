@@ -116,6 +116,26 @@ describe('ReportesView', () => {
     wrapper.unmount()
   })
 
+  it('dims the open trend of the previous range until the new range answers', async () => {
+    const { wrapper } = await mountView()
+    await wrapper.find('button[aria-label="Ver tendencia de Mercado"]').trigger('click')
+    await flushPromises()
+    const trend = wrapper.find('[data-test="trend"]').element.parentElement!
+    expect(trend.getAttribute('aria-busy')).toBe('false')
+    let answer: (report: CategoryReport) => void = () => {}
+    vi.mocked(api.reports.categories).mockImplementation(() => new Promise((resolve) => (answer = resolve)))
+    await pressOption(wrapper, '12 meses')
+    expect(trend.textContent).toBe('Mercado') // still the trend of the 6 months
+    expect(trend.getAttribute('aria-busy')).toBe('true')
+    expect(trend.classList.contains('opacity-50')).toBe(true)
+    const to = currentMonth()
+    answer(categoryReport({ from: addMonths(to, -11), to }))
+    await flushPromises()
+    expect(trend.getAttribute('aria-busy')).toBe('false')
+    expect(trend.classList.contains('opacity-50')).toBe(false)
+    wrapper.unmount()
+  })
+
   it('scrolls the trend into view when a category is chosen', async () => {
     const scrollIntoView = vi.fn()
     vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(scrollIntoView)
