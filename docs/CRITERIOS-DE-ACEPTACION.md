@@ -96,7 +96,10 @@ el PR.
 - **D1 [B]** Lo que el servidor acepta y devuelve coincide con
   `shared/contract.ts`: campos, tipos, `null` frente a ausente y códigos HTTP.
 - **D2 [B]** El cliente no redefine tipos del contrato ni llama a `fetch`
-  fuera de `src/lib/api.ts`; el servidor de estado es solo `src/lib/queries.ts`.
+  fuera de `src/lib/api.ts`. El estado que viene del servidor (la caché de
+  consultas) vive solo en `src/lib/queries.ts`. Los stores de Pinia quedan
+  para estado de interfaz (período, tema, alta rápida) y no guardan copias de
+  datos del servidor.
 - **D3** Un cambio de forma de datos empieza en el contrato, en el mismo PR.
 
 ## E. Errores y estados
