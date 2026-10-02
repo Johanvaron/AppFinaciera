@@ -21,7 +21,7 @@ export interface Pace {
 type PaceInput = Pick<MonthSummary, 'daily' | 'previousDailyCumulative' | 'expenses'> & { previous: Pick<MonthSummary['previous'], 'month'> }
 
 /**
- * Current month: "Llevas $ X gastados; a esta altura del mes pasado ibas en $ Y".
+ * Current month: "Llevas $ X gastados hasta hoy (más $ Z con fecha posterior); a esta altura del mes pasado ibas en $ Y".
  * Closed month: "Gastaste $ X; en septiembre gastaste $ Y" (whole months).
  * Month that has not started: no pace to talk about yet.
  */
@@ -49,7 +49,9 @@ export function paceSummary(summary: PaceInput, today: IsoDate = todayIso()): Pa
 
   // Day 31 against a 30-day month compares with that month's last day.
   const previousAtSameDay = previousHasData ? previous[Math.min(lastIndex, previous.length - 1)]! : null
-  const lead = `Llevas ${formatMoney(spent)} gastados`
+  // `expenses` covers the whole month; what is dated after today is named apart so this adds up with the Gastos card.
+  const later = summary.expenses - spent
+  const lead = `Llevas ${formatMoney(spent)} gastados hasta hoy` + (later > 0 ? ` (más ${formatMoney(later)} con fecha posterior)` : '')
   const text = previousAtSameDay == null ? lead : `${lead}; a esta altura del mes pasado ibas en ${formatMoney(previousAtSameDay)}`
   return { spent, previousAtSameDay, previousHasData, text }
 }

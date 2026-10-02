@@ -27,19 +27,31 @@ describe('spending pace sentence', () => {
 
   it('compares against the same day of the previous month', () => {
     const pace = paceSummary({ daily, previousDailyCumulative: [50000, 120000, 480000, 900000, 1200000], expenses: 350000, previous }, today)
-    expect(pace.text).toBe('Llevas $ 350.000 gastados; a esta altura del mes pasado ibas en $ 480.000')
+    expect(pace.text).toBe('Llevas $ 350.000 gastados hasta hoy; a esta altura del mes pasado ibas en $ 480.000')
     expect(pace.spent).toBe(350000)
     expect(pace.previousAtSameDay).toBe(480000)
   })
 
   it('drops the comparison when the previous month has no spending', () => {
-    expect(paceSummary({ daily, previousDailyCumulative: [0, 0, 0, 0, 0], expenses: 350000, previous }, today).text).toBe('Llevas $ 350.000 gastados')
-    expect(paceSummary({ daily, previousDailyCumulative: [], expenses: 350000, previous }, today).text).toBe('Llevas $ 350.000 gastados')
+    expect(paceSummary({ daily, previousDailyCumulative: [0, 0, 0, 0, 0], expenses: 350000, previous }, today).text).toBe('Llevas $ 350.000 gastados hasta hoy')
+    expect(paceSummary({ daily, previousDailyCumulative: [], expenses: 350000, previous }, today).text).toBe('Llevas $ 350.000 gastados hasta hoy')
+  })
+
+  it('names apart the expenses dated after today so the pace adds up with the Gastos card', () => {
+    const withLater = [day(1, 1000000, 1000000), day(2, 603400, 1603400), day(3, 500000, null), day(4, 0, null)]
+    const base = { daily: withLater, expenses: 2103400, previous }
+    expect(paceSummary({ ...base, previousDailyCumulative: [0, 0, 0, 0] }, '2026-10-02')).toMatchObject({
+      spent: 1603400,
+      text: 'Llevas $ 1.603.400 gastados hasta hoy (más $ 500.000 con fecha posterior)',
+    })
+    expect(paceSummary({ ...base, previousDailyCumulative: [50000, 120000, 480000, 900000] }, '2026-10-02').text).toBe(
+      'Llevas $ 1.603.400 gastados hasta hoy (más $ 500.000 con fecha posterior); a esta altura del mes pasado ibas en $ 120.000',
+    )
   })
 
   it('uses the last day of a shorter previous month', () => {
     const pace = paceSummary({ daily: daily.slice(0, 3), previousDailyCumulative: [10000, 70000], expenses: 350000, previous }, today)
-    expect(pace.text).toBe('Llevas $ 350.000 gastados; a esta altura del mes pasado ibas en $ 70.000')
+    expect(pace.text).toBe('Llevas $ 350.000 gastados hasta hoy; a esta altura del mes pasado ibas en $ 70.000')
   })
 
   it('compares whole months once the month is closed', () => {
