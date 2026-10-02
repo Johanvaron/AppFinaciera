@@ -5,6 +5,7 @@
 import {
   budgetInputSchema,
   CATEGORY_GROUP_LABELS,
+  CATEGORY_GROUPS,
   type BudgetInput,
   type BudgetMonthResponse,
   type BudgetRow,
@@ -16,8 +17,13 @@ import { formatMoney, parseMoney } from '@/lib/format'
 
 export type BudgetTone = 'success' | 'warning' | 'danger' | 'neutral'
 
-/** Expense groups in the order they are listed. Income has no budget. */
-export const BUDGET_GROUPS = ['fijos', 'variables', 'ahorro'] as const satisfies readonly CategoryGroup[]
+/**
+ * Groups in the order they are listed: the expense ones first, then any other
+ * group of the contract. The server accepts an expense category in any group,
+ * so none is left out: every row the totals count must be on the list.
+ */
+const EXPENSE_GROUPS: readonly CategoryGroup[] = ['fijos', 'variables', 'ahorro']
+export const BUDGET_GROUPS: readonly CategoryGroup[] = [...EXPENSE_GROUPS, ...CATEGORY_GROUPS.filter((group) => !EXPENSE_GROUPS.includes(group))]
 
 export interface BudgetGroup {
   group: CategoryGroup
@@ -119,7 +125,7 @@ export function compareRows(a: BudgetRow, b: BudgetRow): number {
 }
 
 /**
- * Rows split by group (empty groups are left out). `frozenOrder` is a list of
+ * Rows split by group (empty groups are left out, rows never are). `frozenOrder` is a list of
  * category ids: while someone is filling caps in a row, the list keeps that
  * order instead of jumping around after each save.
  */

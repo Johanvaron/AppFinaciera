@@ -97,9 +97,23 @@ describe('grouping and order', () => {
     row('Salario', 'ingresos', null, 0),
   ]
 
-  it('lists fixed, variable and savings groups, skipping empty ones and income', () => {
-    expect(groupRows(rows).map((g) => g.label)).toEqual(['Gastos fijos', 'Gastos variables'])
-    expect(groupRows([...rows, row('Fondo', 'ahorro', null, 0)]).map((g) => g.label)).toEqual(['Gastos fijos', 'Gastos variables', 'Ahorro'])
+  it('lists fixed, variable and savings groups first, skipping empty ones', () => {
+    expect(groupRows(rows).map((g) => g.label)).toEqual(['Gastos fijos', 'Gastos variables', 'Ingresos'])
+    expect(groupRows(rows.slice(0, 8)).map((g) => g.label)).toEqual(['Gastos fijos', 'Gastos variables'])
+    expect(groupRows([...rows, row('Fondo', 'ahorro', null, 0)]).map((g) => g.label)).toEqual(['Gastos fijos', 'Gastos variables', 'Ahorro', 'Ingresos'])
+  })
+
+  it('never drops a row: an expense category in the income group keeps its cap on the list', () => {
+    const all = [...rows, row('Rara', 'ingresos', 300000, 120000)]
+    const groups = groupRows(all)
+    const sum = (values: number[]) => values.reduce((total, value) => total + value, 0)
+    expect(groups.flatMap((g) => names(g.rows)).sort()).toEqual(names(all).sort())
+    expect(sum(groups.map((g) => g.budget))).toBe(sum(all.map((r) => r.budget ?? 0)))
+    expect(sum(groups.map((g) => g.budget))).toBe(2650000)
+    expect(sum(groups.map((g) => g.spent))).toBe(sum(all.map((r) => r.spent)))
+    const ingresos = groups.find((g) => g.group === 'ingresos')!
+    expect(names(ingresos.rows)).toEqual(['Rara', 'Salario'])
+    expect(groupSubtotalText(ingresos)).toBe('$ 120.000 de $ 300.000')
   })
 
   it('puts capped rows first by ratio, then uncapped by spending, then the rest by name', () => {
