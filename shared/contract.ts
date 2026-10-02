@@ -243,7 +243,20 @@ export const FIXED_STATUS_LABELS: Record<FixedStatus, string> = {
   skipped: 'No aplica este mes',
 }
 
-/** One row of the checklist for a given month. Status is derived, never stored. */
+/**
+ * One row of the checklist for a given month. Status is derived, never stored.
+ *
+ * Status rule, checked in this order:
+ * 1. 'skipped': the month is marked as "does not apply". A skipped month has no payments.
+ * 2. 'paid':    paidAmount > 0 AND paidAmount >= expectedAmount. A partial payment is NOT
+ *               'paid'. With expectedAmount 0 (variable amount not set yet) any payment pays it.
+ * 3. 'overdue': not paid and dueDate < today; without dueDate, not paid and month < current month.
+ * 4. 'pending': everything else, including a partially paid item that is not overdue yet.
+ *
+ * Partial payment, expectedAmount 100.000 with one payment of 60.000 and not yet due:
+ * status 'pending', paidAmount 60.000, remainingAmount 40.000. It adds 60.000 to totals.paid,
+ * 40.000 to totals.pending, 100.000 to totals.expected and 40.000 to MonthSummary.pendingFixed.
+ */
 export interface FixedMonthItem {
   fixed: FixedExpense
   month: Month
@@ -251,26 +264,42 @@ export interface FixedMonthItem {
   expectedAmount: number
   /** True when this month has its own expected amount. */
   hasOverride: boolean
-  /** Sum of the payments linked to this fixed expense for this month. */
+  /** Sum of the payments linked to this fixed expense for this month (partial payments included). */
   paidAmount: number
+  /**
+   * What is still left to pay this month: max(0, expectedAmount - paidAmount); 0 when
+   * skipped or paid (an overpayment never makes it negative).
+   */
+  remainingAmount: number
   status: FixedStatus
   /** Null when the fixed expense has no dueDay. */
   dueDate: IsoDate | null
-  /** Date of the last payment, when paid. */
+  /** Date of the last payment when status is 'paid', else null (also null while partially paid). */
   paidDate: IsoDate | null
+  /** Every payment of this month, oldest first, whatever the status. */
   transactionIds: number[]
 }
 
 export interface FixedMonthResponse {
   month: Month
   items: FixedMonthItem[]
+  /**
+   * Skipped items are left out of every total. Identity that always holds:
+   * expected = paid + pending.
+   */
   totals: {
-    /** Sum of expectedAmount of non-skipped items (paid items count what was actually paid). */
+    /**
+     * paid + pending. Equals the sum of expectedAmount, except that an overpaid item
+     * counts what was actually paid.
+     */
     expected: number
+    /** Sum of paidAmount of every non-skipped item, partial payments included. */
     paid: number
-    /** Sum of expectedAmount of pending + overdue items. */
+    /** Sum of remainingAmount: what is still left to pay on pending + overdue items. */
     pending: number
+    /** Items with status 'paid' (a partially paid item does not count). */
     countPaid: number
+    /** Non-skipped items. */
     countTotal: number
   }
 }
@@ -352,9 +381,17 @@ export interface MonthSummary {
   net: number
   /** net / income as a fraction. Null when income is 0. */
   savingsRate: number | null
-  /** Fixed expenses still unpaid this month (pending + overdue). */
+  /**
+   * What is still left to pay of this month's fixed expenses: exactly
+   * FixedMonthResponse.totals.pending for the same month (sum of remainingAmount of
+   * pending + overdue items). A partial payment lowers it by what was paid.
+   */
   pendingFixed: number
-  /** income - expenses - pendingFixed. Can be negative. */
+  /**
+   * income - expenses - pendingFixed. Can be negative. Nothing is counted twice: a
+   * payment (full or partial) is already inside `expenses`, and pendingFixed only
+   * holds the part not paid yet.
+   */
   availableToSpend: number
   previous: { month: Month; income: number; expenses: number; net: number }
   /** Change vs previous month as a fraction (0.1 = +10 %). Null when previous is 0. */
