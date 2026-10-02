@@ -2,7 +2,7 @@
 /**
  * One category of the budget. Phone: name + cap, then the bar, then status +
  * spent. Desktop: a single line of columns (see BUDGET_GRID) with the status
- * under the bar. The cap is edited in place.
+ * under the bar (it may run under the % column). The cap is edited in place.
  */
 import { computed, nextTick, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
@@ -77,19 +77,21 @@ function onKeydown(event: KeyboardEvent) {
       <ProgressBar :ratio="barRatio(row)" :tone="stateTone(row.state)" :label="`Avance de ${name}`" />
     </div>
 
-    <p :class="['col-start-1 row-start-3 min-w-0 truncate text-xs sm:col-start-2 sm:row-start-2', isOver(row) ? 'font-medium text-danger' : 'text-muted']">
-      {{ statusText(row) }}
-    </p>
+    <span class="num hidden text-right text-xs text-muted sm:col-start-3 sm:row-start-1 sm:block">{{ formatPercent(row.ratio) }}</span>
 
-    <span class="num hidden text-right text-xs text-muted sm:col-start-3 sm:row-span-2 sm:row-start-1 sm:block">{{ formatPercent(row.ratio) }}</span>
-
-    <RouterLink
-      to="/movimientos"
-      class="num col-start-2 row-start-3 justify-self-end rounded text-xs hover:text-primary hover:underline sm:col-start-4 sm:row-span-2 sm:row-start-1 sm:text-[14px]"
-      :aria-label="`Gastado en ${name}: ${formatMoney(row.spent)}. Ver movimientos`"
-    >
-      <span class="text-muted sm:hidden">Gastado </span>{{ formatMoney(row.spent) }}
-    </RouterLink>
+    <!-- Phone: status and spent share a line and wrap (never cut a figure) when both are long. Desktop: grid cells. -->
+    <div class="col-span-2 row-start-3 flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 sm:contents">
+      <p :class="['num text-xs sm:col-span-2 sm:col-start-2 sm:row-start-2', isOver(row) ? 'font-medium text-danger' : 'text-muted']">
+        {{ statusText(row) }}
+      </p>
+      <RouterLink
+        to="/movimientos"
+        class="num ml-auto rounded text-xs hover:text-primary hover:underline sm:col-start-4 sm:row-span-2 sm:row-start-1 sm:ml-0 sm:justify-self-end sm:text-[14px]"
+        :aria-label="`Gastado en ${name}: ${formatMoney(row.spent)}. Ver movimientos`"
+      >
+        <span class="text-muted sm:hidden">Gastado </span>{{ formatMoney(row.spent) }}
+      </RouterLink>
+    </div>
 
     <div class="col-start-2 row-start-1 flex justify-end sm:col-start-5 sm:row-span-2">
       <div v-if="editing" class="w-36 sm:w-full" @keydown="onKeydown" @focusout="emit('commit', typedText($event), 'blur')">
