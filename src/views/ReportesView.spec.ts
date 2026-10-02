@@ -74,6 +74,17 @@ describe('ReportesView', () => {
     wrapper.unmount()
   })
 
+  it('scrolls the trend into view when a category is chosen', async () => {
+    const scrollIntoView = vi.fn()
+    vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(scrollIntoView)
+    const { wrapper } = await mountView()
+    await wrapper.find('button[aria-label="Ver tendencia de Mercado"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[data-test="trend"]').text()).toBe('Mercado')
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' })
+    wrapper.unmount()
+  })
+
   it('lets go of the open trend when its category is not in the new range', async () => {
     const { wrapper } = await mountView()
     await pressOption(wrapper, '12 meses')

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { ChartColumn, Plus } from 'lucide-vue-next'
 import type { CategoryKind } from '@shared/contract'
 import PageHeader from '@/components/layout/PageHeader.vue'
@@ -37,6 +37,14 @@ const monthlyFailed = computed(() => monthly.isError.value && !monthly.data.valu
 const categoriesError = computed(() => (categories.isError.value && !categories.data.value ? errorMessage(categories.error.value) : null))
 
 const selectedRow = computed(() => categories.data.value?.rows.find((row) => row.category.id === selectedId.value) ?? null)
+
+// The trend opens under the matrix, often below the fold: bring it into view when a category is chosen.
+const trendBox = ref<HTMLElement | null>(null)
+watch(selectedId, async (id) => {
+  if (id === null) return
+  await nextTick()
+  trendBox.value?.scrollIntoView({ block: 'nearest' })
+})
 
 watch(kind, () => (selectedId.value = null))
 // A category that is not in the new range lets go of the selection, so its trend does not come back by itself later.
@@ -88,7 +96,10 @@ watch(
         :error="categoriesError"
         @retry="categories.refetch()"
       />
-      <CategoryTrend v-if="selectedRow && categories.data.value" :row="selectedRow" :months="categories.data.value.months" @close="selectedId = null" />
+      <!-- The scroll margin clears the bottom tab bar on phones. -->
+      <div v-if="selectedRow && categories.data.value" ref="trendBox" class="min-w-0 scroll-mb-24 lg:scroll-mb-4">
+        <CategoryTrend :row="selectedRow" :months="categories.data.value.months" @close="selectedId = null" />
+      </div>
     </template>
   </div>
 </template>
