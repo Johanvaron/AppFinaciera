@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /** Filter row of Movimientos: search, type, category and account. Wraps on phones. */
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { Search, X } from 'lucide-vue-next'
 import { CATEGORY_GROUP_LABELS, CATEGORY_GROUPS, type Account, type Category, type TransactionType } from '@shared/contract'
 import UiButton from '@/components/ui/UiButton.vue'
@@ -22,11 +22,12 @@ const categoryGroups = computed(() => {
   })).filter((g) => g.items.length > 0)
 })
 
-function onTypeChange() {
-  // A transfer has no category, and a category of the other kind would never match.
+// A transfer has no category, and a category of the other kind would never match.
+// A watcher, not @change: the parent owns the model, so inside the event it still holds the previous type.
+watch(type, (next) => {
   const chosen = props.categories.find((c) => c.id === categoryId.value)
-  if (type.value === 'transfer' || (chosen && type.value !== '' && chosen.kind !== type.value)) categoryId.value = null
-}
+  if (next === 'transfer' || (chosen && next !== '' && chosen.kind !== next)) categoryId.value = null
+})
 </script>
 
 <template>
@@ -36,7 +37,7 @@ function onTypeChange() {
       <input v-model="search" type="search" class="control pl-9" placeholder="Buscar por descripción o nota" aria-label="Buscar por descripción o nota" maxlength="120" />
     </div>
 
-    <select v-model="type" class="control col-span-2 sm:w-44" aria-label="Tipo" @change="onTypeChange">
+    <select v-model="type" class="control col-span-2 sm:w-44" aria-label="Tipo">
       <option value="">Todos los tipos</option>
       <option value="expense">Gastos</option>
       <option value="income">Ingresos</option>
