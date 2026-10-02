@@ -65,8 +65,12 @@ el PR.
 - **B2 [B]** No se pierden datos sin confirmación explícita. Todo borrado
   pide confirmación y dice qué más se ve afectado (por ejemplo, que un gasto
   fijo vuelve a quedar pendiente).
-- **B3 [B]** El SQL vive solo en `server/repositories/` y siempre con
-  parámetros; nunca se arma concatenando texto.
+- **B3 [B]** Las consultas de datos (`SELECT`, `INSERT`, `UPDATE`,
+  `DELETE`) viven solo en `server/repositories/`. Las únicas excepciones son
+  `server/db.ts` (conexión, `PRAGMA`, transacciones y aplicación de
+  migraciones) y `server/migrations/`. Todo **valor** va como parámetro
+  (`?`), nunca pegado al texto del SQL. Los nombres de tabla o de columna
+  solo se interpolan desde constantes del código, nunca desde la entrada.
 - **B4 [B]** El servidor valida toda entrada con el schema del contrato y
   comprueba que los ids referenciados existan. El cliente no es la única
   barrera.
