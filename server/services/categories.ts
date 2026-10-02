@@ -1,13 +1,24 @@
 import type { z } from 'zod'
 import type { Category, categoryInputSchema } from '../../shared/contract.ts'
 import type { Transact } from '../db.ts'
-import { conflict, notFound } from '../lib/errors.ts'
+import { conflict, invalid, notFound } from '../lib/errors.ts'
 import type { BudgetRepository } from '../repositories/budgets.ts'
 import type { CategoryRepository } from '../repositories/categories.ts'
 import type { FixedExpenseRepository } from '../repositories/fixed-expenses.ts'
 import type { TransactionRepository } from '../repositories/transactions.ts'
 
 type CategoryData = z.output<typeof categoryInputSchema>
+
+/** The 'ingresos' group is for income categories and only for them; the totals go by `kind`. */
+function checkGroup(category: Pick<CategoryData, 'kind' | 'group'>): void {
+  if ((category.group === 'ingresos') === (category.kind === 'income')) return
+  throw invalid({
+    group:
+      category.kind === 'income'
+        ? 'Una categoría de ingresos va en el grupo Ingresos'
+        : 'Una categoría de gastos no puede ir en el grupo Ingresos',
+  })
+}
 
 export class CategoryService {
   private readonly categories: CategoryRepository
@@ -35,6 +46,7 @@ export class CategoryService {
   }
 
   create(data: CategoryData): Category {
+    checkGroup(data)
     return this.categories.insert(data)
   }
 
@@ -45,6 +57,7 @@ export class CategoryService {
     if (patch.kind !== undefined && patch.kind !== current.kind && this.inUse(id)) {
       throw conflict('Esta categoría ya tiene movimientos, gastos fijos o presupuestos; no se le puede cambiar el tipo.')
     }
+    checkGroup({ ...current, ...patch })
     return this.categories.update(id, patch) as Category
   }
 

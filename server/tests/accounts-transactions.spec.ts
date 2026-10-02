@@ -246,6 +246,27 @@ describe('categories', () => {
     expect(archived).toMatchObject({ name: 'Mercado', kind: 'expense', group: 'variables', color: 'slate', archived: true })
     expect((await api.call('PATCH', `/categories/${withMovement}`, { kind: 'income' })).status).toBe(409)
   })
+
+  it('rejects a group that contradicts the kind, on create and on update', async () => {
+    const api = createTestApi()
+    const food = await api.category('Mercado', 'expense')
+
+    const incomeInExpenseGroup = await api.call('POST', '/categories', { name: 'Salario', kind: 'income', group: 'fijos' })
+    expect(incomeInExpenseGroup.status).toBe(422)
+    expect(incomeInExpenseGroup.body.fields).toEqual({ group: 'Una categoría de ingresos va en el grupo Ingresos' })
+    const expenseInIncomeGroup = await api.call('PATCH', `/categories/${food}`, { group: 'ingresos' })
+    expect(expenseInIncomeGroup.status).toBe(422)
+    expect(expenseInIncomeGroup.body.fields).toEqual({ group: 'Una categoría de gastos no puede ir en el grupo Ingresos' })
+    // flipping the kind alone leaves the old group behind
+    expect((await api.call('PATCH', `/categories/${food}`, { kind: 'income' })).status).toBe(422)
+    expect(await api.ok('GET', '/categories')).toEqual([
+      { id: food, name: 'Mercado', kind: 'expense', group: 'variables', color: 'slate', archived: false },
+    ])
+
+    // kind and group together, or a move between expense groups, are fine
+    expect(await api.ok('PATCH', `/categories/${food}`, { kind: 'income', group: 'ingresos' })).toMatchObject({ kind: 'income', group: 'ingresos' })
+    expect(await api.ok('PATCH', `/categories/${food}`, { kind: 'expense', group: 'ahorro' })).toMatchObject({ kind: 'expense', group: 'ahorro' })
+  })
 })
 
 /** The editable fields of a movement, as the PATCH body expects them. */
