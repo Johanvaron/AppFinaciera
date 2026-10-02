@@ -121,8 +121,8 @@ async function confirmRemove() {
       <section v-if="items.length === 0" class="card">
         <EmptyState
           :icon="ListChecks"
-          title="Aún no tienes gastos fijos"
-          text="Agrega lo que pagas todos los meses (arriendo, servicios, tarjetas). Se repiten solos cada mes y aquí los vas marcando a medida que los pagas."
+          :title="`No hay gastos fijos en ${monthLabel(data.month).toLowerCase()}`"
+          text="Agrega lo que pagas todos los meses (arriendo, servicios, tarjetas). Se repiten solos cada mes y aquí los vas marcando a medida que los pagas. Los que ya tengas solo aparecen en los meses en que aplican."
         >
           <UiButton variant="primary" class="mt-2" @click="openForm(null)">
             <Plus class="size-4" aria-hidden="true" />
