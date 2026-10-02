@@ -45,9 +45,8 @@ describe('signed initial balance', () => {
     expect(toSignedBalance(850_000, false)).toBe(850_000)
   })
 
-  it('treats an empty input as zero, never as negative zero', () => {
-    expect(toSignedBalance(null, false)).toBe(0)
-    expect(Object.is(toSignedBalance(null, true), 0)).toBe(true)
+  it('keeps a zero debt as zero, never as negative zero', () => {
+    expect(toSignedBalance(0, false)).toBe(0)
     expect(Object.is(toSignedBalance(0, true), 0)).toBe(true)
   })
 

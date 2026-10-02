@@ -22,6 +22,8 @@ const form = reactive({
   amount: null as number | null,
   isDebt: false,
 })
+/** What is typed in the balance field: tells an empty field from text that is not a number (both parse to null). */
+const amountText = ref('')
 const errors = ref<Record<string, string>>({})
 const formError = ref('')
 
@@ -33,8 +35,9 @@ watch(
     const balance = fromSignedBalance(source?.initialBalance ?? 0)
     form.name = source?.name ?? ''
     form.type = source?.type ?? 'ahorros'
-    form.amount = source ? balance.amount : null
+    form.amount = balance.amount
     form.isDebt = balance.isDebt
+    amountText.value = ''
     errors.value = {}
     formError.value = ''
   },
@@ -52,19 +55,28 @@ const save = useApiMutation(
   { silentError: true },
 )
 
+/** A balance that did not parse is never sent: saving it as 0 would wipe a debt. */
+function amountError(): string {
+  if (form.amount !== null) return ''
+  return amountText.value.trim() === '' ? 'Escribe el saldo inicial (puede ser 0)' : 'Escribe un monto válido'
+}
+
 async function submit() {
   errors.value = {}
   formError.value = ''
+  const balanceError = amountError()
   const parsed = accountInputSchema.safeParse({
     name: form.name,
     type: form.type,
-    initialBalance: toSignedBalance(form.amount, form.isDebt),
+    // The 0 only lets the other fields be checked in the same pass: with a balance error nothing is sent.
+    initialBalance: toSignedBalance(form.amount ?? 0, form.isDebt),
     archived: props.account?.archived ?? false,
   })
   if (!parsed.success) {
     for (const issue of parsed.error.issues) errors.value[String(issue.path[0] ?? '')] ??= issue.message
-    return
   }
+  if (balanceError) errors.value.initialBalance = balanceError
+  if (!parsed.success || balanceError) return
   try {
     await save.mutateAsync(parsed.data)
   } catch (error) {
@@ -98,7 +110,7 @@ async function submit() {
       </UiField>
 
       <UiField label="Saldo inicial" :error="errors.initialBalance" :hint="balanceHint">
-        <UiMoneyInput v-model="form.amount" :invalid="!!errors.initialBalance" />
+        <UiMoneyInput v-model="form.amount" :invalid="!!errors.initialBalance" @input="amountText = ($event.target as HTMLInputElement).value" />
       </UiField>
 
       <label class="flex min-h-10 items-center gap-2 sm:min-h-8">

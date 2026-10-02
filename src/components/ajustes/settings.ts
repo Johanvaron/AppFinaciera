@@ -16,8 +16,8 @@ export function kindForGroup(group: CategoryGroup): CategoryKind {
 }
 
 /** The money input only takes positives: the "es deuda" checkbox carries the sign. */
-export function toSignedBalance(amount: number | null, isDebt: boolean): number {
-  const value = Math.abs(amount ?? 0)
+export function toSignedBalance(amount: number, isDebt: boolean): number {
+  const value = Math.abs(amount)
   return isDebt && value > 0 ? -value : value
 }
 
