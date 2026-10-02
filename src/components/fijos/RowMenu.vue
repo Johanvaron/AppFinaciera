@@ -88,7 +88,7 @@ function select(key: string) {
     >
       <MoreVertical class="size-4" aria-hidden="true" />
     </button>
-    <div v-if="open" ref="list" role="menu" :aria-label="label" class="absolute right-0 top-full z-30 mt-1 w-64 rounded-xl bg-surface p-1 shadow-[0_8px_24px_rgb(15_23_42/0.18)]">
+    <div v-if="open" ref="list" role="menu" :aria-label="label" class="absolute right-0 top-full z-30 mt-1 w-64 rounded-xl bg-surface p-1 shadow-card ring-1 ring-line">
       <button
         v-for="item in items"
         :key="item.key"
