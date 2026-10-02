@@ -58,7 +58,7 @@ describe('fixed expenses checklist', () => {
     const house = await api.fixed({ name: 'Casa', amount: 500_000, dueDay: 20, categoryId: housing })
 
     const first = await pay(house, { amount: 200_000, date: '2026-03-05' })
-    expect(first).toMatchObject({ status: 'pending', paidAmount: 200_000, expectedAmount: 500_000, paidDate: null })
+    expect(first).toMatchObject({ status: 'pending', paidAmount: 200_000, remainingAmount: 300_000, expectedAmount: 500_000, paidDate: null })
     expect((await month('2026-03')).totals).toEqual({
       expected: 500_000,
       paid: 200_000,
@@ -73,7 +73,7 @@ describe('fixed expenses checklist', () => {
     expect((await itemOf('2026-03', house)).status).toBe('overdue')
 
     const second = await pay(house, { amount: 300_000, date: '2026-03-22' })
-    expect(second).toMatchObject({ status: 'paid', paidAmount: 500_000, paidDate: '2026-03-22' })
+    expect(second).toMatchObject({ status: 'paid', paidAmount: 500_000, remainingAmount: 0, paidDate: '2026-03-22' })
     expect(second.transactionIds).toHaveLength(2)
     expect((await month('2026-03')).totals).toEqual({ expected: 500_000, paid: 500_000, pending: 0, countPaid: 1, countTotal: 1 })
     expect((await api.ok('GET', '/summary?month=2026-03')).pendingFixed).toBe(0)
