@@ -76,6 +76,7 @@ export function buildFixedItem(
     expectedAmount,
     hasOverride: override?.expectedAmount != null,
     paidAmount,
+    remainingAmount: status === 'skipped' || status === 'paid' ? 0 : Math.max(expectedAmount - paidAmount, 0),
     status,
     dueDate,
     paidDate: status === 'paid' && lastPayment ? lastPayment.date : null,
@@ -88,7 +89,7 @@ function totalsOf(items: FixedMonthItem[]): FixedMonthResponse['totals'] {
   const paid = counted.filter((item) => item.status === 'paid')
   const unpaid = counted.filter((item) => item.status !== 'paid')
   const paidTotal = sum(counted.map((item) => item.paidAmount))
-  const pendingTotal = sum(unpaid.map((item) => Math.max(item.expectedAmount - item.paidAmount, 0)))
+  const pendingTotal = sum(unpaid.map((item) => item.remainingAmount))
   return {
     expected: paidTotal + pendingTotal,
     paid: paidTotal,
