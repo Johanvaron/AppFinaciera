@@ -366,6 +366,7 @@ export interface BudgetRow {
   category: Category
   /** Null when the category has no budget for the month. */
   budget: number | null
+  /** Expenses of the category in the month. Transfers never count. */
   spent: number
   /** budget - spent; negative when over. Null without budget. */
   remaining: number | null
@@ -399,7 +400,9 @@ export interface DailyPoint {
 
 export interface MonthSummary {
   month: Month
+  /** Sum of the month's movements of type 'income'. Transfers never count. */
   income: number
+  /** Sum of the month's movements of type 'expense'. Transfers never count. */
   expenses: number
   /** income - expenses. Can be negative. */
   net: number
@@ -434,10 +437,12 @@ export interface MonthSummary {
 }
 
 // ---------- reports ----------
+/** Totals of one month. Transfers count neither as income nor as expense. */
 export interface MonthlyReportRow {
   month: Month
   income: number
   expenses: number
+  /** income - expenses. Can be negative. */
   net: number
 }
 
@@ -446,6 +451,7 @@ export interface CategoryReportRow {
   /** One total per month, same order as `months`. */
   totals: number[]
   total: number
+  /** Monthly average in whole pesos: Math.round(total / months.length). Empty months count as 0. */
   average: number
 }
 
