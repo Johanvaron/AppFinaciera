@@ -30,6 +30,13 @@ export const idSchema = z.number().int().positive()
 export type Month = string
 export type IsoDate = string
 
+/**
+ * `?month=YYYY-MM` of GET /fixed, GET /budgets, GET /summary and DELETE /fixed/:id/pay.
+ * Optional: the server falls back to the current month (local time).
+ */
+export const monthQuerySchema = z.strictObject({ month: monthSchema.optional() })
+export type MonthQuery = z.input<typeof monthQuerySchema>
+
 // ---------- accounts ----------
 export const ACCOUNT_TYPES = ['efectivo', 'ahorros', 'corriente', 'tarjeta', 'billetera'] as const
 export type AccountType = (typeof ACCOUNT_TYPES)[number]
@@ -90,6 +97,11 @@ export const CATEGORY_GROUP_LABELS: Record<CategoryGroup, string> = {
 export const CATEGORY_COLORS = ['blue', 'teal', 'green', 'lime', 'amber', 'orange', 'rose', 'pink', 'violet', 'indigo', 'cyan', 'slate'] as const
 export type CategoryColor = (typeof CATEGORY_COLORS)[number]
 
+/**
+ * Rule between fields, validated by the server on the stored result (a PATCH may send
+ * only one of the two) and answered as 422 with `fields`: kind 'income' goes with group
+ * 'ingresos' and only with it; kind 'expense' goes with 'fijos', 'variables' or 'ahorro'.
+ */
 export const categoryInputSchema = z.strictObject({
   name: z.string().trim().min(1, 'Ponle un nombre').max(60),
   kind: z.enum(CATEGORY_KINDS),
@@ -182,7 +194,18 @@ export const bulkCategorizeSchema = z.strictObject({
 })
 export type BulkCategorizeInput = z.input<typeof bulkCategorizeSchema>
 
+/** Response of POST /api/transactions/bulk-categorize. */
+export interface BulkCategorizeResult {
+  /** How many movements changed category. */
+  updated: number
+}
+
 // ---------- fixed expenses (the monthly checklist) ----------
+/**
+ * Rules between fields, validated by the server on the stored result (a PATCH may send
+ * only one side) and answered as 422 with `fields`: endMonth, when set, is never before
+ * startMonth; categoryId is an existing category of kind 'expense'; accountId exists.
+ */
 export const fixedExpenseInputSchema = z.strictObject({
   name: z.string().trim().min(1, 'Ponle un nombre').max(60),
   /** Expected monthly amount. 0 when it changes every month (e.g. a credit card). */
@@ -323,6 +346,7 @@ export type FixedPayInput = z.input<typeof fixedPaySchema>
 
 /** PUT /api/fixed/order */
 export const fixedOrderSchema = z.strictObject({ ids: z.array(idSchema).min(1) })
+export type FixedOrderInput = z.input<typeof fixedOrderSchema>
 
 // ---------- budgets ----------
 /** PUT /api/budgets. A budget applies from `month` onward until a later one replaces it. */
@@ -430,6 +454,32 @@ export interface CategoryReport {
   rows: CategoryReportRow[]
 }
 
+export const MONTHLY_REPORT_DEFAULT_MONTHS = 12
+export const MONTHLY_REPORT_MAX_MONTHS = 36
+
+/** GET /api/reports/monthly query: the last `months` months up to `until` (default: current month). */
+export const monthlyReportQuerySchema = z.strictObject({
+  months: z.coerce.number().int().min(1).max(MONTHLY_REPORT_MAX_MONTHS).default(MONTHLY_REPORT_DEFAULT_MONTHS),
+  until: monthSchema.optional(),
+})
+export type MonthlyReportQuery = z.input<typeof monthlyReportQuerySchema>
+
+/**
+ * GET /api/reports/categories query. Defaults: `to` = current month, `from` = 11 months
+ * before `to`. The server also rejects (422) a `from` later than the defaulted `to`.
+ */
+export const categoryReportQuerySchema = z
+  .strictObject({
+    from: monthSchema.optional(),
+    to: monthSchema.optional(),
+    kind: z.enum(CATEGORY_KINDS).default('expense'),
+  })
+  .refine((query) => query.from == null || query.to == null || query.from <= query.to, {
+    path: ['from'],
+    message: 'El mes inicial no puede ser posterior al final',
+  })
+export type CategoryReportQuery = z.input<typeof categoryReportQuerySchema>
+
 // ---------- backup ----------
 export interface BackupFile {
   app: 'app-financiera'
@@ -443,6 +493,32 @@ export interface BackupFile {
   budgets: unknown[]
 }
 
+/** One table of a backup: flat rows of column -> value. */
+const backupRowsSchema = z.array(z.record(z.string(), z.union([z.string(), z.number(), z.null()])))
+
+/**
+ * POST /api/backup/restore body: a BackupFile as downloaded from GET /api/backup.
+ * The server also checks every row against the real columns and restores atomically:
+ * an invalid file is answered with 422 and changes nothing.
+ */
+export const backupRestoreSchema = z.object({
+  app: z.literal('app-financiera', 'Este archivo no es un respaldo de esta app'),
+  version: z.literal(1, 'Versión de respaldo no soportada'),
+  exportedAt: z.string().optional(),
+  accounts: backupRowsSchema,
+  categories: backupRowsSchema,
+  transactions: backupRowsSchema,
+  fixedExpenses: backupRowsSchema,
+  fixedMonths: backupRowsSchema,
+  budgets: backupRowsSchema,
+})
+export type BackupRestoreInput = z.input<typeof backupRestoreSchema>
+
+/** Response of POST /api/backup/restore. */
+export interface BackupRestoreResult {
+  restored: true
+}
+
 // ---------- errors ----------
 /** Every non-2xx response has this body. */
 export interface ApiError {
@@ -452,40 +528,45 @@ export interface ApiError {
 }
 
 /**
- * Routes (all under /api, JSON):
+ * Routes (all under /api, JSON). Each line: schema of the body or query -> success status and response.
  *
- * GET    /accounts                         -> Account[]
- * POST   /accounts                         AccountInput -> Account
- * PATCH  /accounts/:id                     AccountPatch -> Account
- * DELETE /accounts/:id                     -> 204 (409 if it has movements: archive it instead)
+ * Success: 200 with a body, 201 when a POST creates a record, 204 without body.
+ * Errors (body = ApiError): 404 when the `:id` does not exist or is not a positive integer
+ * (idSchema); 409 where noted; 422 when the body, the query or a `:month` (monthSchema)
+ * fails validation, or when a referenced id does not exist.
  *
- * GET    /categories                       -> Category[]
- * POST   /categories                       CategoryInput -> Category
- * PATCH  /categories/:id                   CategoryPatch -> Category
- * DELETE /categories/:id                   -> 204 (409 if in use: archive it instead)
+ * GET    /accounts                      -> 200 Account[]
+ * POST   /accounts                      accountInputSchema -> 201 Account
+ * PATCH  /accounts/:id                  accountPatchSchema -> 200 Account
+ * DELETE /accounts/:id                  -> 204 (409 if it has movements: archive it instead)
  *
- * GET    /transactions?TransactionQuery    -> Transaction[] (date desc, id desc)
- * POST   /transactions                     TransactionInput -> Transaction
- * PATCH  /transactions/:id                 TransactionInput (full object) -> Transaction
- * DELETE /transactions/:id                 -> 204
- * POST   /transactions/bulk-categorize     BulkCategorizeInput -> { updated: number }
+ * GET    /categories                    -> 200 Category[]
+ * POST   /categories                    categoryInputSchema -> 201 Category
+ * PATCH  /categories/:id                categoryPatchSchema -> 200 Category
+ * DELETE /categories/:id                -> 204 (409 if in use: archive it instead)
  *
- * GET    /fixed?month=YYYY-MM              -> FixedMonthResponse
- * POST   /fixed                            FixedExpenseInput -> FixedExpense
- * PATCH  /fixed/:id                        FixedExpensePatch -> FixedExpense
- * DELETE /fixed/:id                        -> 204 (its payments stay as normal movements)
- * PUT    /fixed/order                      { ids } -> 204
- * PUT    /fixed/:id/months/:month          FixedMonthOverrideInput -> FixedMonthItem
- * POST   /fixed/:id/pay                    FixedPayInput -> FixedMonthItem
- * DELETE /fixed/:id/pay?month=YYYY-MM      -> FixedMonthItem (deletes that month's payments)
+ * GET    /transactions                  query transactionQuerySchema -> 200 Transaction[] (date desc, id desc)
+ * POST   /transactions                  transactionInputSchema -> 201 Transaction
+ * PATCH  /transactions/:id              transactionInputSchema (full object) -> 200 Transaction
+ * DELETE /transactions/:id              -> 204
+ * POST   /transactions/bulk-categorize  bulkCategorizeSchema -> 200 BulkCategorizeResult
  *
- * GET    /budgets?month=YYYY-MM            -> BudgetMonthResponse
- * PUT    /budgets                          BudgetInput -> BudgetMonthResponse
+ * GET    /fixed                         query monthQuerySchema -> 200 FixedMonthResponse
+ * POST   /fixed                         fixedExpenseInputSchema -> 201 FixedExpense
+ * PATCH  /fixed/:id                     fixedExpensePatchSchema -> 200 FixedExpense
+ * DELETE /fixed/:id                     -> 204 (its payments stay as normal movements)
+ * PUT    /fixed/order                   fixedOrderSchema -> 204
+ * PUT    /fixed/:id/months/:month       fixedMonthOverrideSchema -> 200 FixedMonthItem
+ * POST   /fixed/:id/pay                 fixedPaySchema -> 201 FixedMonthItem
+ * DELETE /fixed/:id/pay                 query monthQuerySchema -> 200 FixedMonthItem (deletes that month's payments)
  *
- * GET    /summary?month=YYYY-MM            -> MonthSummary
- * GET    /reports/monthly?months=12&until=YYYY-MM   -> MonthlyReportRow[] (oldest first)
- * GET    /reports/categories?from=YYYY-MM&to=YYYY-MM&kind=expense -> CategoryReport
+ * GET    /budgets                       query monthQuerySchema -> 200 BudgetMonthResponse
+ * PUT    /budgets                       budgetInputSchema -> 200 BudgetMonthResponse
  *
- * GET    /backup                           -> BackupFile (download)
- * POST   /backup/restore                   BackupFile -> { restored: true } (replaces everything)
+ * GET    /summary                       query monthQuerySchema -> 200 MonthSummary
+ * GET    /reports/monthly               query monthlyReportQuerySchema -> 200 MonthlyReportRow[] (oldest first)
+ * GET    /reports/categories            query categoryReportQuerySchema -> 200 CategoryReport
+ *
+ * GET    /backup                        -> 200 BackupFile (download)
+ * POST   /backup/restore                backupRestoreSchema -> 200 BackupRestoreResult (replaces everything)
  */

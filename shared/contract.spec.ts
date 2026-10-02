@@ -1,11 +1,77 @@
 import {
   accountInputSchema,
   accountPatchSchema,
+  backupRestoreSchema,
   categoryPatchSchema,
+  categoryReportQuerySchema,
   dateSchema,
   fixedExpensePatchSchema,
   fixedPaySchema,
+  monthQuerySchema,
+  monthlyReportQuerySchema,
 } from './contract.ts'
+
+describe('query schemas', () => {
+  it('month query: optional month, nothing else', () => {
+    expect(monthQuerySchema.parse({})).toEqual({})
+    expect(monthQuerySchema.parse({ month: '2026-02' })).toEqual({ month: '2026-02' })
+    expect(monthQuerySchema.safeParse({ month: '2026-13' }).success).toBe(false)
+    expect(monthQuerySchema.safeParse({ mes: '2026-02' }).success).toBe(false)
+  })
+
+  it('monthly report: months arrives as text, defaults to 12 and stops at 36', () => {
+    expect(monthlyReportQuerySchema.parse({})).toEqual({ months: 12 })
+    expect(monthlyReportQuerySchema.parse({ months: '6', until: '2026-01' })).toEqual({ months: 6, until: '2026-01' })
+    expect(monthlyReportQuerySchema.safeParse({ months: '37' }).success).toBe(false)
+    expect(monthlyReportQuerySchema.safeParse({ months: '0' }).success).toBe(false)
+  })
+
+  it('category report: defaults to expenses and rejects from after to', () => {
+    expect(categoryReportQuerySchema.parse({})).toEqual({ kind: 'expense' })
+    expect(categoryReportQuerySchema.parse({ from: '2025-11', to: '2026-02', kind: 'income' })).toEqual({
+      from: '2025-11',
+      to: '2026-02',
+      kind: 'income',
+    })
+    const result = categoryReportQuerySchema.safeParse({ from: '2026-03', to: '2026-02' })
+    expect(result.success ? [] : result.error.issues.map((issue) => [issue.path.join('.'), issue.message])).toEqual([
+      ['from', 'El mes inicial no puede ser posterior al final'],
+    ])
+  })
+})
+
+describe('backupRestoreSchema', () => {
+  const backup = {
+    app: 'app-financiera',
+    version: 1,
+    exportedAt: '2026-02-10T15:00:00.000Z',
+    accounts: [{ id: 1, name: 'Nequi', initial_balance: 250_000, archived: 0 }],
+    categories: [],
+    transactions: [{ id: 7, amount: 60_000, to_account_id: null }],
+    fixedExpenses: [],
+    fixedMonths: [],
+    budgets: [],
+  }
+  const messages = (data: unknown): string[] => {
+    const result = backupRestoreSchema.safeParse(data)
+    return result.success ? [] : result.error.issues.map((issue) => issue.message)
+  }
+
+  it('accepts a downloaded backup without changing its rows', () => {
+    expect(backupRestoreSchema.parse(backup)).toEqual(backup)
+  })
+
+  it('rejects a file from another app or version with a clear message', () => {
+    expect(messages({ ...backup, app: 'otra-app' })).toEqual(['Este archivo no es un respaldo de esta app'])
+    expect(messages({ ...backup, version: 2 })).toEqual(['Versión de respaldo no soportada'])
+  })
+
+  it('rejects a missing table and rows that are not flat', () => {
+    const { budgets: _budgets, ...withoutBudgets } = backup
+    expect(backupRestoreSchema.safeParse(withoutBudgets).success).toBe(false)
+    expect(backupRestoreSchema.safeParse({ ...backup, accounts: [{ id: 1, extra: { nested: true } }] }).success).toBe(false)
+  })
+})
 
 describe('dateSchema', () => {
   const messages = (value: string): string[] => {
