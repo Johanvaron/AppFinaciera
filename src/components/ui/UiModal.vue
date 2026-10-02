@@ -102,7 +102,7 @@ onBeforeUnmount(deactivate)
       >
         <header class="flex items-center justify-between gap-3 px-4 pt-4">
           <h2 class="text-[16px] font-semibold">{{ title }}</h2>
-          <button type="button" class="flex size-8 items-center justify-center rounded-lg text-muted hover:bg-fill hover:text-ink" aria-label="Cerrar" @click="open = false">
+          <button type="button" class="flex size-10 shrink-0 items-center sm:size-8 justify-center rounded-lg text-muted hover:bg-fill hover:text-ink" aria-label="Cerrar" @click="open = false">
             <X class="size-4" aria-hidden="true" />
           </button>
         </header>

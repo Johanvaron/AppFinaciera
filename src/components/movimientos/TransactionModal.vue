@@ -171,7 +171,7 @@ async function submit(keepOpen: boolean) {
           :aria-checked="form.type === option.value"
           :disabled="isFixedPayment && option.value !== 'expense'"
           :class="[
-            'h-9 flex-1 rounded-md text-[14px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:h-7',
+            'h-10 flex-1 rounded-md text-[14px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:h-8',
             form.type === option.value ? 'bg-surface text-ink shadow-card' : 'text-muted hover:text-ink',
           ]"
           @click="setType(option.value)"
