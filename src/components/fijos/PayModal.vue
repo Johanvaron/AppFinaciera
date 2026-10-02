@@ -85,7 +85,7 @@ async function submit() {
     </div>
     <form v-else id="fixed-pay-form" class="flex flex-col gap-3" @submit.prevent="submit">
       <UiField label="Monto" :error="errors.amount" hint="Puedes escribir 200k o 1,5m">
-        <UiMoneyInput v-model="form.amount" :invalid="!!errors.amount" />
+        <UiMoneyInput v-model="form.amount" data-autofocus :invalid="!!errors.amount" />
       </UiField>
       <div class="grid grid-cols-2 gap-3">
         <UiField label="Fecha" :error="errors.date">
