@@ -28,8 +28,10 @@ el PR.
 - **A2 [B]** Los porcentajes viajan como fracción (`0.25`) y solo se
   convierten al mostrarse, con `formatPercent`. Ninguna fracción se muestra
   cruda ni se multiplica dos veces por 100.
-- **A3 [B]** Todo monto visible pasa por `formatMoney` / `formatMoneyCompact`
-  (`$ 1.250.000`). Ningún número de plata se imprime sin formato.
+- **A3 [B]** Todo monto visible fuera de un campo editable pasa por
+  `formatMoney` / `formatMoneyCompact` (`$ 1.250.000`). Dentro de un campo
+  editable (`UiMoneyInput`) el monto va con `formatNumber` (`1.250.000`, sin
+  `$`). Ningún número de plata se imprime sin uno de esos formatos.
 - **A4 [B]** Las transferencias no cuentan como ingreso ni como gasto en
   ningún total.
 - **A5 [B]** Dos cifras que representan lo mismo cuadran entre sí dentro de
