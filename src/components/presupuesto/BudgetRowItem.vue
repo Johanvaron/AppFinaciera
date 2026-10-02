@@ -12,7 +12,7 @@ import UiBadge from '@/components/ui/UiBadge.vue'
 import UiMoneyInput from '@/components/ui/UiMoneyInput.vue'
 import { formatMoney, formatPercent } from '@/lib/format'
 import { categoryHex } from '@/lib/palette'
-import { barRatio, isOver, stateTone, statusText, type CommitVia } from './budget'
+import { INVALID_CAP_TEXT, barRatio, isOver, stateTone, statusText, type CommitVia } from './budget'
 import { BUDGET_GRID } from './layout'
 
 const props = defineProps<{
@@ -35,6 +35,7 @@ const input = ref<InstanceType<typeof UiMoneyInput>>()
 const saving = computed(() => props.pending !== undefined)
 const shownBudget = computed(() => (props.pending !== undefined ? props.pending : props.row.budget))
 const name = computed(() => props.row.category.name)
+const errorId = computed(() => `budget-cap-error-${props.row.category.id}`)
 
 watch(
   () => props.editing,
@@ -103,7 +104,15 @@ function onFocusOut(event: FocusEvent) {
 
     <div class="col-start-2 row-start-1 flex justify-end lg:col-start-5 lg:row-span-2">
       <div v-if="editing" class="w-36 lg:w-full" @keydown="onKeydown" @focusout="onFocusOut">
-        <UiMoneyInput ref="input" v-model="draft" placeholder="Sin tope" :invalid="invalid" :aria-label="`Tope de ${name}`" />
+        <UiMoneyInput
+          ref="input"
+          v-model="draft"
+          placeholder="Sin tope"
+          :invalid="invalid"
+          :aria-label="`Tope de ${name}`"
+          :aria-describedby="invalid ? errorId : undefined"
+        />
+        <p v-if="invalid" :id="errorId" role="alert" class="mt-1 text-right text-xs text-danger">{{ INVALID_CAP_TEXT }}</p>
       </div>
       <button
         v-else

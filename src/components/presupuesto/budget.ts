@@ -186,6 +186,9 @@ export function resolveBudgetEdit(current: number | null, text: string, category
   return parsed.success ? { kind: 'save', input: parsed.data } : { kind: 'invalid' }
 }
 
+/** Shown when the typed cap is rejected: under the field while it stays open, as a toast once it closed. */
+export const INVALID_CAP_TEXT = 'Ese monto no es válido. Escribe algo como 500.000 o 500k.'
+
 /** The editable row before or after this one, following the order on screen. */
 export function neighborId(orderedIds: number[], currentId: number, step: 1 | -1): number | null {
   const index = orderedIds.indexOf(currentId)

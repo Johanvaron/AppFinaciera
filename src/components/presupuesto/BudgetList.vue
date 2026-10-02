@@ -11,7 +11,7 @@ import { useApiMutation } from '@/lib/queries'
 import { useToasts } from '@/lib/toasts'
 import { usePeriodStore } from '@/stores/period'
 import BudgetRowItem from './BudgetRowItem.vue'
-import { groupRows, groupSubtotalText, groupUncappedText, neighborId, resolveBudgetEdit, type CommitVia } from './budget'
+import { INVALID_CAP_TEXT, groupRows, groupSubtotalText, groupUncappedText, neighborId, resolveBudgetEdit, type CommitVia } from './budget'
 import { BUDGET_GRID } from './layout'
 
 const props = defineProps<{ rows: BudgetRow[] }>()
@@ -73,7 +73,7 @@ function commit(row: BudgetRow, text: string, via: CommitVia) {
     if (via === 'blur') {
       editingId.value = null
       invalidId.value = null
-      toasts.error('Ese monto no es válido. Escribe algo como 500.000 o 500k.')
+      toasts.error(INVALID_CAP_TEXT)
     } else {
       invalidId.value = id
     }

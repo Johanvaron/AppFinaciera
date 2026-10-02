@@ -118,6 +118,34 @@ describe('BudgetList', () => {
     expect(api.budgets.set).not.toHaveBeenCalled()
   })
 
+  it.each([
+    ['abc', 'Enter'],
+    ['abc', 'Tab'],
+    ['9999999999999', 'Enter'],
+    ['9999999999999', 'Tab'],
+  ])('rejects "%s" + %s with a message under the field, which stays open', async (typed, key) => {
+    const wrapper = mountList()
+    await trigger(wrapper, 3).trigger('click')
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    await wrapper.get('input').setValue(typed)
+    await wrapper.get('input').trigger('keydown', { key })
+
+    const input = wrapper.get('input')
+    expect(input.attributes('aria-label')).toBe('Tope de Mercado')
+    expect(input.attributes('aria-invalid')).toBe('true')
+    const message = wrapper.get('[role="alert"]')
+    expect(message.text()).toBe('Ese monto no es válido. Escribe algo como 500.000 o 500k.')
+    expect(input.attributes('aria-describedby')).toBe(message.attributes('id'))
+    expect(api.budgets.set).not.toHaveBeenCalled()
+
+    // A valid cap clears the message and saves.
+    await input.setValue('650.000')
+    await input.trigger('keydown', { key: 'Enter' })
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    expect(api.budgets.set).toHaveBeenCalledWith({ categoryId: 3, month: '2026-10', amount: 650000 })
+    await flushPromises()
+  })
+
   it('does not save a half-typed cap when the window loses the focus', async () => {
     const hasFocus = vi.spyOn(document, 'hasFocus').mockReturnValue(false)
     const wrapper = mountList()
