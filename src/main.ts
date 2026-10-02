@@ -4,12 +4,8 @@ import { VueQueryPlugin } from '@tanstack/vue-query'
 import router from './router'
 import App from './App.vue'
 import { useThemeStore } from './stores/theme'
-import { z } from 'zod'
-import { es } from 'zod/locales'
+import './lib/zod-locale'
 import './style.css'
-
-// Forms validate with the contract's schemas: Zod's built-in messages must be in Spanish, like the API's.
-z.config(es())
 
 const app = createApp(App)
 

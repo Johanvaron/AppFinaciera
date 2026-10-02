@@ -5,6 +5,7 @@ import { nextTick } from 'vue'
 import type { Account, Category, Transaction } from '@shared/contract'
 import { api, ApiRequestError } from '@/lib/api'
 import { useQuickAdd } from '@/stores/quickAdd'
+import '@/lib/zod-locale'
 import TransactionModal from './TransactionModal.vue'
 
 vi.mock('@/lib/api', async (importOriginal) => {
@@ -98,6 +99,21 @@ describe('TransactionModal', () => {
     expect(api.transactions.create).not.toHaveBeenCalled()
   })
 
+  it('rejects an absurd amount in Spanish and sends nothing', async () => {
+    await open(() => quickAdd.openNew())
+    await type(amountInput(), '1000000m')
+    await choose(selects()[0]!, 7)
+    await submitForm()
+    expect(alerts()).toEqual(['El monto es demasiado grande'])
+    expect(api.transactions.create).not.toHaveBeenCalled()
+  })
+
+  it('offers the 200k shortcut only where there is a keyboard with letters', async () => {
+    await open(() => quickAdd.openNew())
+    const hint = [...document.querySelectorAll('[role="dialog"] span')].find((el) => el.textContent === 'Puedes escribir 200k o 1,5m')!
+    expect(hint.className).toContain('hidden sm:block')
+  })
+
   it('"Guardar y agregar otro" saves, stays open and keeps category and account', async () => {
     await open(() => quickAdd.openNew())
     await type(amountInput(), '200k')
@@ -164,8 +180,7 @@ describe('TransactionModal', () => {
   it('shows a local validation failure on a field the form has no input for', async () => {
     await open(() => quickAdd.openEdit({ ...RENT_PAYMENT, type: 'refund' as Transaction['type'] }))
     await submitForm()
-    expect(alerts()).toHaveLength(1)
-    expect(alerts()[0]).toContain('"income"|"expense"|"transfer"')
+    expect(alerts()).toEqual(['Opción inválida: se esperaba una de "income"|"expense"|"transfer"'])
     expect(api.transactions.update).not.toHaveBeenCalled()
   })
 

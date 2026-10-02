@@ -131,7 +131,10 @@ async function submit(keepOpen: boolean) {
     const fields: Record<string, string> = {}
     for (const issue of parsed.error.issues) {
       const field = String(issue.path[0] ?? '')
-      fields[field] ??= field === 'accountId' ? 'Elige una cuenta' : issue.message
+      // Zod's own wording for these two reads like a machine ("se esperaba que número fuera <=999999999999").
+      if (field === 'accountId') fields[field] ??= 'Elige una cuenta'
+      else if (field === 'amount' && issue.code === 'too_big') fields[field] ??= 'El monto es demasiado grande'
+      else fields[field] ??= issue.message
     }
     showErrors(fields, '')
     return
@@ -182,7 +185,8 @@ async function submit(keepOpen: boolean) {
 
       <p v-if="isFixedPayment" class="text-xs text-muted">Este movimiento es el pago de un gasto fijo, así que sigue siendo un gasto.</p>
 
-      <UiField label="Monto" :error="errors.amount" hint="Puedes escribir 200k o 1,5m">
+      <!-- The 200k shortcut needs letters and the phone keypad (inputmode=decimal) has none. -->
+      <UiField label="Monto" :error="errors.amount" hint="Puedes escribir 200k o 1,5m" hint-from-sm>
         <UiMoneyInput ref="amountInput" v-model="form.amount" data-autofocus :invalid="!!errors.amount" />
       </UiField>
 
