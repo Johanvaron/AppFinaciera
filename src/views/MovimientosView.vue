@@ -95,6 +95,12 @@ function clearSelection() {
 }
 
 watch(() => period.month, clearSelection)
+// Forget ids that left the list (deleted, or hidden by a filter) so they never come back selected.
+watch(rows, (list) => {
+  const visible = new Set(list.map((tx) => tx.id))
+  const kept = [...selectedIds.value].filter((id) => visible.has(id))
+  if (kept.length !== selectedIds.value.size) selectedIds.value = new Set(kept)
+})
 
 // ---------- writes ----------
 const categorize = useApiMutation(api.transactions.bulkCategorize)
