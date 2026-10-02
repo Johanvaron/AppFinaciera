@@ -4,6 +4,8 @@
 
 /*
  * Design tokens. Space-separated RGB so Tailwind can apply alpha.
+ * Text colors keep 4.5:1 or more on bg, surface, fill and on their own -soft
+ * background, in both themes: re-check the contrast before changing one.
  * Rules of the house: no decorative gradients, no boxed look (separate with
  * background and spacing, borders only on controls), full-width pages.
  */
@@ -17,9 +19,9 @@
   --primary: 29 78 216;
   --primary-soft: 225 234 254;
   --primary-ink: 255 255 255;
-  --success: 21 128 61;
+  --success: 18 118 56;
   --success-soft: 220 245 228;
-  --warning: 180 83 9;
+  --warning: 168 76 8;
   --warning-soft: 254 240 205;
   --danger: 190 30 45;
   --danger-soft: 253 228 230;
@@ -49,11 +51,15 @@
   html {
     font-family: Inter, 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
-    font-size: 14px;
   }
 
+  /*
+   * 14px text goes on body, NOT on html: the root size is what 1rem means, and
+   * at 14px every Tailwind size shrinks (h-10 = 35px instead of 40, px-4 = 14px).
+   */
   body {
     @apply bg-bg text-ink;
+    font-size: 14px;
     margin: 0;
     min-height: 100vh;
   }

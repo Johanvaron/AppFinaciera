@@ -6,7 +6,15 @@ import {
   fixedPaySchema,
 } from '../../shared/contract.ts'
 import type { Services } from '../container.ts'
-import { idParam, monthParam, monthQuerySchema, parseBody, parsePartialBody, parseQuery } from '../lib/validate.ts'
+import {
+  idParam,
+  monthParam,
+  monthQuerySchema,
+  parseBody,
+  parsePartialBody,
+  parseQuery,
+  requiredMonthQuerySchema,
+} from '../lib/validate.ts'
 
 export function fixedRoutes({ fixed }: Services): Hono {
   const router = new Hono()
@@ -25,6 +33,6 @@ export function fixedRoutes({ fixed }: Services): Hono {
     c.json(fixed.setOverride(idParam(c), monthParam(c), await parseBody(c, fixedMonthOverrideSchema))),
   )
   router.post('/:id/pay', async (c) => c.json(fixed.pay(idParam(c), await parseBody(c, fixedPaySchema)), 201))
-  router.delete('/:id/pay', (c) => c.json(fixed.unpay(idParam(c), parseQuery(c, monthQuerySchema).month)))
+  router.delete('/:id/pay', (c) => c.json(fixed.unpay(idParam(c), parseQuery(c, requiredMonthQuerySchema).month)))
   return router
 }

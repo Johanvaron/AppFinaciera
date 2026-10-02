@@ -99,6 +99,16 @@ describe('transactions', () => {
     expect(incomeWithExpense.body.fields).toEqual({ categoryId: 'Elige una categoría de ingresos' })
   })
 
+  it('rejects a date that does not exist, so no movement falls outside every month', async () => {
+    for (const date of ['2026-02-29', '2026-04-31']) {
+      const response = await api.call('POST', '/transactions', { date, amount: 500, type: 'expense', accountId: bank, categoryId: food })
+      expect(response.status).toBe(422)
+      expect(response.body.fields).toEqual({ date: 'Esa fecha no existe en el calendario' })
+    }
+    const leap = await api.call('POST', '/transactions', { date: '2028-02-29', amount: 500, type: 'expense', accountId: bank, categoryId: food })
+    expect(leap.status).toBe(201)
+  })
+
   it('rejects a transfer to the same account', async () => {
     const response = await post({ type: 'transfer', toAccountId: bank })
     expect(response.status).toBe(422)
@@ -116,7 +126,11 @@ describe('transactions', () => {
   it('rejects non-integer and zero amounts, and a broken JSON body', async () => {
     expect((await post({ type: 'expense', categoryId: food, amount: 10.5 })).status).toBe(422)
     expect((await post({ type: 'expense', categoryId: food, amount: 0 })).status).toBe(422)
-    const response = await api.call('POST', '/transactions')
+    const response = await api.app.request('/api/transactions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{ "date": ',
+    })
     expect(response.status).toBe(422)
   })
 
@@ -171,6 +185,21 @@ describe('transactions', () => {
     expect(await api.ok('GET', '/transactions')).toEqual([])
   })
 
+  it('answers 404 to an id that is not plain decimal digits, without touching the row it would convert to', async () => {
+    for (let n = 1; n <= 17; n++) await api.expense('2026-03-10', n * 1_000, bank, food)
+    const before = await api.ok('GET', '/transactions')
+    expect(before).toHaveLength(17)
+
+    for (const id of ['0x10', '1e1', '1e2', '5.0', '05', '0', '-1', '%205']) {
+      const removed = await api.call('DELETE', `/transactions/${id}`)
+      expect([id, removed.status, removed.body]).toEqual([id, 404, { error: 'No encontrado' }])
+      const patched = await api.call('PATCH', `/transactions/${id}`, { ...pick(before[0]), amount: 999 })
+      expect([id, patched.status]).toEqual([id, 404])
+    }
+    expect(await api.ok('GET', '/transactions')).toEqual(before)
+    expect((await api.call('DELETE', '/transactions/16')).status).toBe(204)
+  })
+
   it('bulk-categorize only touches movements of the category kind', async () => {
     const other = await api.category('Restaurantes', 'expense')
     const a = await api.expense('2026-03-10', 11_000, bank, food)
@@ -216,6 +245,27 @@ describe('categories', () => {
     const archived = await api.ok('PATCH', `/categories/${withMovement}`, { archived: true })
     expect(archived).toMatchObject({ name: 'Mercado', kind: 'expense', group: 'variables', color: 'slate', archived: true })
     expect((await api.call('PATCH', `/categories/${withMovement}`, { kind: 'income' })).status).toBe(409)
+  })
+
+  it('rejects a group that contradicts the kind, on create and on update', async () => {
+    const api = createTestApi()
+    const food = await api.category('Mercado', 'expense')
+
+    const incomeInExpenseGroup = await api.call('POST', '/categories', { name: 'Salario', kind: 'income', group: 'fijos' })
+    expect(incomeInExpenseGroup.status).toBe(422)
+    expect(incomeInExpenseGroup.body.fields).toEqual({ group: 'Una categoría de ingresos va en el grupo Ingresos' })
+    const expenseInIncomeGroup = await api.call('PATCH', `/categories/${food}`, { group: 'ingresos' })
+    expect(expenseInIncomeGroup.status).toBe(422)
+    expect(expenseInIncomeGroup.body.fields).toEqual({ group: 'Una categoría de gastos no puede ir en el grupo Ingresos' })
+    // flipping the kind alone leaves the old group behind
+    expect((await api.call('PATCH', `/categories/${food}`, { kind: 'income' })).status).toBe(422)
+    expect(await api.ok('GET', '/categories')).toEqual([
+      { id: food, name: 'Mercado', kind: 'expense', group: 'variables', color: 'slate', archived: false },
+    ])
+
+    // kind and group together, or a move between expense groups, are fine
+    expect(await api.ok('PATCH', `/categories/${food}`, { kind: 'income', group: 'ingresos' })).toMatchObject({ kind: 'income', group: 'ingresos' })
+    expect(await api.ok('PATCH', `/categories/${food}`, { kind: 'expense', group: 'ahorro' })).toMatchObject({ kind: 'expense', group: 'ahorro' })
   })
 })
 

@@ -78,6 +78,27 @@ describe('budgets', () => {
     expect(await names('2026-04')).toEqual(['Mercado', 'Restaurantes', 'Compras'])
   })
 
+  it('lets a category be deleted once its budget was removed, or was never set', async () => {
+    const trial = await api.category('Prueba', 'expense')
+    await setBudget(trial, '2026-03', 100_000)
+    const withBudget = await api.call('DELETE', `/categories/${trial}`)
+    expect(withBudget.status).toBe(409)
+    expect(withBudget.body.error).toBe('Esta categoría tiene movimientos, gastos fijos o presupuestos asociados; archívala en su lugar.')
+    await setBudget(trial, '2026-03', null)
+    expect((await api.call('DELETE', `/categories/${trial}`)).status).toBe(204)
+
+    const never = await api.category('Nunca', 'expense')
+    await setBudget(never, '2026-03', null)
+    expect((await api.call('DELETE', `/categories/${never}`)).status).toBe(204)
+    expect((await api.ok('GET', '/backup')).budgets).toEqual([])
+    expect((await api.ok('GET', '/categories')).map((category: any) => category.name)).toEqual([
+      'Mercado',
+      'Restaurantes',
+      'Compras',
+      'Entretenimiento',
+    ])
+  })
+
   it('rejects a budget on an income or missing category', async () => {
     const salary = await api.category('Salario', 'income')
     expect((await api.call('PUT', '/budgets', { categoryId: salary, month: '2026-03', amount: 1 })).status).toBe(422)
@@ -114,7 +135,7 @@ describe('summary', () => {
     const tithe = await api.fixed({ name: 'Diezmo', amount: 50_000, categoryId: housing })
     const internet = await api.fixed({ name: 'Internet', amount: 95_000, dueDay: 20, categoryId: housing })
     const rent = await api.fixed({ name: 'Arriendo', amount: 900_000, dueDay: 5, categoryId: housing })
-    const gym = await api.fixed({ name: 'Gimnasio', amount: 75_000, dueDay: 2, categoryId: housing })
+    const gym = await api.fixed({ name: 'Gimnasio', amount: 68_000, dueDay: 2, categoryId: housing })
     await api.ok('POST', `/fixed/${gym}/pay`, { month: '2026-03', amount: 70_000, date: '2026-03-02', accountId: bank }, 201)
 
     ids = { bank, cash, food, dining, housing, tithe, internet, rent, gym, last: last.id }
@@ -275,5 +296,25 @@ describe('reports', () => {
     expect(defaults.months).toHaveLength(12)
     expect(defaults.months[11]).toBe('2026-03')
     expect((await api.call('GET', '/reports/categories?from=2026-04&to=2026-03')).status).toBe(422)
+  })
+
+  it('rejects a year outside 1900-2199 instead of breaking the month arithmetic', async () => {
+    const cases: [string, string][] = [
+      ['/reports/monthly?months=3&until=0000-01', 'until'],
+      ['/reports/categories?to=0000-03', 'to'],
+      ['/summary?month=0000-01', 'month'],
+      ['/fixed?month=2200-01', 'month'],
+    ]
+    for (const [path, field] of cases) {
+      const response = await api.call('GET', path)
+      expect([path, response.status]).toEqual([path, 422])
+      expect(response.body.fields).toEqual({ [field]: 'Mes inválido (YYYY-MM)' })
+    }
+    const movement = await api.call('POST', '/transactions', { date: '0026-03-10', amount: 5_000, type: 'expense', accountId: 1, categoryId: food })
+    expect(movement.status).toBe(422)
+    expect(movement.body.fields).toEqual({ date: 'Fecha inválida (YYYY-MM-DD)' })
+    // the edges of the range still work, across the year boundary
+    expect((await api.ok('GET', '/summary?month=1900-01')).previous.month).toBe('1899-12')
+    expect(await api.ok('GET', '/reports/monthly?months=2&until=2199-12')).toHaveLength(2)
   })
 })

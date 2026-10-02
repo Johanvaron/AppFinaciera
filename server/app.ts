@@ -15,6 +15,17 @@ export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
   const services = buildServices(db, options)
   const app = new Hono()
 
+  // Writes must be JSON. A cross-site page can only send "simple" content types without a CORS
+  // preflight, so this keeps any website the user visits from writing to (or replacing) the database.
+  app.use('/api/*', async (c, next) => {
+    const hasBody = c.req.method === 'POST' || c.req.method === 'PUT' || c.req.method === 'PATCH'
+    const type = (c.req.header('Content-Type') ?? '').split(';')[0]?.trim().toLowerCase()
+    if (hasBody && type !== 'application/json') {
+      return c.json<ApiError>({ error: 'El cuerpo debe enviarse como application/json' }, 415)
+    }
+    return next()
+  })
+
   app.route('/api/accounts', accountRoutes(services))
   app.route('/api/categories', categoryRoutes(services))
   app.route('/api/transactions', transactionRoutes(services))
