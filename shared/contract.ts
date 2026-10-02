@@ -277,7 +277,18 @@ export interface BudgetRow {
 export interface BudgetMonthResponse {
   month: Month
   rows: BudgetRow[]
-  totals: { budget: number; spent: number; remaining: number }
+  /**
+   * `spent` and `remaining` measure different things, so budget - spent is NOT remaining:
+   * label them apart when both are shown.
+   */
+  totals: {
+    /** Sum of the budgets of the categories that have one this month. */
+    budget: number
+    /** Every expense of the month, including categories without a budget. */
+    spent: number
+    /** budget minus what was spent in the budgeted categories only; negative when over. */
+    remaining: number
+  }
 }
 
 // ---------- summary (dashboard) ----------
