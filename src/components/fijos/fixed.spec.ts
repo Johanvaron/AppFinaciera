@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dueText, moveId, needsAmount, partialText, progressRatio, progressText, remainingAmount, resetOverrideLabel, rowAmount, rowAmountText, splitFieldErrors, statusTone, undefinedAmountNote, unpayLead, unpayTail } from './fixed'
+import { amountEntry, dueText, moveId, needsAmount, partialText, progressRatio, progressText, remainingAmount, resetOverrideLabel, rowAmount, rowAmountText, splitFieldErrors, statusTone, undefinedAmountNote, unpayLead, unpayTail } from './fixed'
 import { fixedItem as item } from './fixtures'
 
 describe('dueText', () => {
@@ -86,6 +86,15 @@ describe('row amount', () => {
   it('shows a dash for a skipped item without amount', () => {
     expect(rowAmountText(item({ status: 'skipped', variableAmount: true, expectedAmount: 0 }))).toBe('—')
     expect(rowAmountText(item({ status: 'skipped', expectedAmount: 200_000 }))).toBe('$ 200.000')
+  })
+
+  it('tells an empty amount field from one that is not a number', () => {
+    expect(amountEntry('')).toBe('empty')
+    expect(amountEntry('   ')).toBe('empty')
+    expect(amountEntry('abc')).toBe('invalid')
+    expect(amountEntry('40o000')).toBe('invalid')
+    expect(amountEntry('400.000')).toBe('ok')
+    expect(amountEntry('0')).toBe('ok')
   })
 
   it('labels the way back to the base amount', () => {

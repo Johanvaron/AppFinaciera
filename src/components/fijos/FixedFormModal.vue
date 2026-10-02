@@ -9,7 +9,7 @@ import UiMoneyInput from '@/components/ui/UiMoneyInput.vue'
 import { api } from '@/lib/api'
 import { useToasts } from '@/lib/toasts'
 import { errorFields, errorMessage, useAccounts, useApiMutation, useCategories } from '@/lib/queries'
-import { splitFieldErrors } from './fixed'
+import { amountEntry, splitFieldErrors } from './fixed'
 
 const open = defineModel<boolean>('open', { required: true })
 const props = defineProps<{
@@ -34,6 +34,8 @@ const form = reactive({
   endMonth: '',
   note: '',
 })
+/** Raw text of the amount field: tells an empty field from one that is not a number. */
+const amountText = ref('')
 const errors = ref<Record<string, string>>({})
 const formError = ref('')
 
@@ -56,6 +58,7 @@ watch(open, (isOpen) => {
   const source = props.editing
   form.name = source?.name ?? ''
   form.amount = source && source.amount > 0 ? source.amount : null
+  amountText.value = form.amount == null ? '' : String(form.amount)
   form.variableAmount = source?.variableAmount ?? false
   form.dueDay = source?.dueDay ?? ''
   form.categoryId = source?.categoryId ?? null
@@ -80,6 +83,11 @@ async function submit() {
   if (save.isPending.value) return
   errors.value = {}
   formError.value = ''
+  // Text that is not an amount reaches here as null: saving it as 0 would wipe the amount it had.
+  if (amountEntry(amountText.value) === 'invalid') {
+    errors.value.amount = 'Eso no es un monto. Escribe solo el número, por ejemplo 400000 o 400k'
+    return
+  }
   const parsed = fixedExpenseInputSchema.safeParse({
     name: form.name,
     amount: form.amount ?? 0,
@@ -148,7 +156,7 @@ const FIELD_MESSAGES: Record<string, string> = {
           :error="errors.amount"
           :hint="form.variableAmount ? 'Cada mes pones el monto real' : 'Puedes escribir 200k o 1,5m'"
         >
-          <UiMoneyInput v-model="form.amount" :invalid="!!errors.amount" />
+          <UiMoneyInput v-model="form.amount" :invalid="!!errors.amount" @input="amountText = ($event.target as HTMLInputElement).value" />
         </UiField>
 
         <UiField label="Día de pago (opcional)" :error="errors.dueDay" hint="Del 1 al 31">

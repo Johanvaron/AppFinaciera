@@ -3,7 +3,7 @@
  * shows is decided here so it can be tested without mounting anything.
  */
 import type { FixedMonthItem, FixedStatus } from '@shared/contract'
-import { dateShort, daysUntil, formatMoney, todayIso } from '@/lib/format'
+import { dateShort, daysUntil, formatMoney, parseMoney, todayIso } from '@/lib/format'
 
 export type BadgeTone = 'success' | 'neutral' | 'danger'
 
@@ -44,6 +44,16 @@ type AmountFields = Pick<FixedMonthItem, 'status' | 'expectedAmount' | 'paidAmou
 /** Unpaid item whose amount changes every month and nobody has typed it yet. */
 export function needsAmount(item: AmountFields): boolean {
   return (item.status === 'pending' || item.status === 'overdue') && item.fixed.variableAmount && item.expectedAmount === 0
+}
+
+/**
+ * What the text of a money field holds. `UiMoneyInput` gives null both for an
+ * empty field and for text that is not an amount ("40o000"), and only the
+ * first one may ever mean "no amount": the second must never be saved.
+ */
+export function amountEntry(text: string): 'empty' | 'invalid' | 'ok' {
+  if (text.trim() === '') return 'empty'
+  return parseMoney(text) == null ? 'invalid' : 'ok'
 }
 
 /**
