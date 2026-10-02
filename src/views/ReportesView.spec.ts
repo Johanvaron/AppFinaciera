@@ -97,6 +97,25 @@ describe('ReportesView', () => {
     wrapper.unmount()
   })
 
+  it('dims the totals of the previous range until the new range answers', async () => {
+    const { wrapper } = await mountView()
+    const summary = wrapper.find('[data-test="range-summary"]')
+    expect(summary.attributes('aria-busy')).toBe('false')
+    let answer: (rows: MonthlyReportRow[]) => void = () => {}
+    vi.mocked(api.reports.monthly).mockImplementation(() => new Promise((resolve) => (answer = resolve)))
+    await pressOption(wrapper, '3 meses')
+    expect(summary.text()).toContain('$ 24.000.000') // still the 6 months
+    expect(summary.attributes('aria-busy')).toBe('true')
+    expect(summary.classes()).toContain('opacity-50')
+    answer(monthlyRows({ months: 3 }))
+    await flushPromises()
+    expect(summary.attributes('aria-busy')).toBe('false')
+    expect(summary.classes()).not.toContain('opacity-50')
+    expect(summary.text()).toContain('$ 12.000.000')
+    expect(summary.text()).not.toContain('$ 24.000.000')
+    wrapper.unmount()
+  })
+
   it('scrolls the trend into view when a category is chosen', async () => {
     const scrollIntoView = vi.fn()
     vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(scrollIntoView)

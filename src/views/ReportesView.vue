@@ -102,8 +102,15 @@ watch(
     </div>
 
     <template v-else>
-      <RangeTotals :rows="rows" />
-      <IncomeExpenseChart :rows="rows" />
+      <!-- While the new range loads these are still the figures of the previous one: dimmed, like the matrix. -->
+      <div
+        data-test="range-summary"
+        :class="['flex min-w-0 flex-col gap-4 transition-opacity', monthly.isPlaceholderData.value ? 'opacity-50' : '']"
+        :aria-busy="monthly.isPlaceholderData.value"
+      >
+        <RangeTotals :rows="rows" />
+        <IncomeExpenseChart :rows="rows" />
+      </div>
       <CategoryMatrix
         v-model:kind="kind"
         v-model:selected-id="selectedId"
