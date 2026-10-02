@@ -9,7 +9,8 @@
 import { z } from 'zod'
 
 // ---------- primitives ----------
-export const monthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Mes inválido (YYYY-MM)')
+// Years 1900-2199 only: a typo such as 0000 or 0026 must not reach the month arithmetic.
+export const monthSchema = z.string().regex(/^(19|20|21)\d{2}-(0[1-9]|1[0-2])$/, 'Mes inválido (YYYY-MM)')
 /** True when a well-formed 'YYYY-MM-DD' is a real calendar day (rejects 2026-02-31). Local time, no UTC. */
 function isCalendarDate(value: string): boolean {
   const year = Number(value.slice(0, 4))
@@ -22,7 +23,7 @@ function isCalendarDate(value: string): boolean {
 
 export const dateSchema = z
   .string()
-  .regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, { error: 'Fecha inválida (YYYY-MM-DD)', abort: true })
+  .regex(/^(19|20|21)\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, { error: 'Fecha inválida (YYYY-MM-DD)', abort: true })
   .refine(isCalendarDate, 'Esa fecha no existe en el calendario')
 export const moneySchema = z.number().int('El monto debe ser en pesos enteros').min(0).max(999_999_999_999)
 export const idSchema = z.number().int().positive()
@@ -389,7 +390,18 @@ export interface BudgetRow {
 export interface BudgetMonthResponse {
   month: Month
   rows: BudgetRow[]
-  totals: { budget: number; spent: number; remaining: number }
+  /**
+   * `spent` and `remaining` measure different things, so budget - spent is NOT remaining:
+   * label them apart when both are shown.
+   */
+  totals: {
+    /** Sum of the budgets of the categories that have one this month. */
+    budget: number
+    /** Every expense of the month, including categories without a budget. */
+    spent: number
+    /** budget minus what was spent in the budgeted categories only; negative when over. */
+    remaining: number
+  }
 }
 
 // ---------- summary (dashboard) ----------
