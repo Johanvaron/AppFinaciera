@@ -20,11 +20,22 @@ const period = usePeriodStore()
 const { data: summary, isPending, isError, error, refetch, isFetching } = useSummary(() => period.month)
 const { data: categories } = useCategories()
 // The summary only lists UNPAID fixed expenses; the checklist tells whether there are any at all.
-const { data: fixedMonth } = useFixedMonth(() => period.month)
+const {
+  data: fixedMonth,
+  isError: fixedIsError,
+  error: fixedError,
+  refetch: refetchFixed,
+  isFetching: fixedIsFetching,
+  isPlaceholderData: fixedIsPlaceholder,
+} = useFixedMonth(() => period.month)
 
-const fixedCount = computed(() => fixedMonth.value?.totals.countTotal ?? 0)
+/** Null while the checklist of the month on screen is not known: loading, failed or still the previous month's. */
+const fixedCount = computed(() => (fixedMonth.value && !fixedIsPlaceholder.value ? fixedMonth.value.totals.countTotal : null))
+const fixedFailed = computed(() => fixedIsError.value && fixedCount.value == null)
 const empty = computed(() => (summary.value ? isEmptyMonth(summary.value, fixedCount.value) : false))
-const steps = computed(() => (summary.value ? welcomeSteps(summary.value, fixedCount.value) : []))
+/** A month with no movements waits for the checklist before choosing between the welcome and the board. */
+const awaitingFixed = computed(() => fixedCount.value == null && !fixedIsError.value && !!summary.value && isEmptyMonth(summary.value, 0))
+const steps = computed(() => (summary.value ? welcomeSteps(summary.value, fixedCount.value ?? 0) : []))
 const hasAccounts = computed(() => (summary.value?.accounts ?? []).some((account) => !account.archived))
 
 /**
@@ -65,7 +76,7 @@ const stats = computed(() => {
       <UiButton variant="primary" :loading="isFetching" @click="refetch()">Reintentar</UiButton>
     </div>
 
-    <div v-else-if="isPending || !summary || !stats" class="flex flex-col gap-4" aria-busy="true">
+    <div v-else-if="isPending || !summary || !stats || awaitingFixed" class="flex flex-col gap-4" aria-busy="true">
       <span class="sr-only">Cargando el resumen del mes</span>
       <div class="grid grid-cols-1 gap-4 min-[500px]:grid-cols-2 md:grid-cols-6 2xl:grid-cols-5">
         <div v-for="n in 5" :key="n" :class="['h-[84px] animate-pulse rounded-card bg-fill', n === 1 ? STAT_SPANS.lead : n === 2 ? STAT_SPANS.wide : STAT_SPANS.third]" />
@@ -83,6 +94,14 @@ const stats = computed(() => {
     </div>
 
     <template v-else>
+      <div v-if="fixedFailed" class="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-card bg-danger-soft p-4" role="alert">
+        <div class="min-w-0">
+          <p class="text-[14px] font-medium">No se pudieron cargar los gastos fijos del mes</p>
+          <p class="text-xs text-muted">{{ errorMessage(fixedError) }}</p>
+        </div>
+        <UiButton :loading="fixedIsFetching" @click="refetchFixed()">Reintentar</UiButton>
+      </div>
+
       <div class="grid grid-cols-1 gap-4 min-[500px]:grid-cols-2 md:grid-cols-6 2xl:grid-cols-[1.3fr_1fr_1fr_1fr_1fr]">
         <StatCard
           :class="STAT_SPANS.lead"

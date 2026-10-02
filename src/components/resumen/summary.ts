@@ -126,12 +126,17 @@ export function availableStat(available: number): { tone: Tone; value: string; d
   return { tone: available < 0 ? 'danger' : 'primary', value: formatMoney(available), detail: 'después de fijos pendientes' }
 }
 
-/** `fixedCount` = fixed expenses that apply this month (paid or not). */
-export function fixedStat(pendingFixed: number, pendingCount: number, fixedCount: number): { tone: Tone; value: string; detail: string } {
+/**
+ * `fixedCount` = fixed expenses that apply this month (paid or not); null while
+ * the checklist of the month is not known (loading or failed). Unknown never
+ * claims "Todo pagado" nor "Sin gastos fijos".
+ */
+export function fixedStat(pendingFixed: number, pendingCount: number, fixedCount: number | null): { tone: Tone; value: string; detail: string | undefined } {
   const value = formatMoney(pendingFixed)
   if (pendingFixed > 0 || pendingCount > 0) {
     return { tone: 'warning', value, detail: pendingCount === 1 ? '1 pago pendiente' : `${pendingCount} pagos pendientes` }
   }
+  if (fixedCount == null) return { tone: 'neutral', value, detail: undefined }
   if (fixedCount > 0) return { tone: 'success', value, detail: 'Todo pagado' }
   return { tone: 'neutral', value, detail: 'Sin gastos fijos este mes' }
 }
@@ -173,8 +178,11 @@ export function signedAmount(tx: Pick<Transaction, 'amount' | 'type'>): { text: 
 }
 
 // ---------- empty month ----------
-/** No income, no expenses and no fixed expenses: show the welcome instead of a board of zeros. */
-export function isEmptyMonth(summary: Pick<MonthSummary, 'income' | 'expenses' | 'pendingFixed' | 'upcomingFixed'>, fixedCount: number): boolean {
+/**
+ * No income, no expenses and no fixed expenses: show the welcome instead of a board of zeros.
+ * An unknown `fixedCount` (null) is never empty: the month may have every fixed expense paid.
+ */
+export function isEmptyMonth(summary: Pick<MonthSummary, 'income' | 'expenses' | 'pendingFixed' | 'upcomingFixed'>, fixedCount: number | null): boolean {
   return summary.income === 0 && summary.expenses === 0 && summary.pendingFixed === 0 && summary.upcomingFixed.length === 0 && fixedCount === 0
 }
 

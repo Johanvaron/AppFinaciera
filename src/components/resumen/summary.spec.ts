@@ -128,6 +128,11 @@ describe('stat card texts', () => {
     expect(fixedStat(0, 0, 0)).toEqual({ tone: 'neutral', value: '$ 0', detail: 'Sin gastos fijos este mes' })
   })
 
+  it('claims nothing about fixed expenses while their count is unknown', () => {
+    expect(fixedStat(0, 0, null)).toEqual({ tone: 'neutral', value: '$ 0', detail: undefined })
+    expect(fixedStat(780000, 3, null)).toEqual({ tone: 'warning', value: '$ 780.000', detail: '3 pagos pendientes' })
+  })
+
   it('shows the savings rate only when there is income', () => {
     expect(savingsStat(900000, 0.2595)).toEqual({ tone: 'neutral', value: '$ 900.000', detail: '26 % de tus ingresos' })
     expect(savingsStat(-150000, null)).toEqual({ tone: 'danger', value: '-$ 150.000', detail: undefined })
@@ -174,6 +179,10 @@ describe('empty month', () => {
     expect(isEmptyMonth({ ...empty, expenses: 1000 }, 0)).toBe(false)
     expect(isEmptyMonth({ ...empty, pendingFixed: 1000 }, 0)).toBe(false)
     expect(isEmptyMonth(empty, 2)).toBe(false)
+  })
+
+  it('is not empty while the count of fixed expenses is unknown', () => {
+    expect(isEmptyMonth(empty, null)).toBe(false)
   })
 
   it('marks each welcome step from the data', () => {
