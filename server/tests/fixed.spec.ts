@@ -111,6 +111,14 @@ describe('fixed expenses checklist', () => {
     expect((await api.ok('GET', '/summary?month=2026-04')).expenses).toBe(0)
   })
 
+  it('rejects a payment dated on a day that does not exist', async () => {
+    const rent = await api.fixed({ name: 'Arriendo', amount: 900_000, dueDay: 20, categoryId: housing })
+    const response = await api.call('POST', `/fixed/${rent}/pay`, { month: '2026-03', amount: 900_000, date: '2026-02-30', accountId: bank })
+    expect(response.status).toBe(422)
+    expect(response.body.fields).toEqual({ date: 'Esa fecha no existe en el calendario' })
+    expect((await itemOf('2026-03', rent)).status).toBe('pending')
+  })
+
   it('applies a month override of the amount and removes it with null', async () => {
     const power = await api.fixed({ name: 'Energía', amount: 150_000, variableAmount: true, categoryId: housing })
 

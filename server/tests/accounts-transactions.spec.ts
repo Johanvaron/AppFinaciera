@@ -99,6 +99,16 @@ describe('transactions', () => {
     expect(incomeWithExpense.body.fields).toEqual({ categoryId: 'Elige una categoría de ingresos' })
   })
 
+  it('rejects a date that does not exist, so no movement falls outside every month', async () => {
+    for (const date of ['2026-02-29', '2026-04-31']) {
+      const response = await api.call('POST', '/transactions', { date, amount: 500, type: 'expense', accountId: bank, categoryId: food })
+      expect(response.status).toBe(422)
+      expect(response.body.fields).toEqual({ date: 'Esa fecha no existe en el calendario' })
+    }
+    const leap = await api.call('POST', '/transactions', { date: '2028-02-29', amount: 500, type: 'expense', accountId: bank, categoryId: food })
+    expect(leap.status).toBe(201)
+  })
+
   it('rejects a transfer to the same account', async () => {
     const response = await post({ type: 'transfer', toAccountId: bank })
     expect(response.status).toBe(422)

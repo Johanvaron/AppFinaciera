@@ -12,7 +12,7 @@ import type {
   fixedPaySchema,
 } from '../../shared/contract.ts'
 import type { Transact } from '../db.ts'
-import { dueDateFor, monthOf, type Clock } from '../lib/dates.ts'
+import { dueDateFor, isRealDate, monthOf, type Clock } from '../lib/dates.ts'
 import { invalid, notFound } from '../lib/errors.ts'
 import type { AccountRepository } from '../repositories/accounts.ts'
 import type { CategoryRepository } from '../repositories/categories.ts'
@@ -171,6 +171,7 @@ export class FixedService {
   pay(id: number, data: PayData): FixedMonthItem {
     const fixed = this.mustGet(id)
     this.assertApplies(fixed, data.month)
+    if (!isRealDate(data.date)) throw invalid({ date: 'Esa fecha no existe en el calendario' })
     if (!this.deps.accounts.exists(data.accountId)) throw invalid({ accountId: 'La cuenta no existe' })
     this.deps.transact(() => {
       this.deps.transactions.insert({

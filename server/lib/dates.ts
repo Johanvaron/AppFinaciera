@@ -27,6 +27,9 @@ export function daysInMonth(month: Month): number {
   return new Date(Date.UTC(year, monthNumber, 0)).getUTCDate()
 }
 
+/** False for well-formed but impossible dates such as 2026-02-31, which would fall outside every month range. */
+export const isRealDate = (date: IsoDate): boolean => Number(date.slice(8, 10)) <= daysInMonth(monthOf(date))
+
 export const dayOfMonth = (month: Month, day: number): IsoDate => `${month}-${pad(day)}`
 
 /** First and last day of a month. */
