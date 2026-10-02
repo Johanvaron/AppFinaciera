@@ -97,7 +97,14 @@ function clearSelection() {
   selectedIds.value = new Set()
 }
 
-watch(() => period.month, clearSelection)// Forget ids that left the list (deleted, or hidden by a filter) so they never come back selected.
+// The previous month's rows leave the screen: drop the selection and any delete waiting for confirmation.
+watch(
+  () => period.month,
+  () => {
+    clearSelection()
+    toDelete.value = []
+  },
+)// Forget ids that left the list (deleted, or hidden by a filter) so they never come back selected.
 watch(rows, (list) => {
   const visible = new Set(list.map((tx) => tx.id))
   const kept = [...selectedIds.value].filter((id) => visible.has(id))
