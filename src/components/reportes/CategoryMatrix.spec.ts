@@ -35,4 +35,14 @@ describe('CategoryMatrix', () => {
     await wrapper.find('tbody tr').trigger('click')
     expect(wrapper.emitted('update:selectedId')).toBeUndefined()
   })
+
+  it('says it is loading, not that the range is empty, while an empty previous report is stale', () => {
+    // "Gastos" was just pressed over an income report with no rows: nothing is known about the expenses yet.
+    const props = { report: { months: report.months, rows: [] }, loading: false, error: null, kind: 'expense' as const, selectedId: null }
+    const wrapper = mount(CategoryMatrix, { props: { ...props, stale: true } })
+    expect(wrapper.find('p.text-center').text()).toBe('Cargando categorías…')
+    expect(wrapper.text()).not.toContain('No hay gastos en este rango.')
+    // Once the answer is in and it is still empty, the empty message is true.
+    expect(mount(CategoryMatrix, { props: { ...props, stale: false } }).find('p.text-center').text()).toBe('No hay gastos en este rango.')
+  })
 })

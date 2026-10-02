@@ -48,7 +48,8 @@ function toggle(id: number) {
       <p class="min-w-0 flex-1 text-danger">{{ error }}</p>
       <UiButton @click="$emit('retry')">Reintentar</UiButton>
     </div>
-    <p v-else-if="!report && loading" class="py-6 text-center text-muted">Cargando categorías…</p>
+    <!-- An empty previous report says nothing about the new kind or range: it is still loading, not empty. -->
+    <p v-else-if="(!report && loading) || (stale && !rows.length)" class="py-6 text-center text-muted">Cargando categorías…</p>
     <p v-else-if="!rows.length" class="py-6 text-center text-muted">
       {{ kind === 'expense' ? 'No hay gastos en este rango.' : 'No hay ingresos en este rango.' }}
     </p>
