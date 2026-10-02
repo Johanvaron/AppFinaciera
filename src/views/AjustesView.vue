@@ -11,14 +11,18 @@ import PageHeader from '@/components/layout/PageHeader.vue'
   <div class="page">
     <PageHeader title="Ajustes" :icon="Settings" :month="false" />
 
-    <!-- 1 column on phones, accounts | categories from lg, and a third column for backup + appearance on very wide screens. -->
-    <div class="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-2 min-[1800px]:grid-cols-3">
-      <AccountsCard />
-      <CategoriesCard />
-      <div class="grid min-w-0 grid-cols-1 items-start gap-4 lg:col-span-2 lg:grid-cols-2 min-[1800px]:col-span-1 min-[1800px]:grid-cols-1">
-        <BackupCard />
-        <AppearanceCard />
+    <!--
+      Two columns from lg: the short cards (accounts, backup, appearance) stack on the left so the
+      tall categories card on the right leaves no empty space under them. On phones the left column
+      dissolves (`contents`) and `order` keeps categories right after accounts.
+    -->
+    <div class="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-2">
+      <div class="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-4">
+        <AccountsCard class="order-1" />
+        <BackupCard class="order-3" />
+        <AppearanceCard class="order-3" />
       </div>
+      <CategoriesCard class="order-2" />
     </div>
   </div>
 </template>
