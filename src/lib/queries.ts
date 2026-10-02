@@ -67,7 +67,8 @@ export function errorFields(error: unknown): Record<string, string> {
 
 /**
  * Any write. Every figure in the app derives from the same few tables, so a
- * write invalidates ALL cached queries instead of guessing which ones.
+ * write invalidates ALL cached queries (on success AND on error) instead of
+ * guessing which ones.
  * Errors show a toast unless `silentError` (when the form paints them itself).
  */
 export function useApiMutation<TInput, TOutput>(
@@ -78,12 +79,13 @@ export function useApiMutation<TInput, TOutput>(
   const toasts = useToasts()
   return useMutation({
     mutationFn,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries()
-      if (options.success) toasts.success(options.success)
-    },
     onError: (error) => {
       if (!options.silentError) toasts.error(errorMessage(error))
+    },
+    // A failed write may have been applied in part (a batch that stops halfway): refresh either way.
+    onSettled: async (_data, error) => {
+      await queryClient.invalidateQueries()
+      if (!error && options.success) toasts.success(options.success)
     },
   })
 }
