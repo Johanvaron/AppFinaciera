@@ -3,6 +3,7 @@
  * movement reads in a row, sorting, day grouping and the bulk-category rule.
  */
 import type { Account, Category, CategoryColor, CategoryKind, IsoDate, Transaction, TransactionType } from '@shared/contract'
+import type { TransactionFilters } from '@/lib/api'
 import { dateLong, dateShort, formatMoney } from '@/lib/format'
 
 export interface FilteredTotals {
@@ -22,6 +23,15 @@ export function filteredTotals(transactions: Transaction[]): FilteredTotals {
     else if (tx.type === 'expense') expenses += tx.amount
   }
   return { income, expenses, net: income - expenses, count: transactions.length }
+}
+
+/**
+ * Red is an alert: the month went negative. With a type or category filter one side
+ * is left out of the list, so that net compares nothing and is never an alert.
+ */
+export function netClass(net: number, filters: TransactionFilters): string {
+  const comparesBothSides = filters.type == null && filters.categoryId == null
+  return net < 0 && comparesBothSides ? 'text-danger' : ''
 }
 
 /** 1 -> "1 movimiento", 12 -> "12 movimientos". */

@@ -11,6 +11,7 @@ import {
   deleteWarning,
   filteredTotals,
   groupByDay,
+  netClass,
   removeEach,
   rowView,
   sortTransactions,
@@ -71,6 +72,27 @@ describe('filteredTotals', () => {
     expect(filteredTotals([])).toEqual({ income: 0, expenses: 0, net: 0, count: 0 })
     expect(countLabel(0)).toBe('0 movimientos')
     expect(countLabel(1)).toBe('1 movimiento')
+  })
+})
+
+describe('netClass', () => {
+  const overspent = filteredTotals([tx({ type: 'income', amount: 50_000 }), tx({ type: 'expense', amount: 78_000 })]).net
+
+  it('is an alert when the whole month went negative', () => {
+    expect(netClass(overspent, { month: '2026-10' })).toBe('text-danger')
+    expect(netClass(overspent, { month: '2026-10', accountId: 1, q: 'mercado' })).toBe('text-danger')
+  })
+
+  it('is never an alert when a type or category filter leaves one side out', () => {
+    const onlyExpenses = filteredTotals([tx({ type: 'expense', amount: 2_103_400 })]).net
+    expect(formatMoney(onlyExpenses)).toBe('-$ 2.103.400')
+    expect(netClass(onlyExpenses, { type: 'expense' })).toBe('')
+    expect(netClass(onlyExpenses, { categoryId: 10 })).toBe('')
+  })
+
+  it('is not an alert at zero or above', () => {
+    expect(netClass(0, {})).toBe('')
+    expect(netClass(1_149_500, {})).toBe('')
   })
 })
 

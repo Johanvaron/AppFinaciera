@@ -8,7 +8,7 @@ import PageHeader from '@/components/layout/PageHeader.vue'
 import MovimientosBulkBar from '@/components/movimientos/MovimientosBulkBar.vue'
 import MovimientosFilters from '@/components/movimientos/MovimientosFilters.vue'
 import MovimientosTable from '@/components/movimientos/MovimientosTable.vue'
-import { categorizedText, countLabel, deleteResultText, deleteWarning, filteredTotals, removeEach, sortTransactions, type SortDir, type SortKey } from '@/components/movimientos/transactions'
+import { categorizedText, countLabel, deleteResultText, deleteWarning, filteredTotals, netClass, removeEach, sortTransactions, type SortDir, type SortKey } from '@/components/movimientos/transactions'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiModal from '@/components/ui/UiModal.vue'
@@ -177,7 +177,7 @@ function confirmDelete() {
       </div>
       <div class="flex min-w-0 items-baseline justify-between gap-3 sm:flex-col sm:justify-start sm:gap-0">
         <dt class="text-xs font-medium text-muted">Neto</dt>
-        <dd :class="['num text-[16px] font-semibold sm:text-[18px]', totals.net < 0 && 'text-danger']">{{ formatMoney(totals.net) }}</dd>
+        <dd :class="['num text-[16px] font-semibold sm:text-[18px]', netClass(totals.net, filters)]">{{ formatMoney(totals.net) }}</dd>
       </div>
       <div class="flex min-w-0 items-baseline justify-between gap-3 sm:flex-col sm:justify-start sm:gap-0">
         <dt class="text-xs font-medium text-muted">{{ filtersApplied ? 'Con estos filtros' : 'En el mes' }}</dt>
