@@ -17,7 +17,7 @@ function mountSummary(data: BudgetMonthResponse) {
   const wrapper = mount(BudgetSummary, { props: { data } })
   /** Text of the card that carries this label, so each figure is tied to its name. */
   const card = (label: string) => {
-    const found = wrapper.findAll('.rounded-card').find((box) => box.text().includes(label))
+    const found = wrapper.findAll('.rounded-card, .card').find((box) => box.text().includes(label))
     if (!found) throw new Error(`No card labeled "${label}"`)
     return found.text()
   }
