@@ -15,10 +15,10 @@ import FixedFormModal from '@/components/fijos/FixedFormModal.vue'
 import FixedRow, { type RowAction } from '@/components/fijos/FixedRow.vue'
 import FixedTotals from '@/components/fijos/FixedTotals.vue'
 import PayModal from '@/components/fijos/PayModal.vue'
-import { moveId, needsAmount, unpayLead, unpayTail } from '@/components/fijos/fixed'
+import { endErrorText, moveId, needsAmount, unpayLead, unpayTail, writeErrorText } from '@/components/fijos/fixed'
 import { api } from '@/lib/api'
 import { addMonths, formatMoney, monthLabel } from '@/lib/format'
-import { errorMessage, useApiMutation, useCategories, useFixedMonth } from '@/lib/queries'
+import { errorFields, errorMessage, useApiMutation, useCategories, useFixedMonth } from '@/lib/queries'
 import { usePeriodStore } from '@/stores/period'
 import { useToasts } from '@/lib/toasts'
 
@@ -63,15 +63,18 @@ function toggle(item: FixedMonthItem) {
 // ---- writes ----
 // Every write takes the month from the ROW, not from the store: while a month
 // change is loading the previous month's rows are still on screen.
-const override = useApiMutation((input: { item: FixedMonthItem; body: FixedMonthOverrideInput }) => api.fixed.override(input.item.fixed.id, input.item.month, input.body))
+// `override` and `end` are sent from the row with no form on screen, so their
+// toast carries the field errors instead of the generic "Revisa los datos del formulario".
+const override = useApiMutation((input: { item: FixedMonthItem; body: FixedMonthOverrideInput }) => api.fixed.override(input.item.fixed.id, input.item.month, input.body), { silentError: true })
+const rowError = (error: unknown) => toasts.error(writeErrorText(errorFields(error), errorMessage(error)))
 const unpay = useApiMutation((item: FixedMonthItem) => api.fixed.unpay(item.fixed.id, item.month), { success: 'Pago borrado' })
 const unpayTitle = computed(() => (target.value?.status === 'paid' ? 'Desmarcar' : 'Borrar abonos de'))
 const reorder = useApiMutation((ids: number[]) => api.fixed.reorder(ids))
-const end = useApiMutation((item: FixedMonthItem) => api.fixed.update(item.fixed.id, { endMonth: item.month }))
+const end = useApiMutation((item: FixedMonthItem) => api.fixed.update(item.fixed.id, { endMonth: item.month }), { silentError: true })
 const remove = useApiMutation((id: number) => api.fixed.remove(id), { success: 'Gasto fijo eliminado' })
 
 function saveAmount(item: FixedMonthItem, value: number | null) {
-  override.mutate({ item, body: { expectedAmount: value } })
+  override.mutate({ item, body: { expectedAmount: value } }, { onError: rowError })
 }
 
 function move(item: FixedMonthItem, direction: -1 | 1) {
@@ -84,11 +87,14 @@ function onAction(item: FixedMonthItem, action: RowAction) {
   else if (action === 'unpay') {
     target.value = item
     unpayOpen.value = true
-  } else if (action === 'skip') override.mutate({ item, body: { skipped: item.status !== 'skipped' } })
+  } else if (action === 'skip') override.mutate({ item, body: { skipped: item.status !== 'skipped' } }, { onError: rowError })
   else if (action === 'up') move(item, -1)
   else if (action === 'down') move(item, 1)
   else if (action === 'end') {
-    end.mutate(item, { onSuccess: () => toasts.success(`${item.fixed.name} ya no aparece desde ${monthLabel(addMonths(item.month, 1)).toLowerCase()}`) })
+    end.mutate(item, {
+      onSuccess: () => toasts.success(`${item.fixed.name} ya no aparece desde ${monthLabel(addMonths(item.month, 1)).toLowerCase()}`),
+      onError: (error) => toasts.error(endErrorText(errorFields(error), item.month, errorMessage(error))),
+    })
   } else {
     target.value = item
     removeOpen.value = true

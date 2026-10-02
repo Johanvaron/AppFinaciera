@@ -1,9 +1,10 @@
 import { mount, type VueWrapper } from '@vue/test-utils'
-import { createPinia } from 'pinia'
+import { createPinia, type Pinia } from 'pinia'
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import { nextTick } from 'vue'
 import type { Account, Category, FixedMonthItem, FixedMonthResponse } from '@shared/contract'
-import { api } from '@/lib/api'
+import { api, ApiRequestError } from '@/lib/api'
+import { useToasts } from '@/lib/toasts'
 import '@/lib/zod-locale'
 import FijosView from '@/views/FijosView.vue'
 import { fixedItem } from './fixtures'
@@ -15,7 +16,7 @@ vi.mock('@/lib/api', async (importOriginal) => {
     api: {
       accounts: { list: vi.fn() },
       categories: { list: vi.fn() },
-      fixed: { month: vi.fn(), override: vi.fn(), pay: vi.fn(), unpay: vi.fn() },
+      fixed: { month: vi.fn(), override: vi.fn(), pay: vi.fn(), unpay: vi.fn(), update: vi.fn() },
     },
   }
 })
@@ -35,12 +36,15 @@ const dialogAmount = () => dialog()?.querySelector<HTMLInputElement>('input[inpu
 
 describe('FijosView', () => {
   let wrapper: VueWrapper
+  let pinia: Pinia
+  const toastTexts = () => useToasts(pinia).items.map((toast) => toast.message)
 
   async function mountWith(items: FixedMonthItem[]) {
     vi.mocked(api.fixed.month).mockResolvedValue(monthOf(items))
+    pinia = createPinia()
     wrapper = mount(FijosView, {
       attachTo: document.body,
-      global: { plugins: [createPinia(), [VueQueryPlugin, { queryClient: new QueryClient() }]], stubs: { MonthSwitcher: true } },
+      global: { plugins: [pinia, [VueQueryPlugin, { queryClient: new QueryClient() }]], stubs: { MonthSwitcher: true } },
     })
     await vi.waitFor(() => expect(wrapper.find('li').exists()).toBe(true))
   }
@@ -50,6 +54,7 @@ describe('FijosView', () => {
     vi.mocked(api.categories.list).mockResolvedValue(CATEGORIES)
     vi.mocked(api.fixed.override).mockReset()
     vi.mocked(api.fixed.unpay).mockReset()
+    vi.mocked(api.fixed.update).mockReset()
   })
 
   afterEach(() => wrapper.unmount())
@@ -109,5 +114,45 @@ describe('FijosView', () => {
 
     button('Borrar el pago')!.click()
     await vi.waitFor(() => expect(api.fixed.unpay).toHaveBeenCalledWith(1, '2026-10'))
+  })
+
+  it('says why the fixed expense cannot end this month, not the generic form message', async () => {
+    vi.mocked(api.fixed.update).mockRejectedValue(
+      new ApiRequestError(422, 'Revisa los datos del formulario', { endMonth: 'Hay pagos registrados fuera de ese rango' }),
+    )
+    await mountWith([fixedItem()])
+
+    button('Acciones de Moto')!.click()
+    await nextTick()
+    button('Terminar desde el mes siguiente')!.click()
+
+    await vi.waitFor(() => expect(toastTexts()).toEqual(['No se puede terminar en octubre 2026: hay pagos registrados en meses posteriores']))
+    expect(api.fixed.update).toHaveBeenCalledWith(1, { endMonth: '2026-10' })
+  })
+
+  it('shows the reason an amount typed in the row was rejected, not the generic form message', async () => {
+    vi.mocked(api.fixed.override).mockRejectedValue(
+      new ApiRequestError(422, 'Revisa los datos del formulario', { expectedAmount: 'Demasiado grande: el máximo es $ 999.999.999.999' }),
+    )
+    await mountWith([fixedItem({ expectedAmount: 600_000 })])
+
+    button('Cambiar el monto de Moto este mes, ahora $ 600.000')!.click()
+    await nextTick()
+    const inline = wrapper.find<HTMLInputElement>('li input')
+    await inline.setValue('1234567890123')
+    await inline.trigger('focusout')
+
+    await vi.waitFor(() => expect(toastTexts()).toEqual(['Demasiado grande: el máximo es $ 999.999.999.999']))
+  })
+
+  it('keeps the server message when a row write fails without field errors', async () => {
+    vi.mocked(api.fixed.update).mockRejectedValue(new ApiRequestError(0, 'No hay conexión con el servidor'))
+    await mountWith([fixedItem()])
+
+    button('Acciones de Moto')!.click()
+    await nextTick()
+    button('Terminar desde el mes siguiente')!.click()
+
+    await vi.waitFor(() => expect(toastTexts()).toEqual(['No hay conexión con el servidor']))
   })
 })

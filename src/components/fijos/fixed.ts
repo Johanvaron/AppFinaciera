@@ -2,8 +2,8 @@
  * Pure logic of the fixed-expenses checklist: every text and figure a row
  * shows is decided here so it can be tested without mounting anything.
  */
-import type { FixedMonthItem, FixedStatus } from '@shared/contract'
-import { dateShort, daysUntil, formatMoney, parseMoney, todayIso } from '@/lib/format'
+import type { FixedMonthItem, FixedStatus, Month } from '@shared/contract'
+import { dateShort, daysUntil, formatMoney, monthLabel, parseMoney, todayIso } from '@/lib/format'
 
 export type BadgeTone = 'success' | 'neutral' | 'danger'
 
@@ -116,6 +116,20 @@ export function splitFieldErrors(fields: Record<string, string>, visible: readon
     else rest.push(message)
   }
   return { fields: shown, rest: rest.join('. ') }
+}
+
+/**
+ * Toast of a write made straight from the row, where no form is on screen: the
+ * reason each field was rejected, not the server's generic "check the form".
+ */
+export function writeErrorText(fields: Record<string, string>, fallback: string): string {
+  return Object.values(fields).join('. ') || fallback
+}
+
+/** Toast when "Terminar desde el mes siguiente" is rejected: from a row, `endMonth` only fails because of a payment after that month. */
+export function endErrorText(fields: Record<string, string>, month: Month, fallback: string): string {
+  if (fields.endMonth) return `No se puede terminar en ${monthLabel(month).toLowerCase()}: hay pagos registrados en meses posteriores`
+  return writeErrorText(fields, fallback)
 }
 
 /** Start of the "undo payment" sentence; the amount follows it. Unpaying deletes EVERY payment of the month. */
