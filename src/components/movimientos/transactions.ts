@@ -34,6 +34,26 @@ export function netClass(net: number, filters: TransactionFilters): string {
   return net < 0 && comparesBothSides ? 'text-danger' : ''
 }
 
+export interface TotalsText {
+  income: string
+  expenses: string
+  net: string
+  count: string
+}
+
+const NO_DATA = '—'
+
+/** What the totals strip reads. Without an answer from the server (loading or failed) there is no figure to show, not a zero. */
+export function totalsText(totals: FilteredTotals | null): TotalsText {
+  if (!totals) return { income: NO_DATA, expenses: NO_DATA, net: NO_DATA, count: NO_DATA }
+  return {
+    income: formatMoney(totals.income),
+    expenses: formatMoney(totals.expenses),
+    net: formatMoney(totals.net),
+    count: countLabel(totals.count),
+  }
+}
+
 /** 1 -> "1 movimiento", 12 -> "12 movimientos". */
 export function countLabel(count: number): string {
   return count === 1 ? '1 movimiento' : `${count} movimientos`

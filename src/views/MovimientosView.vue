@@ -8,12 +8,11 @@ import PageHeader from '@/components/layout/PageHeader.vue'
 import MovimientosBulkBar from '@/components/movimientos/MovimientosBulkBar.vue'
 import MovimientosFilters from '@/components/movimientos/MovimientosFilters.vue'
 import MovimientosTable from '@/components/movimientos/MovimientosTable.vue'
-import { categorizedText, countLabel, deleteResultText, deleteWarning, filteredTotals, netClass, removeEach, sortTransactions, type SortDir, type SortKey } from '@/components/movimientos/transactions'
+import { categorizedText, deleteResultText, deleteWarning, filteredTotals, netClass, removeEach, sortTransactions, totalsText, type SortDir, type SortKey } from '@/components/movimientos/transactions'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiModal from '@/components/ui/UiModal.vue'
 import { api, type TransactionFilters } from '@/lib/api'
-import { formatMoney } from '@/lib/format'
 import { errorMessage, useAccounts, useApiMutation, useCategories, useTransactions } from '@/lib/queries'
 import { useToasts } from '@/lib/toasts'
 import { usePeriodStore } from '@/stores/period'
@@ -74,7 +73,9 @@ function onSort(key: SortKey) {
 }
 
 const rows = computed(() => sortTransactions(transactions.value ?? [], sortKey.value, sortDir.value))
-const totals = computed(() => filteredTotals(rows.value))
+/** Null until the server answers: a failed or pending load has no totals, and zeros would read as real money. */
+const totals = computed(() => (transactions.value ? filteredTotals(transactions.value) : null))
+const strip = computed(() => totalsText(totals.value))
 
 // ---------- selection ----------
 const selectedIds = ref(new Set<number>())
@@ -96,8 +97,7 @@ function clearSelection() {
   selectedIds.value = new Set()
 }
 
-watch(() => period.month, clearSelection)
-// Forget ids that left the list (deleted, or hidden by a filter) so they never come back selected.
+watch(() => period.month, clearSelection)// Forget ids that left the list (deleted, or hidden by a filter) so they never come back selected.
 watch(rows, (list) => {
   const visible = new Set(list.map((tx) => tx.id))
   const kept = [...selectedIds.value].filter((id) => visible.has(id))
@@ -166,22 +166,23 @@ function confirmDelete() {
       @clear="clearFilters"
     />
 
-    <dl class="grid min-w-0 grid-cols-1 gap-x-6 gap-y-1 rounded-card bg-surface px-4 py-3 shadow-card sm:grid-cols-4" :aria-busy="isFetching">
+    <!-- Dimmed while the figures still belong to the previous filters. -->
+    <dl :class="['grid min-w-0 grid-cols-1 gap-x-6 gap-y-1 rounded-card bg-surface px-4 py-3 shadow-card sm:grid-cols-4', isPlaceholderData && 'opacity-50']" :aria-busy="isFetching">
       <div class="flex min-w-0 items-baseline justify-between gap-3 sm:flex-col sm:justify-start sm:gap-0">
         <dt class="text-xs font-medium text-muted">Ingresos</dt>
-        <dd class="num text-[16px] font-semibold text-success sm:text-[18px]">{{ formatMoney(totals.income) }}</dd>
+        <dd class="num text-[16px] font-semibold text-success sm:text-[18px]">{{ strip.income }}</dd>
       </div>
       <div class="flex min-w-0 items-baseline justify-between gap-3 sm:flex-col sm:justify-start sm:gap-0">
         <dt class="text-xs font-medium text-muted">Gastos</dt>
-        <dd class="num text-[16px] font-semibold sm:text-[18px]">{{ formatMoney(totals.expenses) }}</dd>
+        <dd class="num text-[16px] font-semibold sm:text-[18px]">{{ strip.expenses }}</dd>
       </div>
       <div class="flex min-w-0 items-baseline justify-between gap-3 sm:flex-col sm:justify-start sm:gap-0">
         <dt class="text-xs font-medium text-muted">Neto</dt>
-        <dd :class="['num text-[16px] font-semibold sm:text-[18px]', netClass(totals.net, filters)]">{{ formatMoney(totals.net) }}</dd>
+        <dd :class="['num text-[16px] font-semibold sm:text-[18px]', totals && netClass(totals.net, filters)]">{{ strip.net }}</dd>
       </div>
       <div class="flex min-w-0 items-baseline justify-between gap-3 sm:flex-col sm:justify-start sm:gap-0">
         <dt class="text-xs font-medium text-muted">{{ filtersApplied ? 'Con estos filtros' : 'En el mes' }}</dt>
-        <dd class="num text-[16px] font-semibold sm:text-[18px]">{{ countLabel(totals.count) }}</dd>
+        <dd class="num text-[16px] font-semibold sm:text-[18px]">{{ strip.count }}</dd>
       </div>
     </dl>
 

@@ -15,6 +15,7 @@ import {
   removeEach,
   rowView,
   sortTransactions,
+  totalsText,
 } from './transactions'
 
 let nextId = 1
@@ -72,6 +73,21 @@ describe('filteredTotals', () => {
     expect(filteredTotals([])).toEqual({ income: 0, expenses: 0, net: 0, count: 0 })
     expect(countLabel(0)).toBe('0 movimientos')
     expect(countLabel(1)).toBe('1 movimiento')
+  })
+})
+
+describe('totalsText', () => {
+  it('shows a dash, not zeros, while there is no answer from the server', () => {
+    expect(totalsText(null)).toEqual({ income: '—', expenses: '—', net: '—', count: '—' })
+  })
+
+  it('shows real zeros for a month that came back empty', () => {
+    expect(totalsText(filteredTotals([]))).toEqual({ income: '$ 0', expenses: '$ 0', net: '$ 0', count: '0 movimientos' })
+  })
+
+  it('formats each figure from its own total', () => {
+    const totals = filteredTotals([tx({ type: 'income', amount: 1_250_000, categoryId: 20 }), tx({ type: 'expense', amount: 78_000 }), tx({ type: 'expense', amount: 22_500 })])
+    expect(totalsText(totals)).toEqual({ income: '$ 1.250.000', expenses: '$ 100.500', net: '$ 1.149.500', count: '3 movimientos' })
   })
 })
 
