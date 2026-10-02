@@ -43,6 +43,8 @@ const formError = ref('')
 const amountInput = ref<InstanceType<typeof UiMoneyInput>>()
 
 const editing = computed(() => quickAdd.editing)
+/** The payment of a fixed expense: the server keeps the link and rejects any type other than expense. */
+const isFixedPayment = computed(() => editing.value?.fixedExpenseId != null)
 const activeAccounts = computed(() => (accounts.value ?? []).filter((a) => !a.archived || a.id === form.accountId || a.id === form.toAccountId))
 
 /** Categories of the chosen type, grouped for the <optgroup>s. */
@@ -86,6 +88,8 @@ watch(activeAccounts, (list) => {
 })
 
 function setType(type: TransactionType) {
+  // Clicking the active type must not wipe the chosen category.
+  if (type === form.type) return
   form.type = type
   form.categoryId = null
   form.toAccountId = null
@@ -97,7 +101,13 @@ const save = useApiMutation(
   { silentError: true },
 )
 
+/** Inputs on screen right now: an error on anything else has no place to show next to a field. */
+function shownFields(): string[] {
+  return ['amount', 'accountId', 'date', 'description', 'note', form.type === 'transfer' ? 'toAccountId' : 'categoryId']
+}
+
 async function submit(keepOpen: boolean) {
+  if (save.isPending.value) return
   errors.value = {}
   formError.value = ''
   const parsed = transactionInputSchema.safeParse({
@@ -121,7 +131,11 @@ async function submit(keepOpen: boolean) {
     await save.mutateAsync(parsed.data)
   } catch (error) {
     errors.value = errorFields(error)
-    if (Object.keys(errors.value).length === 0) formError.value = errorMessage(error)
+    // A rejected field without an input (the type, an unknown key) goes to the general line, never to nowhere.
+    const shown = shownFields()
+    const orphans = Object.entries(errors.value).filter(([field]) => !shown.includes(field))
+    if (orphans.length > 0) formError.value = orphans.map(([, message]) => message).join(' ')
+    else if (Object.keys(errors.value).length === 0) formError.value = errorMessage(error)
     return
   }
   try {
@@ -151,8 +165,9 @@ async function submit(keepOpen: boolean) {
           type="button"
           role="radio"
           :aria-checked="form.type === option.value"
+          :disabled="isFixedPayment && option.value !== 'expense'"
           :class="[
-            'h-9 flex-1 rounded-md text-[14px] font-medium transition-colors sm:h-7',
+            'h-9 flex-1 rounded-md text-[14px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:h-7',
             form.type === option.value ? 'bg-surface text-ink shadow-card' : 'text-muted hover:text-ink',
           ]"
           @click="setType(option.value)"
@@ -160,6 +175,8 @@ async function submit(keepOpen: boolean) {
           {{ option.label }}
         </button>
       </div>
+
+      <p v-if="isFixedPayment" class="text-xs text-muted">Este movimiento es el pago de un gasto fijo, así que sigue siendo un gasto.</p>
 
       <UiField label="Monto" :error="errors.amount" hint="Puedes escribir 200k o 1,5m">
         <UiMoneyInput ref="amountInput" v-model="form.amount" data-autofocus :invalid="!!errors.amount" />
@@ -193,7 +210,7 @@ async function submit(keepOpen: boolean) {
           <input v-model="form.date" type="date" class="control" />
         </UiField>
 
-        <UiField label="Descripción" :error="errors.description" :class="form.type === 'transfer' ? '' : 'sm:col-span-1'">
+        <UiField label="Descripción" :error="errors.description">
           <input v-model="form.description" type="text" class="control" maxlength="120" placeholder="Opcional" />
         </UiField>
       </div>
