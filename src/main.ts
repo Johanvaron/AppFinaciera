@@ -4,6 +4,7 @@ import { VueQueryPlugin } from '@tanstack/vue-query'
 import router from './router'
 import App from './App.vue'
 import { useThemeStore } from './stores/theme'
+import './lib/zod-locale'
 import './style.css'
 
 const app = createApp(App)

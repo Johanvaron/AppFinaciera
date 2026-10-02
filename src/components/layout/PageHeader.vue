@@ -11,7 +11,7 @@ withDefaults(defineProps<{ title: string; subtitle?: string; icon: Component; mo
 
 <template>
   <header class="flex flex-wrap items-center gap-x-4 gap-y-2">
-    <div class="flex min-w-0 flex-1 items-center gap-3">
+    <div class="flex min-w-0 basis-full items-center gap-3 sm:flex-1 sm:basis-0">
       <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
         <component :is="icon" class="size-5" aria-hidden="true" />
       </span>

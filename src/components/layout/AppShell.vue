@@ -17,8 +17,9 @@ const quickAdd = useQuickAdd()
 
 /** "N" opens a new movement, unless the person is typing somewhere. */
 function onKeydown(event: KeyboardEvent) {
-  if (event.key.toLowerCase() !== 'n' || event.ctrlKey || event.metaKey || event.altKey) return
-  const target = event.target as HTMLElement | null
+  // Autofill fires keydown events without a key; a held key or an IME composition is not a shortcut either.
+  if (event.key?.toLowerCase() !== 'n' || event.ctrlKey || event.metaKey || event.altKey || event.repeat || event.isComposing) return
+  const target = event.target instanceof Element ? event.target : null
   if (target?.closest('input, select, textarea, [contenteditable="true"]') || quickAdd.open) return
   if (document.querySelector('[role="dialog"]')) return
   event.preventDefault()
@@ -39,7 +40,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
         <span class="text-[15px] font-semibold">Mis finanzas</span>
       </div>
 
-      <button type="button" class="flex h-9 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 text-[14px] font-medium text-primary-ink hover:bg-primary/90" @click="quickAdd.openNew()">
+      <button type="button" class="flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-primary px-2 text-[14px] font-medium text-primary-ink hover:bg-primary/90" @click="quickAdd.openNew()">
         <Plus class="size-4" aria-hidden="true" />
         Nuevo movimiento
         <kbd class="ml-1 rounded bg-primary-ink/20 px-1 text-xs">N</kbd>
@@ -78,7 +79,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
         active-class="!text-primary"
       >
         <component :is="item.icon" class="size-5" aria-hidden="true" />
-        <span class="max-w-full truncate px-0.5 text-[11px] font-medium">{{ item.short }}</span>
+        <span class="max-w-full truncate text-xs font-medium">{{ item.short }}</span>
       </RouterLink>
     </nav>
     <button
