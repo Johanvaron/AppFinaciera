@@ -69,7 +69,7 @@ export function overallRatio(totals: BudgetMonthResponse['totals']): number | nu
 /** Line under "Gastado" when part of the spending is in categories without cap. */
 export function spentDetail(totals: BudgetMonthResponse['totals']): string | undefined {
   const capped = budgetedSpent(totals)
-  return capped === totals.spent ? undefined : `${formatMoney(capped)} en categorías con tope`
+  return capped === totals.spent ? undefined : `${formatMoney(capped)} con tope`
 }
 
 /** Fill of the row bar. A cap of $ 0 has no ratio: any spending fills it. */

@@ -71,7 +71,7 @@ describe('tone by state', () => {
     const totals = { budget: 2000000, spent: 900000, remaining: 1500000 }
     expect(budgetedSpent(totals)).toBe(500000)
     expect(overallRatio(totals)).toBe(0.25)
-    expect(spentDetail(totals)).toBe('$ 500.000 en categorías con tope')
+    expect(spentDetail(totals)).toBe('$ 500.000 con tope')
     expect(overallRatio({ budget: 0, spent: 500000, remaining: 0 })).toBeNull()
   })
   it('adds no detail when all the spending is capped', () => {
