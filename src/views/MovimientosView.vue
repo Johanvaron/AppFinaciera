@@ -8,18 +8,20 @@ import PageHeader from '@/components/layout/PageHeader.vue'
 import MovimientosBulkBar from '@/components/movimientos/MovimientosBulkBar.vue'
 import MovimientosFilters from '@/components/movimientos/MovimientosFilters.vue'
 import MovimientosTable from '@/components/movimientos/MovimientosTable.vue'
-import { countLabel, deleteWarning, filteredTotals, sortTransactions, type SortDir, type SortKey } from '@/components/movimientos/transactions'
+import { countLabel, deleteResultText, deleteWarning, filteredTotals, removeEach, sortTransactions, type SortDir, type SortKey } from '@/components/movimientos/transactions'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiModal from '@/components/ui/UiModal.vue'
 import { api, type TransactionFilters } from '@/lib/api'
 import { formatMoney } from '@/lib/format'
 import { errorMessage, useAccounts, useApiMutation, useCategories, useTransactions } from '@/lib/queries'
+import { useToasts } from '@/lib/toasts'
 import { usePeriodStore } from '@/stores/period'
 import { useQuickAdd } from '@/stores/quickAdd'
 
 const period = usePeriodStore()
 const quickAdd = useQuickAdd()
+const toasts = useToasts()
 
 // ---------- filters ----------
 const search = ref('')
@@ -96,7 +98,8 @@ watch(() => period.month, clearSelection)
 
 // ---------- writes ----------
 const categorize = useApiMutation(api.transactions.bulkCategorize, { success: 'Categoría actualizada' })
-const removeMany = useApiMutation((ids: number[]) => Promise.all(ids.map((id) => api.transactions.remove(id))))
+// Resolves even when some deletes fail, so the cache is always refreshed with what really happened.
+const removeMany = useApiMutation((ids: number[]) => removeEach(ids, api.transactions.remove))
 
 function onCategorize(newCategoryId: number) {
   categorize.mutate({ ids: selected.value.map((tx) => tx.id), categoryId: newCategoryId }, { onSuccess: clearSelection })
@@ -115,9 +118,11 @@ const warning = computed(() => deleteWarning(toDelete.value))
 function confirmDelete() {
   const ids = toDelete.value.map((tx) => tx.id)
   removeMany.mutate(ids, {
-    onSuccess: () => {
+    onSuccess: (result) => {
       toDelete.value = []
       clearSelection()
+      if (result.failed > 0) toasts.error(deleteResultText(result))
+      else toasts.success(deleteResultText(result))
     },
   })
 }

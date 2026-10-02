@@ -6,9 +6,11 @@ import {
   applicableCategories,
   bulkCategoryRule,
   countLabel,
+  deleteResultText,
   deleteWarning,
   filteredTotals,
   groupByDay,
+  removeEach,
   rowView,
   sortTransactions,
 } from './transactions'
@@ -215,5 +217,35 @@ describe('deleteWarning', () => {
     expect(warning.question).toBe('¿Eliminar 3 movimientos? No se puede deshacer.')
     expect(warning.fixedNotice).toBe('2 son pagos de gastos fijos: esos gastos fijos volverán a quedar pendientes en su mes.')
     expect(deleteWarning([tx({}), tx({ fixedExpenseId: 3 })]).fixedNotice).toBe('1 es el pago de un gasto fijo: ese gasto fijo volverá a quedar pendiente en su mes.')
+  })
+})
+
+describe('removeEach / deleteResultText', () => {
+  const failing = (bad: Record<number, unknown>) => (id: number) => (id in bad ? Promise.reject(bad[id]) : Promise.resolve())
+
+  it('tells how many were deleted when all go through', async () => {
+    expect(deleteResultText(await removeEach([1], failing({})))).toBe('Movimiento eliminado')
+    expect(deleteResultText(await removeEach([1, 2, 3], failing({})))).toBe('3 movimientos eliminados')
+  })
+
+  it('keeps going after a failure and reports what was left', async () => {
+    const calls: number[] = []
+    const remove = (id: number) => {
+      calls.push(id)
+      return id === 2 ? Promise.reject(new Error('boom')) : Promise.resolve()
+    }
+    const result = await removeEach([1, 2, 3, 4], remove)
+    expect(calls).toEqual([1, 2, 3, 4])
+    expect(result).toEqual({ deleted: 3, failed: 1 })
+    expect(deleteResultText(result)).toBe('Eliminados 3 de 4 movimientos. Faltó eliminar 1: intenta de nuevo.')
+  })
+
+  it('counts a movement that no longer exists (404) as deleted', async () => {
+    expect(await removeEach([1, 2], failing({ 2: { status: 404 } }))).toEqual({ deleted: 2, failed: 0 })
+  })
+
+  it('throws the server error when nothing could be deleted', async () => {
+    const down = new Error('No se pudo conectar')
+    await expect(removeEach([1, 2], failing({ 1: down, 2: down }))).rejects.toBe(down)
   })
 })

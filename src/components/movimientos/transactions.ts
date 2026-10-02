@@ -148,7 +148,30 @@ export function applicableCategories(selected: Transaction[], categories: Catego
   return categories.filter((c) => c.kind === kind && !c.archived)
 }
 
-/** Text of the delete confirmation; warns when fixed-expense payments are involved. */
+export interface BulkDeleteResult {
+  deleted: number
+  failed: number
+}
+
+/**
+ * Deletes one by one and waits for ALL of them, so a failure in the middle never hides
+ * what was already deleted. A 404 counts as deleted (it is gone, which is what was asked).
+ * Throws only when nothing at all could be deleted.
+ */
+export async function removeEach(ids: number[], remove: (id: number) => Promise<unknown>): Promise<BulkDeleteResult> {
+  const results = await Promise.allSettled(ids.map((id) => remove(id)))
+  const errors = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected' && (r.reason as { status?: number } | null)?.status !== 404)
+  if (ids.length > 0 && errors.length === ids.length) throw errors[0]!.reason
+  return { deleted: ids.length - errors.length, failed: errors.length }
+}
+
+/** Toast after deleting: "Movimiento eliminado", "3 movimientos eliminados" or what was left undone. */
+export function deleteResultText({ deleted, failed }: BulkDeleteResult): string {
+  if (failed > 0) return `Eliminados ${deleted} de ${deleted + failed} movimientos. Faltó eliminar ${failed}: intenta de nuevo.`
+  return deleted === 1 ? 'Movimiento eliminado' : `${deleted} movimientos eliminados`
+}
+
+/** Text of the delete confirmation;warns when fixed-expense payments are involved. */
 export function deleteWarning(transactions: Transaction[]): { question: string; fixedNotice: string } {
   const count = transactions.length
   const fixed = transactions.filter((tx) => tx.fixedExpenseId != null).length
