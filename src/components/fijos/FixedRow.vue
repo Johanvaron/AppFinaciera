@@ -143,7 +143,7 @@ function resetOverride() {
         <span v-if="partial" class="num">{{ partial }}</span>
         <span v-if="item.hasOverride && !paid && !skipped" class="inline-flex items-center gap-1.5">
           <span>Solo este mes</span>
-          <button type="button" class="rounded font-medium text-primary hover:underline" @click="resetOverride">
+          <button type="button" class="inline-flex min-h-10 items-center rounded px-1 font-medium text-primary hover:underline sm:min-h-0" @click="resetOverride">
             {{ resetOverrideLabel(item.fixed.amount) }}
           </button>
         </span>
