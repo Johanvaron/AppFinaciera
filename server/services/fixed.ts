@@ -59,9 +59,12 @@ export function buildFixedItem(
   today: string,
 ): FixedMonthItem {
   const dueDate = dueDateFor(month, fixed.dueDay)
+  const expectedAmount = override?.expectedAmount ?? fixed.amount
+  const paidAmount = sum(payments.map((payment) => payment.amount))
   const status = deriveStatus({
     skipped: override?.skipped ?? false,
-    paid: payments.length > 0,
+    // A partial payment leaves the month open; with nothing expected, any payment settles it.
+    paid: payments.length > 0 && paidAmount >= expectedAmount,
     dueDate,
     month,
     today,
@@ -70,9 +73,9 @@ export function buildFixedItem(
   return {
     fixed,
     month,
-    expectedAmount: override?.expectedAmount ?? fixed.amount,
+    expectedAmount,
     hasOverride: override?.expectedAmount != null,
-    paidAmount: sum(payments.map((payment) => payment.amount)),
+    paidAmount,
     status,
     dueDate,
     paidDate: status === 'paid' && lastPayment ? lastPayment.date : null,
@@ -84,8 +87,8 @@ function totalsOf(items: FixedMonthItem[]): FixedMonthResponse['totals'] {
   const counted = items.filter((item) => item.status !== 'skipped')
   const paid = counted.filter((item) => item.status === 'paid')
   const unpaid = counted.filter((item) => item.status !== 'paid')
-  const paidTotal = sum(paid.map((item) => item.paidAmount))
-  const pendingTotal = sum(unpaid.map((item) => item.expectedAmount))
+  const paidTotal = sum(counted.map((item) => item.paidAmount))
+  const pendingTotal = sum(unpaid.map((item) => Math.max(item.expectedAmount - item.paidAmount, 0)))
   return {
     expected: paidTotal + pendingTotal,
     paid: paidTotal,
@@ -171,7 +174,7 @@ export class FixedService {
     return this.item(fixed, month)
   }
 
-  /** Registers a payment (or a partial one) for `month`. The payment date may fall in another month. */
+  /** Registers a payment for `month`; a partial one leaves it pending until the expected amount is covered. The payment date may fall in another month. */
   pay(id: number, data: PayData): FixedMonthItem {
     const fixed = this.mustGet(id)
     this.assertApplies(fixed, data.month)

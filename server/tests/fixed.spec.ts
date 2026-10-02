@@ -30,13 +30,13 @@ describe('fixed expenses checklist', () => {
       transactionIds: [],
     })
 
-    const paid = await pay(rent, { amount: 880_000, date: '2026-03-14' })
-    expect(paid).toMatchObject({ status: 'paid', paidAmount: 880_000, expectedAmount: 900_000, paidDate: '2026-03-14' })
+    const paid = await pay(rent, { amount: 920_000, date: '2026-03-14' })
+    expect(paid).toMatchObject({ status: 'paid', paidAmount: 920_000, expectedAmount: 900_000, paidDate: '2026-03-14' })
     const [payment] = await api.ok('GET', '/transactions')
     expect(payment).toMatchObject({
       id: paid.transactionIds[0],
       type: 'expense',
-      amount: 880_000,
+      amount: 920_000,
       date: '2026-03-14',
       accountId: bank,
       categoryId: housing,
@@ -44,7 +44,7 @@ describe('fixed expenses checklist', () => {
       fixedExpenseId: rent,
       fixedMonth: '2026-03',
     })
-    expect((await api.ok('GET', '/accounts'))[0].balance).toBe(4_120_000)
+    expect((await api.ok('GET', '/accounts'))[0].balance).toBe(4_080_000)
 
     const undone = await api.ok('DELETE', `/fixed/${rent}/pay?month=2026-03`)
     expect(undone).toMatchObject({ status: 'pending', paidAmount: 0, paidDate: null, transactionIds: [] })
@@ -52,12 +52,36 @@ describe('fixed expenses checklist', () => {
     expect((await api.ok('GET', '/accounts'))[0].balance).toBe(5_000_000)
   })
 
-  it('adds up several partial payments of the same month', async () => {
-    const card = await api.fixed({ name: 'Tarjeta', amount: 600_000, categoryId: housing })
-    await pay(card, { amount: 250_000, date: '2026-03-05' })
-    const second = await pay(card, { amount: 130_000, date: '2026-03-12' })
-    expect(second).toMatchObject({ status: 'paid', paidAmount: 380_000, paidDate: '2026-03-12' })
+  it('keeps a partially paid month pending, owing the rest, until the payments cover the expected amount', async () => {
+    const salary = await api.category('Salario', 'income')
+    await api.income('2026-03-01', 2_000_000, bank, salary)
+    const house = await api.fixed({ name: 'Casa', amount: 500_000, dueDay: 20, categoryId: housing })
+
+    const first = await pay(house, { amount: 200_000, date: '2026-03-05' })
+    expect(first).toMatchObject({ status: 'pending', paidAmount: 200_000, expectedAmount: 500_000, paidDate: null })
+    expect((await month('2026-03')).totals).toEqual({
+      expected: 500_000,
+      paid: 200_000,
+      pending: 300_000,
+      countPaid: 0,
+      countTotal: 1,
+    })
+    // 2.000.000 of income - 200.000 paid - 300.000 still owed
+    expect(await api.ok('GET', '/summary?month=2026-03')).toMatchObject({ pendingFixed: 300_000, availableToSpend: 1_500_000 })
+    // a partial payment does not stop the month from becoming overdue
+    api.clock.today = '2026-03-21'
+    expect((await itemOf('2026-03', house)).status).toBe('overdue')
+
+    const second = await pay(house, { amount: 300_000, date: '2026-03-22' })
+    expect(second).toMatchObject({ status: 'paid', paidAmount: 500_000, paidDate: '2026-03-22' })
     expect(second.transactionIds).toHaveLength(2)
+    expect((await month('2026-03')).totals).toEqual({ expected: 500_000, paid: 500_000, pending: 0, countPaid: 1, countTotal: 1 })
+    expect((await api.ok('GET', '/summary?month=2026-03')).pendingFixed).toBe(0)
+  })
+
+  it('settles a month with nothing expected on any payment', async () => {
+    const card = await api.fixed({ name: 'Tarjeta', amount: 0, variableAmount: true, categoryId: housing })
+    expect(await pay(card, { amount: 130_000, date: '2026-03-12' })).toMatchObject({ status: 'paid', paidAmount: 130_000 })
   })
 
   it('is overdue once the due date is before today (injected clock)', async () => {
@@ -149,12 +173,12 @@ describe('fixed expenses checklist', () => {
 
   it('refuses to skip a month that already has a payment (409), so the paid money stays in the totals', async () => {
     const rent = await api.fixed({ name: 'Arriendo', amount: 900_000, dueDay: 20, categoryId: housing })
-    await pay(rent, { amount: 870_000, date: '2026-03-02' })
+    await pay(rent, { amount: 915_000, date: '2026-03-02' })
 
     const response = await api.call('PUT', `/fixed/${rent}/months/2026-03`, { skipped: true })
     expect(response.status).toBe(409)
     expect((await itemOf('2026-03', rent)).status).toBe('paid')
-    expect((await month('2026-03')).totals).toMatchObject({ paid: 870_000, countPaid: 1, countTotal: 1 })
+    expect((await month('2026-03')).totals).toMatchObject({ paid: 915_000, countPaid: 1, countTotal: 1 })
 
     // Once the payment is undone the month can be skipped.
     await api.ok('DELETE', `/fixed/${rent}/pay?month=2026-03`)
@@ -167,21 +191,22 @@ describe('fixed expenses checklist', () => {
     const power = await api.fixed({ name: 'Energía', amount: 150_000, dueDay: 10, categoryId: housing })
     const gym = await api.fixed({ name: 'Gimnasio', amount: 80_000, categoryId: housing })
     await pay(rent, { amount: 870_000, date: '2026-03-04' })
+    await pay(net, { amount: 97_000, date: '2026-03-06' })
     await api.ok('PUT', `/fixed/${power}/months/2026-03`, { expectedAmount: 187_300 })
     await api.ok('PUT', `/fixed/${gym}/months/2026-03`, { skipped: true })
 
     const response = await month('2026-03')
     expect(response.items.map((item: any) => [item.fixed.id, item.status])).toEqual([
-      [rent, 'paid'],
-      [net, 'pending'],
+      [rent, 'overdue'],
+      [net, 'paid'],
       [power, 'overdue'],
       [gym, 'skipped'],
     ])
-    // expected = 870.000 actually paid + 95.000 + 187.300 still expected (the skipped one is out)
+    // paid = 870.000 (partial) + 97.000; pending = 30.000 left of Arriendo + 187.300 (the skipped one is out)
     expect(response.totals).toEqual({
-      expected: 1_152_300,
-      paid: 870_000,
-      pending: 282_300,
+      expected: 1_184_300,
+      paid: 967_000,
+      pending: 217_300,
       countPaid: 1,
       countTotal: 3,
     })

@@ -200,6 +200,7 @@ export interface FixedMonthItem {
   hasOverride: boolean
   /** Sum of the payments linked to this fixed expense for this month. */
   paidAmount: number
+  /** 'paid' only when paidAmount >= expectedAmount; a partial payment stays pending / overdue. */
   status: FixedStatus
   /** Null when the fixed expense has no dueDay. */
   dueDate: IsoDate | null
@@ -212,11 +213,13 @@ export interface FixedMonthResponse {
   month: Month
   items: FixedMonthItem[]
   totals: {
-    /** Sum of expectedAmount of non-skipped items (paid items count what was actually paid). */
+    /** paid + pending: what the month costs once everything is settled. */
     expected: number
+    /** Sum of paidAmount of non-skipped items, partial payments included. */
     paid: number
-    /** Sum of expectedAmount of pending + overdue items. */
+    /** What is still owed: sum of max(expectedAmount - paidAmount, 0) of pending + overdue items. */
     pending: number
+    /** Items fully paid (paidAmount >= expectedAmount); a partial payment does not count. */
     countPaid: number
     countTotal: number
   }

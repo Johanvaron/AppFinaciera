@@ -114,7 +114,7 @@ describe('summary', () => {
     const tithe = await api.fixed({ name: 'Diezmo', amount: 50_000, categoryId: housing })
     const internet = await api.fixed({ name: 'Internet', amount: 95_000, dueDay: 20, categoryId: housing })
     const rent = await api.fixed({ name: 'Arriendo', amount: 900_000, dueDay: 5, categoryId: housing })
-    const gym = await api.fixed({ name: 'Gimnasio', amount: 75_000, dueDay: 2, categoryId: housing })
+    const gym = await api.fixed({ name: 'Gimnasio', amount: 68_000, dueDay: 2, categoryId: housing })
     await api.ok('POST', `/fixed/${gym}/pay`, { month: '2026-03', amount: 70_000, date: '2026-03-02', accountId: bank }, 201)
 
     ids = { bank, cash, food, dining, housing, tithe, internet, rent, gym, last: last.id }
