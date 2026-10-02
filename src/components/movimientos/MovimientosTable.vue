@@ -56,7 +56,8 @@ function sortIcon(key: SortKey) {
 <template>
   <!-- 640px and up: table -->
   <div class="table-wrap hidden sm:block">
-    <table class="table min-w-[760px]">
+    <!-- Below xl the account moves under the description, so the row actions fit without sideways scroll. -->
+    <table class="table min-w-[560px]">
       <thead>
         <tr>
           <th class="w-9">
@@ -70,7 +71,7 @@ function sortIcon(key: SortKey) {
           </th>
           <th>Descripción</th>
           <th>Categoría</th>
-          <th>Cuenta</th>
+          <th class="hidden xl:table-cell">Cuenta</th>
           <th class="!text-right" :aria-sort="ariaSort('amount')">
             <button type="button" class="inline-flex items-center gap-1 hover:text-ink" @click="emit('sort', 'amount')">
               Monto
@@ -100,6 +101,7 @@ function sortIcon(key: SortKey) {
                 <span class="truncate font-medium">{{ line.view.title }}</span>
                 <UiBadge v-if="line.view.isFixed">Fijo</UiBadge>
               </div>
+              <p class="truncate text-xs text-muted xl:hidden">{{ line.view.accountText }}</p>
               <p v-if="line.view.note" class="truncate text-xs text-muted">{{ line.view.note }}</p>
             </td>
             <td class="whitespace-nowrap">
@@ -108,7 +110,7 @@ function sortIcon(key: SortKey) {
                 {{ line.view.categoryName }}
               </span>
             </td>
-            <td class="whitespace-nowrap text-muted">{{ line.view.accountText }}</td>
+            <td class="hidden whitespace-nowrap text-muted xl:table-cell">{{ line.view.accountText }}</td>
             <td :class="['num text-right font-medium', line.view.amountClass]">{{ line.view.amountText }}</td>
             <td>
               <div class="flex justify-end gap-1" @dblclick.stop>
