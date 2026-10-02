@@ -79,12 +79,13 @@ export function useApiMutation<TInput, TOutput>(
   const toasts = useToasts()
   return useMutation({
     mutationFn,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries()
-      if (options.success) toasts.success(options.success)
-    },
     onError: (error) => {
       if (!options.silentError) toasts.error(errorMessage(error))
+    },
+    // A failed write may have been applied in part (a batch that stops halfway): refresh either way.
+    onSettled: async (_data, error) => {
+      await queryClient.invalidateQueries()
+      if (!error && options.success) toasts.success(options.success)
     },
   })
 }
