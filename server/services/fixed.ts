@@ -13,7 +13,7 @@ import type {
 } from '../../shared/contract.ts'
 import type { Transact } from '../db.ts'
 import { dueDateFor, isRealDate, monthOf, type Clock } from '../lib/dates.ts'
-import { invalid, notFound } from '../lib/errors.ts'
+import { conflict, invalid, notFound } from '../lib/errors.ts'
 import type { AccountRepository } from '../repositories/accounts.ts'
 import type { CategoryRepository } from '../repositories/categories.ts'
 import type { FixedExpenseRepository } from '../repositories/fixed-expenses.ts'
@@ -154,6 +154,10 @@ export class FixedService {
   setOverride(id: number, month: Month, data: OverrideData): FixedMonthItem {
     const fixed = this.mustGet(id)
     this.assertApplies(fixed, month)
+    // A skipped month drops out of the totals, which would hide money that was really paid.
+    if (data.skipped === true && this.deps.transactions.fixedPayments(month, id).length > 0) {
+      throw conflict('Este mes ya tiene un pago registrado; quita el pago antes de marcarlo como "No aplica".')
+    }
     const current = this.deps.months.find(id, month)
     const expectedAmount = data.expectedAmount === undefined ? (current?.expectedAmount ?? null) : data.expectedAmount
     const skipped = data.skipped ?? current?.skipped ?? false

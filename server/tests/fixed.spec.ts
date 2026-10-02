@@ -147,6 +147,20 @@ describe('fixed expenses checklist', () => {
     expect(await pay(gym, { amount: 95_000, date: '2026-03-15' })).toMatchObject({ status: 'paid', paidAmount: 95_000 })
   })
 
+  it('refuses to skip a month that already has a payment (409), so the paid money stays in the totals', async () => {
+    const rent = await api.fixed({ name: 'Arriendo', amount: 900_000, dueDay: 20, categoryId: housing })
+    await pay(rent, { amount: 870_000, date: '2026-03-02' })
+
+    const response = await api.call('PUT', `/fixed/${rent}/months/2026-03`, { skipped: true })
+    expect(response.status).toBe(409)
+    expect((await itemOf('2026-03', rent)).status).toBe('paid')
+    expect((await month('2026-03')).totals).toMatchObject({ paid: 870_000, countPaid: 1, countTotal: 1 })
+
+    // Once the payment is undone the month can be skipped.
+    await api.ok('DELETE', `/fixed/${rent}/pay?month=2026-03`)
+    expect((await api.ok('PUT', `/fixed/${rent}/months/2026-03`, { skipped: true })).status).toBe('skipped')
+  })
+
   it('computes the totals from what was paid and what is still expected', async () => {
     const rent = await api.fixed({ name: 'Arriendo', amount: 900_000, dueDay: 5, categoryId: housing })
     const net = await api.fixed({ name: 'Internet', amount: 95_000, dueDay: 25, categoryId: housing })
