@@ -9,8 +9,11 @@
 import { z } from 'zod'
 
 // ---------- primitives ----------
-export const monthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Mes inválido (YYYY-MM)')
-export const dateSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'Fecha inválida (YYYY-MM-DD)')
+// Years 1900-2199 only: a typo such as 0000 or 0026 must not reach the month arithmetic.
+export const monthSchema = z.string().regex(/^(19|20|21)\d{2}-(0[1-9]|1[0-2])$/, 'Mes inválido (YYYY-MM)')
+export const dateSchema = z
+  .string()
+  .regex(/^(19|20|21)\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'Fecha inválida (YYYY-MM-DD)')
 export const moneySchema = z.number().int('El monto debe ser en pesos enteros').min(0).max(999_999_999_999)
 export const idSchema = z.number().int().positive()
 

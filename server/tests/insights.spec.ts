@@ -297,4 +297,24 @@ describe('reports', () => {
     expect(defaults.months[11]).toBe('2026-03')
     expect((await api.call('GET', '/reports/categories?from=2026-04&to=2026-03')).status).toBe(422)
   })
+
+  it('rejects a year outside 1900-2199 instead of breaking the month arithmetic', async () => {
+    const cases: [string, string][] = [
+      ['/reports/monthly?months=3&until=0000-01', 'until'],
+      ['/reports/categories?to=0000-03', 'to'],
+      ['/summary?month=0000-01', 'month'],
+      ['/fixed?month=2200-01', 'month'],
+    ]
+    for (const [path, field] of cases) {
+      const response = await api.call('GET', path)
+      expect([path, response.status]).toEqual([path, 422])
+      expect(response.body.fields).toEqual({ [field]: 'Mes inválido (YYYY-MM)' })
+    }
+    const movement = await api.call('POST', '/transactions', { date: '0026-03-10', amount: 5_000, type: 'expense', accountId: 1, categoryId: food })
+    expect(movement.status).toBe(422)
+    expect(movement.body.fields).toEqual({ date: 'Fecha inválida (YYYY-MM-DD)' })
+    // the edges of the range still work, across the year boundary
+    expect((await api.ok('GET', '/summary?month=1900-01')).previous.month).toBe('1899-12')
+    expect(await api.ok('GET', '/reports/monthly?months=2&until=2199-12')).toHaveLength(2)
+  })
 })
