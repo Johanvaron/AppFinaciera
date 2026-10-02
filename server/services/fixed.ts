@@ -12,8 +12,8 @@ import type {
   fixedPaySchema,
 } from '../../shared/contract.ts'
 import type { Transact } from '../db.ts'
-import { dueDateFor, monthOf, type Clock } from '../lib/dates.ts'
-import { invalid, notFound } from '../lib/errors.ts'
+import { dueDateFor, isRealDate, monthOf, type Clock } from '../lib/dates.ts'
+import { conflict, invalid, notFound } from '../lib/errors.ts'
 import type { AccountRepository } from '../repositories/accounts.ts'
 import type { CategoryRepository } from '../repositories/categories.ts'
 import type { FixedExpenseRepository } from '../repositories/fixed-expenses.ts'
@@ -59,9 +59,12 @@ export function buildFixedItem(
   today: string,
 ): FixedMonthItem {
   const dueDate = dueDateFor(month, fixed.dueDay)
+  const expectedAmount = override?.expectedAmount ?? fixed.amount
+  const paidAmount = sum(payments.map((payment) => payment.amount))
   const status = deriveStatus({
     skipped: override?.skipped ?? false,
-    paid: payments.length > 0,
+    // A partial payment leaves the month open; with nothing expected, any payment settles it.
+    paid: payments.length > 0 && paidAmount >= expectedAmount,
     dueDate,
     month,
     today,
@@ -70,9 +73,9 @@ export function buildFixedItem(
   return {
     fixed,
     month,
-    expectedAmount: override?.expectedAmount ?? fixed.amount,
+    expectedAmount,
     hasOverride: override?.expectedAmount != null,
-    paidAmount: sum(payments.map((payment) => payment.amount)),
+    paidAmount,
     status,
     dueDate,
     paidDate: status === 'paid' && lastPayment ? lastPayment.date : null,
@@ -84,8 +87,8 @@ function totalsOf(items: FixedMonthItem[]): FixedMonthResponse['totals'] {
   const counted = items.filter((item) => item.status !== 'skipped')
   const paid = counted.filter((item) => item.status === 'paid')
   const unpaid = counted.filter((item) => item.status !== 'paid')
-  const paidTotal = sum(paid.map((item) => item.paidAmount))
-  const pendingTotal = sum(unpaid.map((item) => item.expectedAmount))
+  const paidTotal = sum(counted.map((item) => item.paidAmount))
+  const pendingTotal = sum(unpaid.map((item) => Math.max(item.expectedAmount - item.paidAmount, 0)))
   return {
     expected: paidTotal + pendingTotal,
     paid: paidTotal,
@@ -124,8 +127,27 @@ export class FixedService {
 
   update(id: number, patch: Partial<FixedData>): FixedExpense {
     const current = this.mustGet(id)
-    this.checkDefinition({ ...current, ...patch })
-    return this.deps.fixed.update(id, patch) as FixedExpense
+    const next = { ...current, ...patch }
+    this.checkDefinition(next)
+    if (next.startMonth === current.startMonth && next.endMonth === current.endMonth) {
+      return this.deps.fixed.update(id, patch) as FixedExpense
+    }
+    this.checkPaymentsInRange(id, next)
+    return this.deps.transact(() => {
+      // Overrides of months that no longer apply would be unreachable leftovers.
+      this.deps.months.deleteOutside(id, next.startMonth, next.endMonth)
+      return this.deps.fixed.update(id, patch) as FixedExpense
+    })
+  }
+
+  /** A month with payments cannot be cut out of the range: its "paid" would vanish while the movements stay. */
+  private checkPaymentsInRange(id: number, range: Pick<FixedData, 'startMonth' | 'endMonth'>): void {
+    const span = this.deps.transactions.fixedPaymentSpan(id)
+    if (!span) return
+    const fields: Record<string, string> = {}
+    if (span.first < range.startMonth) fields.startMonth = 'Hay pagos registrados fuera de ese rango'
+    if (range.endMonth != null && span.last > range.endMonth) fields.endMonth = 'Hay pagos registrados fuera de ese rango'
+    if (Object.keys(fields).length > 0) throw invalid(fields)
   }
 
   /** Its payments stay as plain movements; its overrides go away. */
@@ -154,6 +176,10 @@ export class FixedService {
   setOverride(id: number, month: Month, data: OverrideData): FixedMonthItem {
     const fixed = this.mustGet(id)
     this.assertApplies(fixed, month)
+    // A skipped month drops out of the totals, which would hide money that was really paid.
+    if (data.skipped === true && this.deps.transactions.fixedPayments(month, id).length > 0) {
+      throw conflict('Este mes ya tiene un pago registrado; quita el pago antes de marcarlo como "No aplica".')
+    }
     const current = this.deps.months.find(id, month)
     const expectedAmount = data.expectedAmount === undefined ? (current?.expectedAmount ?? null) : data.expectedAmount
     const skipped = data.skipped ?? current?.skipped ?? false
@@ -167,10 +193,11 @@ export class FixedService {
     return this.item(fixed, month)
   }
 
-  /** Registers a payment (or a partial one) for `month`. The payment date may fall in another month. */
+  /** Registers a payment for `month`; a partial one leaves it pending until the expected amount is covered. The payment date may fall in another month. */
   pay(id: number, data: PayData): FixedMonthItem {
     const fixed = this.mustGet(id)
     this.assertApplies(fixed, data.month)
+    if (!isRealDate(data.date)) throw invalid({ date: 'Esa fecha no existe en el calendario' })
     if (!this.deps.accounts.exists(data.accountId)) throw invalid({ accountId: 'La cuenta no existe' })
     this.deps.transact(() => {
       this.deps.transactions.insert({
@@ -193,8 +220,9 @@ export class FixedService {
   }
 
   /** Deletes every payment of that month. */
-  unpay(id: number, month: Month = monthOf(this.deps.clock())): FixedMonthItem {
+  unpay(id: number, month: Month): FixedMonthItem {
     const fixed = this.mustGet(id)
+    this.assertApplies(fixed, month)
     this.deps.transactions.deleteFixedPayments(id, month)
     return this.item(fixed, month)
   }

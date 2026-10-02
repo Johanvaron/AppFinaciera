@@ -28,4 +28,15 @@ export class FixedMonthRepository extends BaseRepository<FixedMonthRecord> {
   deleteFor(fixedId: number): number {
     return this.run('DELETE FROM fixed_months WHERE fixed_id = ?', fixedId)
   }
+
+  /** Drops the overrides of a fixed expense that fall outside startMonth..endMonth (no end = open). */
+  deleteOutside(fixedId: number, startMonth: Month, endMonth: Month | null): number {
+    return this.run(
+      'DELETE FROM fixed_months WHERE fixed_id = ? AND (month < ? OR (? IS NOT NULL AND month > ?))',
+      fixedId,
+      startMonth,
+      endMonth,
+      endMonth,
+    )
+  }
 }

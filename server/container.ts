@@ -47,7 +47,7 @@ export function buildServices(db: DatabaseSync, options: AppOptions = {}) {
 
   return {
     accounts,
-    categories: new CategoryService(categoryRepo, transactionRepo, fixedRepo, budgetRepo),
+    categories: new CategoryService(categoryRepo, transactionRepo, fixedRepo, budgetRepo, run),
     transactions: new TransactionService(transactionRepo, accountRepo, categoryRepo),
     fixed,
     budgets: new BudgetService(budgetRepo, categoryRepo, transactionRepo, clock),

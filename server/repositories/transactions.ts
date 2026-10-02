@@ -74,6 +74,15 @@ export class TransactionRepository extends BaseRepository<Transaction, Transacti
     return this.run('DELETE FROM transactions WHERE fixed_expense_id = ? AND fixed_month = ?', fixedExpenseId, month)
   }
 
+  /** First and last month a fixed expense has payments for; undefined when it has none. */
+  fixedPaymentSpan(fixedExpenseId: number): { first: Month; last: Month } | undefined {
+    const row = this.one(
+      'SELECT MIN(fixed_month) AS first, MAX(fixed_month) AS last FROM transactions WHERE fixed_expense_id = ?',
+      fixedExpenseId,
+    )
+    return row?.first == null ? undefined : { first: String(row.first), last: String(row.last) }
+  }
+
   /** Turns the payments of a fixed expense into plain movements. */
   unlinkFixed(fixedExpenseId: number): number {
     return this.run(

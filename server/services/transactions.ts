@@ -5,7 +5,7 @@ import type {
   transactionInputSchema,
   transactionQuerySchema,
 } from '../../shared/contract.ts'
-import { monthBounds } from '../lib/dates.ts'
+import { isRealDate, monthBounds } from '../lib/dates.ts'
 import { invalid, notFound } from '../lib/errors.ts'
 import type { AccountRepository } from '../repositories/accounts.ts'
 import type { CategoryRepository } from '../repositories/categories.ts'
@@ -76,6 +76,7 @@ export class TransactionService {
 
   private checkReferences(data: TransactionData): void {
     const fields: Record<string, string> = {}
+    if (!isRealDate(data.date)) fields.date = 'Esa fecha no existe en el calendario'
     if (!this.accounts.exists(data.accountId)) fields.accountId = 'La cuenta no existe'
     if (data.toAccountId != null && !this.accounts.exists(data.toAccountId)) {
       fields.toAccountId = 'La cuenta destino no existe'

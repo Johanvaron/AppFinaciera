@@ -51,7 +51,7 @@ export function createTestApi(today = '2026-03-15') {
   const fixed = (input: Record<string, unknown>): Promise<number> =>
     ok('POST', '/fixed', { startMonth: '2026-01', ...input }, 201).then((row) => row.id)
 
-  return { db, clock, call, ok, account, category, income, expense, transfer, fixed }
+  return { db, app, clock, call, ok, account, category, income, expense, transfer, fixed }
 }
 
 export type TestApi = ReturnType<typeof createTestApi>
