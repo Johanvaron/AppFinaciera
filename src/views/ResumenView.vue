@@ -133,7 +133,7 @@ const stats = computed(() => {
         />
       </div>
 
-      <div class="grid grid-cols-12 items-start gap-4">
+      <div class="grid grid-cols-12 gap-4">
         <PaceCard class="col-span-12 xl:col-span-8" :summary="summary" />
         <UpcomingCard class="col-span-12 xl:col-span-4" :items="summary.upcomingFixed" />
 
