@@ -1,8 +1,8 @@
 import { z } from 'zod'
-import type { BackupFile } from '../../shared/contract.ts'
+import { dateSchema, monthSchema, type BackupFile } from '../../shared/contract.ts'
 import type { Transact } from '../db.ts'
 import { AppError, invalid } from '../lib/errors.ts'
-import type { Clock } from '../lib/dates.ts'
+import { isRealDate, type Clock } from '../lib/dates.ts'
 import type { BackupKey, BackupRepository } from '../repositories/backup.ts'
 
 const APP = 'app-financiera'
@@ -26,6 +26,40 @@ type BackupRestore = z.output<typeof backupRestoreSchema>
 
 const TABLE_KEYS: BackupKey[] = ['accounts', 'categories', 'transactions', 'fixedExpenses', 'fixedMonths', 'budgets']
 
+const isDate = (value: unknown): boolean => dateSchema.safeParse(value).success && isRealDate(value as string)
+const isMonth = (value: unknown): boolean => monthSchema.safeParse(value).success
+
+/** The date and month columns of each table. SQLite stores them as plain text and would take anything. */
+const DATE_COLUMNS: Partial<Record<BackupKey, Record<string, { valid: (value: unknown) => boolean; message: string }>>> = {
+  transactions: {
+    date: { valid: isDate, message: 'Fecha inválida (YYYY-MM-DD)' },
+    fixed_month: { valid: isMonth, message: 'Mes inválido (YYYY-MM)' },
+  },
+  fixedExpenses: {
+    start_month: { valid: isMonth, message: 'Mes inválido (YYYY-MM)' },
+    end_month: { valid: isMonth, message: 'Mes inválido (YYYY-MM)' },
+  },
+  fixedMonths: { month: { valid: isMonth, message: 'Mes inválido (YYYY-MM)' } },
+  budgets: { month: { valid: isMonth, message: 'Mes inválido (YYYY-MM)' } },
+}
+
+/**
+ * A movement with a malformed date would move its account balance without belonging to any month.
+ * Null / missing values are left to the table's own NOT NULL constraints.
+ */
+function checkDates(data: BackupRestore): void {
+  const fields: Record<string, string> = {}
+  for (const key of TABLE_KEYS) {
+    for (const [column, rule] of Object.entries(DATE_COLUMNS[key] ?? {})) {
+      data[key].forEach((row, index) => {
+        const value = row[column]
+        if (value != null && !rule.valid(value)) fields[`${key}.${index}.${column}`] = rule.message
+      })
+    }
+  }
+  if (Object.keys(fields).length > 0) throw invalid(fields, 'El respaldo tiene fechas inválidas; no se cambió nada.')
+}
+
 export class BackupService {
   private readonly backup: BackupRepository
   private readonly transact: Transact
@@ -45,6 +79,7 @@ export class BackupService {
   /** Replaces ALL the data with the backup's, atomically: if any row is rejected nothing changes. */
   restore(data: BackupRestore): { restored: true } {
     this.checkColumns(data)
+    checkDates(data)
     try {
       this.transact(() => this.backup.replaceAll(data))
     } catch (error) {
