@@ -41,7 +41,18 @@ el PR.
   gasto en tinta normal con `-`, rojo solo para alertas (vencido, excedido,
   saldo negativo).
 - **A7 [B]** Un monto mal escrito nunca se guarda como 0 ni borra un valor
-  existente: se rechaza con un mensaje.
+  existente. Son tres casos distintos:
+  - Texto que no es un número (`abc`): se rechaza con un mensaje y no se
+    envía nada al servidor.
+  - Campo vacío donde el contrato admite `null`: quita el valor. Son solo
+    dos campos: el monto de un presupuesto (`budgetInputSchema.amount`) y el
+    monto del mes de un gasto fijo
+    (`fixedMonthOverrideSchema.expectedAmount`).
+  - Campo vacío en cualquier otro monto: se rechaza con un mensaje.
+
+  `parseMoney` devuelve `null` tanto para el campo vacío como para el texto
+  inválido, así que la pantalla distingue los dos casos antes de enviar: un
+  `null` que sale de un texto inválido nunca llega al servidor.
 - **A8 [B]** Cada cálculo de plata nuevo o cambiado tiene un test que fija el
   **texto que ve el usuario** (`'$ 1.250.000'`, `'26 %'`), con valores
   distintos entre sí para que confundir dos fuentes rompa el test.
