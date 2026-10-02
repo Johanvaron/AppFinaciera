@@ -4,15 +4,16 @@
  * in place while unpaid), status badge and the actions menu.
  */
 import { computed, nextTick, ref } from 'vue'
-import { ArrowDown, ArrowUp, CalendarOff, CalendarX, Check, Minus, Pencil, Trash2, Undo2 } from 'lucide-vue-next'
+import { ArrowDown, ArrowUp, CalendarOff, CalendarX, Check, Eraser, Minus, Pencil, Trash2, Undo2 } from 'lucide-vue-next'
 import { FIXED_STATUS_LABELS, type Category, type FixedMonthItem } from '@shared/contract'
 import UiBadge from '@/components/ui/UiBadge.vue'
 import UiMoneyInput from '@/components/ui/UiMoneyInput.vue'
+import { formatMoney } from '@/lib/format'
 import { categoryHex } from '@/lib/palette'
 import RowMenu, { type MenuItem } from './RowMenu.vue'
-import { dueText, resetOverrideLabel, rowAmountText, statusTone } from './fixed'
+import { dueText, partialText, resetOverrideLabel, rowAmountText, statusTone } from './fixed'
 
-export type RowAction = 'edit' | 'skip' | 'up' | 'down' | 'end' | 'remove'
+export type RowAction = 'edit' | 'unpay' | 'skip' | 'up' | 'down' | 'end' | 'remove'
 
 const props = defineProps<{
   item: FixedMonthItem
@@ -31,6 +32,7 @@ const paid = computed(() => props.item.status === 'paid')
 const skipped = computed(() => props.item.status === 'skipped')
 const due = computed(() => dueText(props.item))
 const amountText = computed(() => rowAmountText(props.item))
+const partial = computed(() => partialText(props.item))
 const name = computed(() => props.item.fixed.name)
 
 const checkLabel = computed(() => {
@@ -40,7 +42,10 @@ const checkLabel = computed(() => {
 
 const menuItems = computed<MenuItem[]>(() => [
   { key: 'edit', label: 'Editar', icon: Pencil },
-  { key: 'skip', label: skipped.value ? 'Sí aplica este mes' : 'No aplica este mes', icon: skipped.value ? Undo2 : CalendarOff, disabled: paid.value },
+  // The check of a partly paid row opens "Pagar": this is the way to undo its payments.
+  ...(partial.value ? [{ key: 'unpay', label: 'Borrar abonos', icon: Eraser }] : []),
+  // The server refuses to skip a month that has payments.
+  { key: 'skip', label: skipped.value ? 'Sí aplica este mes' : 'No aplica este mes', icon: skipped.value ? Undo2 : CalendarOff, disabled: props.item.transactionIds.length > 0 },
   { key: 'up', label: 'Subir', icon: ArrowUp, disabled: props.first },
   { key: 'down', label: 'Bajar', icon: ArrowDown, disabled: props.last },
   { key: 'end', label: 'Terminar desde el mes siguiente', icon: CalendarX, disabled: props.item.fixed.endMonth === props.item.month },
@@ -100,6 +105,7 @@ function cancel() {
           <span class="truncate">{{ category?.name ?? 'Sin categoría' }}</span>
         </span>
         <span v-if="due.text" :class="due.danger && 'font-medium text-danger'">{{ due.text }}</span>
+        <span v-if="partial" class="num">{{ partial }}</span>
         <span v-if="item.hasOverride && !paid && !skipped" class="inline-flex items-center gap-1.5">
           <span>Solo este mes</span>
           <button type="button" class="rounded font-medium text-primary hover:underline" @click="emit('amount', null)">
@@ -126,7 +132,7 @@ function cancel() {
         v-else
         type="button"
         class="num -mr-2 h-10 rounded-lg px-2 text-[15px] font-semibold hover:bg-fill sm:h-8"
-        :aria-label="`Cambiar el monto de ${name} este mes, ahora ${amountText}`"
+        :aria-label="partial ? `Falta ${amountText} de ${name}. Cambiar el monto de este mes, ahora ${formatMoney(item.expectedAmount)}` : `Cambiar el monto de ${name} este mes, ahora ${amountText}`"
         title="Cambiar el monto solo este mes"
         @click="startEdit"
       >

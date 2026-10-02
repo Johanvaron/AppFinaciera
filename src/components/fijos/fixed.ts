@@ -46,9 +46,20 @@ export function needsAmount(item: AmountFields): boolean {
   return (item.status === 'pending' || item.status === 'overdue') && item.fixed.variableAmount && item.expectedAmount === 0
 }
 
-/** Pesos shown on the row: what was paid when paid, else what is expected. */
+/** What is still owed of the month: the expected amount minus the partial payments, never negative. */
+export function remainingAmount(item: Pick<FixedMonthItem, 'expectedAmount' | 'paidAmount'>): number {
+  return Math.max(item.expectedAmount - item.paidAmount, 0)
+}
+
+/** Pesos shown on the row: what was paid when paid, else what is still owed. */
 export function rowAmount(item: AmountFields): number {
-  return item.status === 'paid' ? item.paidAmount : item.expectedAmount
+  return item.status === 'paid' ? item.paidAmount : remainingAmount(item)
+}
+
+/** "Abonado $ X de $ Y" for an unpaid row with partial payments; null when there are none. */
+export function partialText(item: Pick<FixedMonthItem, 'status' | 'expectedAmount' | 'paidAmount'>): string | null {
+  if (item.status === 'paid' || item.paidAmount <= 0) return null
+  return `Abonado ${formatMoney(item.paidAmount)} de ${formatMoney(item.expectedAmount)}`
 }
 
 /** Text of the amount cell. Null means "show the 'Poner monto' action instead". */
@@ -92,6 +103,11 @@ export function splitFieldErrors(fields: Record<string, string>, visible: readon
 /** Start of the "undo payment" sentence; the amount follows it. Unpaying deletes EVERY payment of the month. */
 export function unpayLead(paymentCount: number): string {
   return paymentCount > 1 ? `Se borran los ${paymentCount} abonos de este mes, que suman` : 'Se borra el pago de'
+}
+
+/** End of that sentence: a paid row goes back to pending, a partly paid one owes the whole amount again. */
+export function unpayTail(item: Pick<FixedMonthItem, 'status' | 'expectedAmount'>): string {
+  return item.status === 'paid' ? 'y vuelve a quedar pendiente.' : `y vuelve a faltar todo: ${formatMoney(item.expectedAmount)}.`
 }
 
 /** "3 de 8" for the progress figure. */

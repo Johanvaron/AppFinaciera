@@ -10,7 +10,7 @@ import UiMoneyInput from '@/components/ui/UiMoneyInput.vue'
 import { api } from '@/lib/api'
 import { todayIso } from '@/lib/format'
 import { errorFields, errorMessage, useAccounts, useApiMutation } from '@/lib/queries'
-import { splitFieldErrors } from './fixed'
+import { remainingAmount, splitFieldErrors } from './fixed'
 
 const open = defineModel<boolean>('open', { required: true })
 const props = defineProps<{ item: FixedMonthItem | null }>()
@@ -29,9 +29,15 @@ function defaultAccount(): number | null {
   return usableAccounts.value.find((a) => !a.archived)?.id ?? null
 }
 
+/** What the dialog offers to pay: what is still owed, so a second payment never goes over. */
+function defaultAmount(item: FixedMonthItem): number | null {
+  const remaining = remainingAmount(item)
+  return remaining > 0 ? remaining : null
+}
+
 watch(open, (isOpen) => {
   if (!isOpen || !props.item) return
-  form.amount = props.item.expectedAmount > 0 ? props.item.expectedAmount : null
+  form.amount = defaultAmount(props.item)
   form.date = todayIso()
   form.accountId = defaultAccount()
   errors.value = {}

@@ -1,34 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { FixedMonthItem } from '@shared/contract'
-import { dueText, moveId, needsAmount, progressRatio, progressText, resetOverrideLabel, rowAmount, rowAmountText, splitFieldErrors, statusTone, unpayLead } from './fixed'
-
-function item(overrides: Partial<FixedMonthItem> & { variableAmount?: boolean } = {}): FixedMonthItem {
-  const { variableAmount = false, ...rest } = overrides
-  return {
-    fixed: {
-      id: 1,
-      name: 'Moto',
-      amount: 600_000,
-      variableAmount,
-      dueDay: 5,
-      categoryId: 3,
-      accountId: null,
-      startMonth: '2026-01',
-      endMonth: null,
-      note: '',
-      position: 0,
-    },
-    month: '2026-10',
-    expectedAmount: 600_000,
-    hasOverride: false,
-    paidAmount: 0,
-    status: 'pending',
-    dueDate: '2026-10-05',
-    paidDate: null,
-    transactionIds: [],
-    ...rest,
-  }
-}
+import { dueText, moveId, needsAmount, partialText, progressRatio, progressText, remainingAmount, resetOverrideLabel, rowAmount, rowAmountText, splitFieldErrors, statusTone, unpayLead, unpayTail } from './fixed'
+import { fixedItem as item } from './fixtures'
 
 describe('dueText', () => {
   const today = '2026-10-08'
@@ -81,6 +53,23 @@ describe('row amount', () => {
     expect(rowAmountText(paid)).toBe('$ 587.250')
   })
 
+  it('shows what is still owed, and the partial payment, on a partly paid row', () => {
+    const rappi = item({ expectedAmount: 1_143_416, paidAmount: 500_000, transactionIds: [41] })
+    expect(remainingAmount(rappi)).toBe(643_416)
+    expect(rowAmountText(rappi)).toBe('$ 643.416')
+    expect(partialText(rappi)).toBe('Abonado $ 500.000 de $ 1.143.416')
+    expect(rowAmountText({ ...rappi, status: 'overdue' })).toBe('$ 643.416')
+  })
+
+  it('mentions no partial payment when nothing was paid or the row is settled', () => {
+    expect(partialText(item({ expectedAmount: 1_143_416, paidAmount: 0 }))).toBeNull()
+    expect(partialText(item({ status: 'paid', expectedAmount: 1_143_416, paidAmount: 1_143_416 }))).toBeNull()
+  })
+
+  it('never shows a negative remainder', () => {
+    expect(remainingAmount(item({ expectedAmount: 500_000, paidAmount: 643_416 }))).toBe(0)
+  })
+
   it('asks for the amount of an unpaid variable item at zero', () => {
     const card = item({ variableAmount: true, expectedAmount: 0 })
     expect(needsAmount(card)).toBe(true)
@@ -130,6 +119,11 @@ describe('unpayLead', () => {
   it('says how many payments go away when there are several', () => {
     expect(unpayLead(1)).toBe('Se borra el pago de')
     expect(unpayLead(2)).toBe('Se borran los 2 abonos de este mes, que suman')
+  })
+
+  it('says what the row goes back to', () => {
+    expect(unpayTail(item({ status: 'paid', expectedAmount: 600_000, paidAmount: 587_250 }))).toBe('y vuelve a quedar pendiente.')
+    expect(unpayTail(item({ expectedAmount: 1_143_416, paidAmount: 500_000 }))).toBe('y vuelve a faltar todo: $ 1.143.416.')
   })
 })
 

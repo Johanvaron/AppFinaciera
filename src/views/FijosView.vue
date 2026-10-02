@@ -15,7 +15,7 @@ import FixedFormModal from '@/components/fijos/FixedFormModal.vue'
 import FixedRow, { type RowAction } from '@/components/fijos/FixedRow.vue'
 import FixedTotals from '@/components/fijos/FixedTotals.vue'
 import PayModal from '@/components/fijos/PayModal.vue'
-import { moveId, unpayLead } from '@/components/fijos/fixed'
+import { moveId, unpayLead, unpayTail } from '@/components/fijos/fixed'
 import { api } from '@/lib/api'
 import { addMonths, formatMoney, monthLabel } from '@/lib/format'
 import { errorMessage, useApiMutation, useCategories, useFixedMonth } from '@/lib/queries'
@@ -55,6 +55,7 @@ function toggle(item: FixedMonthItem) {
 // change is loading the previous month's rows are still on screen.
 const override = useApiMutation((input: { item: FixedMonthItem; body: FixedMonthOverrideInput }) => api.fixed.override(input.item.fixed.id, input.item.month, input.body))
 const unpay = useApiMutation((item: FixedMonthItem) => api.fixed.unpay(item.fixed.id, item.month), { success: 'Pago borrado' })
+const unpayTitle = computed(() => (target.value?.status === 'paid' ? 'Desmarcar' : 'Borrar abonos de'))
 const reorder = useApiMutation((ids: number[]) => api.fixed.reorder(ids))
 const end = useApiMutation((item: FixedMonthItem) => api.fixed.update(item.fixed.id, { endMonth: item.month }))
 const remove = useApiMutation((id: number) => api.fixed.remove(id), { success: 'Gasto fijo eliminado' })
@@ -70,7 +71,10 @@ function move(item: FixedMonthItem, direction: -1 | 1) {
 
 function onAction(item: FixedMonthItem, action: RowAction) {
   if (action === 'edit') openForm(item.fixed)
-  else if (action === 'skip') override.mutate({ item, body: { skipped: item.status !== 'skipped' } })
+  else if (action === 'unpay') {
+    target.value = item
+    unpayOpen.value = true
+  } else if (action === 'skip') override.mutate({ item, body: { skipped: item.status !== 'skipped' } })
   else if (action === 'up') move(item, -1)
   else if (action === 'down') move(item, 1)
   else if (action === 'end') {
@@ -154,9 +158,9 @@ async function confirmRemove() {
     <FixedFormModal v-model:open="formOpen" :editing="formEditing" :month="month" />
     <PayModal v-model:open="payOpen" :item="target" />
 
-    <UiModal v-model:open="unpayOpen" :title="`Desmarcar ${target?.fixed.name ?? ''}`" size="sm">
-      <p class="text-[14px]">
-        {{ unpayLead(target?.transactionIds.length ?? 0) }} <span class="num font-semibold">{{ formatMoney(target?.paidAmount ?? 0) }}</span> y vuelve a quedar pendiente.
+    <UiModal v-model:open="unpayOpen" :title="`${unpayTitle} ${target?.fixed.name ?? ''}`" size="sm">
+      <p v-if="target" class="text-[14px]">
+        {{ unpayLead(target.transactionIds.length) }} <span class="num font-semibold">{{ formatMoney(target.paidAmount) }}</span> {{ unpayTail(target) }}
       </p>
       <template #footer>
         <UiButton variant="ghost" @click="unpayOpen = false">Cancelar</UiButton>
