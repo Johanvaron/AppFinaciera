@@ -17,18 +17,29 @@ const SHORTCUTS = [
 function choose(dark: boolean) {
   if (theme.isDark !== dark) theme.toggleTheme()
 }
+
+/** Arrow keys move the selection, as in a native radio group (two options: any arrow goes to the other one). */
+function onKeydown(event: KeyboardEvent) {
+  if (!['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].includes(event.key)) return
+  event.preventDefault()
+  const next = !theme.isDark
+  choose(next)
+  const buttons = (event.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('[role="radio"]')
+  buttons[OPTIONS.findIndex((option) => option.dark === next)]?.focus()
+}
 </script>
 
 <template>
   <section class="card flex min-w-0 flex-col gap-3" aria-labelledby="appearance-title">
     <h2 id="appearance-title" class="text-[16px] font-semibold">Apariencia</h2>
-    <div class="flex rounded-lg bg-fill p-1" role="radiogroup" aria-label="Tema">
+    <div class="flex rounded-lg bg-fill p-1" role="radiogroup" aria-label="Tema" @keydown="onKeydown">
       <button
         v-for="option in OPTIONS"
         :key="option.label"
         type="button"
         role="radio"
         :aria-checked="theme.isDark === option.dark"
+        :tabindex="theme.isDark === option.dark ? 0 : -1"
         :class="[
           'flex h-9 flex-1 items-center justify-center gap-1.5 rounded-md text-[14px] font-medium transition-colors sm:h-7',
           theme.isDark === option.dark ? 'bg-surface text-ink shadow-card' : 'text-muted hover:text-ink',
