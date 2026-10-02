@@ -41,7 +41,7 @@ function onKeydown(event: KeyboardEvent) {
         :aria-checked="theme.isDark === option.dark"
         :tabindex="theme.isDark === option.dark ? 0 : -1"
         :class="[
-          'flex h-9 flex-1 items-center justify-center gap-1.5 rounded-md text-[14px] font-medium transition-colors sm:h-7',
+          'flex h-10 flex-1 items-center justify-center gap-1.5 rounded-md text-[14px] font-medium transition-colors sm:h-8',
           theme.isDark === option.dark ? 'bg-surface text-ink shadow-card' : 'text-muted hover:text-ink',
         ]"
         @click="choose(option.dark)"
