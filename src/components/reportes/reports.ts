@@ -65,9 +65,14 @@ export function averageDetailText(months: number): string {
   return months === 1 ? 'Promedio del rango: 1 mes' : `Promedio del rango: ${months} meses`
 }
 
-/** "Octubre 2026 · $ 1.250.000", or "—" when nothing was spent. */
-export function peakMonthText(totals: RangeTotals): string {
-  return totals.peak ? `${monthLabel(totals.peak.month)} · ${formatMoney(totals.peak.expenses)}` : '—'
+/** Figure of the peak-month card: what was spent that month, or "—" when nothing was spent. */
+export function peakAmountText(totals: RangeTotals): string {
+  return totals.peak ? formatMoney(totals.peak.expenses) : '—'
+}
+
+/** Detail of the peak-month card: "Octubre 2026"; nothing when nothing was spent. */
+export function peakMonthText(totals: RangeTotals): string | undefined {
+  return totals.peak ? monthLabel(totals.peak.month) : undefined
 }
 
 /** Text of a matrix cell: zero reads as a dash, not as "$ 0". */

@@ -6,6 +6,7 @@ import {
   isEmptyRange,
   matrixFooter,
   maxCellIndex,
+  peakAmountText,
   peakMonthText,
   rangeTotals,
 } from './reports'
@@ -66,7 +67,9 @@ describe('rangeTotals', () => {
   })
 
   it('finds the month with the highest expense', () => {
-    expect(peakMonthText(rangeTotals(rows))).toBe('Septiembre 2026 · $ 2.750.000')
+    // The card shows the amount as the figure and the month as the detail.
+    expect(peakAmountText(rangeTotals(rows))).toBe('$ 2.750.000')
+    expect(peakMonthText(rangeTotals(rows))).toBe('Septiembre 2026')
   })
 
   it('goes negative when more was spent than earned', () => {
@@ -76,12 +79,15 @@ describe('rangeTotals', () => {
   it('shows dashes when the range has no movements', () => {
     const empty = rangeTotals([row('2026-09', 0, 0), row('2026-10', 0, 0)])
     expect(cellText(empty.averageExpense)).toBe('—')
-    expect(peakMonthText(empty)).toBe('—')
+    expect(peakAmountText(empty)).toBe('—')
+    expect(peakMonthText(empty)).toBeUndefined()
     expect(empty.net).toBe(0)
   })
 
   it('has no peak month when there was only income', () => {
-    expect(peakMonthText(rangeTotals([row('2026-10', 900_000, 0)]))).toBe('—')
+    const onlyIncome = rangeTotals([row('2026-10', 900_000, 0)])
+    expect(peakAmountText(onlyIncome)).toBe('—')
+    expect(peakMonthText(onlyIncome)).toBeUndefined()
   })
 })
 
