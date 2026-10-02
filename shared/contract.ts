@@ -279,7 +279,9 @@ export const FIXED_STATUS_LABELS: Record<FixedStatus, string> = {
  * One row of the checklist for a given month. Status is derived, never stored.
  *
  * Status rule, checked in this order:
- * 1. 'skipped': the month is marked as "does not apply". A skipped month has no payments.
+ * 1. 'skipped': the month is marked as "does not apply". A skipped month has no payments:
+ *               the server guarantees it by answering 409 when a month that already has
+ *               payments is marked as skipped, and paying a skipped month un-skips it.
  * 2. 'paid':    paidAmount > 0 AND paidAmount >= expectedAmount. A partial payment is NOT
  *               'paid'. With expectedAmount 0 (variable amount not set yet) any payment pays it.
  * 3. 'overdue': not paid and dueDate < today; without dueDate, not paid and month < current month.
@@ -571,7 +573,7 @@ export interface ApiError {
  * PATCH  /fixed/:id                     fixedExpensePatchSchema -> 200 FixedExpense
  * DELETE /fixed/:id                     -> 204 (its payments stay as normal movements)
  * PUT    /fixed/order                   fixedOrderSchema -> 204
- * PUT    /fixed/:id/months/:month       fixedMonthOverrideSchema -> 200 FixedMonthItem
+ * PUT    /fixed/:id/months/:month       fixedMonthOverrideSchema -> 200 FixedMonthItem (409 if skipped: true and the month already has payments)
  * POST   /fixed/:id/pay                 fixedPaySchema -> 201 FixedMonthItem
  * DELETE /fixed/:id/pay                 query requiredMonthQuerySchema -> 200 FixedMonthItem (deletes that month's payments)
  *
