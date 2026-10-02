@@ -49,11 +49,15 @@
   html {
     font-family: Inter, 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
-    font-size: 14px;
   }
 
+  /*
+   * 14px text goes on body, NOT on html: the root size is what 1rem means, and
+   * at 14px every Tailwind size shrinks (h-10 = 35px instead of 40, px-4 = 14px).
+   */
   body {
     @apply bg-bg text-ink;
+    font-size: 14px;
     margin: 0;
     min-height: 100vh;
   }
