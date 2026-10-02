@@ -17,7 +17,7 @@ import { errorMessage, useCategories, useFixedMonth, useSummary } from '@/lib/qu
 import { usePeriodStore } from '@/stores/period'
 
 const period = usePeriodStore()
-const { data: summary, isPending, isError, error, refetch, isFetching } = useSummary(() => period.month)
+const { data: summary, isPending, isError, error, refetch, isFetching, isPlaceholderData } = useSummary(() => period.month)
 const { data: categories } = useCategories()
 // The summary only lists UNPAID fixed expenses; the checklist tells whether there are any at all.
 const {
@@ -29,8 +29,15 @@ const {
   isPlaceholderData: fixedIsPlaceholder,
 } = useFixedMonth(() => period.month)
 
-/** Null while the checklist of the month on screen is not known: loading, failed or still the previous month's. */
-const fixedCount = computed(() => (fixedMonth.value && !fixedIsPlaceholder.value ? fixedMonth.value.totals.countTotal : null))
+/**
+ * Null while the checklist of the month on screen is not known: loading, failed or still the previous month's.
+ * Both queries resolve on their own, so the count is only used when it belongs to the summary's month.
+ */
+const fixedCount = computed(() => {
+  const checklist = fixedMonth.value
+  if (!checklist || fixedIsPlaceholder.value || checklist.month !== summary.value?.month) return null
+  return checklist.totals.countTotal
+})
 const fixedFailed = computed(() => fixedIsError.value && fixedCount.value == null)
 const empty = computed(() => (summary.value ? isEmptyMonth(summary.value, fixedCount.value) : false))
 /** A month with no movements waits for the checklist before choosing between the welcome and the board. */
@@ -87,13 +94,14 @@ const stats = computed(() => {
       </div>
     </div>
 
-    <div v-else-if="empty" class="grid grid-cols-12 gap-4">
+    <!-- While the next month loads, the previous one stays on screen dimmed and marked busy. -->
+    <div v-else-if="empty" :class="['grid grid-cols-12 gap-4', isPlaceholderData && 'opacity-60']" :aria-busy="isPlaceholderData">
       <WelcomeCard :class="hasAccounts ? 'col-span-12 xl:col-span-8' : 'col-span-12'" :steps="steps" :month-name="monthNameLower(summary.month)" />
       <AccountsCard v-if="hasAccounts" class="col-span-12 xl:col-span-4" :accounts="summary.accounts" :total-balance="summary.totalBalance" />
       <RecentCard v-if="summary.recent.length" class="col-span-12" :transactions="summary.recent" :categories="categories ?? []" />
     </div>
 
-    <template v-else>
+    <div v-else :class="['flex min-w-0 flex-col gap-4', isPlaceholderData && 'opacity-60']" :aria-busy="isPlaceholderData">
       <div v-if="fixedFailed" class="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-card bg-danger-soft p-4" role="alert">
         <div class="min-w-0">
           <p class="text-[14px] font-medium">No se pudieron cargar los gastos fijos del mes</p>
@@ -133,6 +141,6 @@ const stats = computed(() => {
         <RecentCard class="col-span-12 md:col-span-7 xl:col-span-4" :transactions="summary.recent" :categories="categories ?? []" />
         <AccountsCard class="col-span-12 md:col-span-5 xl:col-span-3" :accounts="summary.accounts" :total-balance="summary.totalBalance" />
       </div>
-    </template>
+    </div>
   </div>
 </template>
