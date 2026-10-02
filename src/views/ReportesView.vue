@@ -32,7 +32,9 @@ const categories = useCategoryReport(() => ({ from: range.value.from, to: range.
 
 const rows = computed(() => monthly.data.value ?? [])
 const isEmpty = computed(() => isEmptyRange(rows.value))
-const categoriesError = computed(() => (categories.isError.value ? errorMessage(categories.error.value) : null))
+// A failed background refetch keeps the cached report on screen: the error only replaces it when there is nothing to show.
+const monthlyFailed = computed(() => monthly.isError.value && !monthly.data.value)
+const categoriesError = computed(() => (categories.isError.value && !categories.data.value ? errorMessage(categories.error.value) : null))
 
 const selectedRow = computed(() => categories.data.value?.rows.find((row) => row.category.id === selectedId.value) ?? null)
 
@@ -49,7 +51,7 @@ watch(kind, () => (selectedId.value = null))
 
     <p v-if="monthly.isPending.value" class="card py-10 text-center text-muted">Cargando reportes…</p>
 
-    <div v-else-if="monthly.isError.value" class="card flex flex-col items-center gap-3 py-8 text-center">
+    <div v-else-if="monthlyFailed" class="card flex flex-col items-center gap-3 py-8 text-center">
       <p class="text-danger">{{ errorMessage(monthly.error.value) }}</p>
       <UiButton @click="monthly.refetch()">Reintentar</UiButton>
     </div>
