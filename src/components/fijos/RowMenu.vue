@@ -21,6 +21,17 @@ const open = ref(false)
 const root = ref<HTMLElement>()
 const trigger = ref<HTMLButtonElement>()
 const list = ref<HTMLElement>()
+/** True when the panel opens above the button because it does not fit below. */
+const dropUp = ref(false)
+
+/** Kept free at the bottom of the window: the fixed bottom bar of the phone layout (4.5rem) plus a gap. */
+const BOTTOM_RESERVE_PX = 80
+
+/** Whether a panel of that height has to open upward: it does not fit below the button and there is more room above. */
+function opensUpward(button: DOMRect, panelHeight: number, windowHeight: number): boolean {
+  const below = windowHeight - BOTTOM_RESERVE_PX - button.bottom
+  return below < panelHeight && button.top > below
+}
 
 function options(): HTMLButtonElement[] {
   return Array.from(list.value?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)') ?? [])
@@ -60,7 +71,11 @@ function onKeydown(event: KeyboardEvent) {
 watch(open, async (isOpen) => {
   if (isOpen) {
     document.addEventListener('mousedown', onOutside)
+    dropUp.value = false
     await nextTick()
+    if (trigger.value && list.value) {
+      dropUp.value = opensUpward(trigger.value.getBoundingClientRect(), list.value.getBoundingClientRect().height, window.innerHeight)
+    }
     options()[0]?.focus()
   } else {
     document.removeEventListener('mousedown', onOutside)
@@ -88,7 +103,13 @@ function select(key: string) {
     >
       <MoreVertical class="size-4" aria-hidden="true" />
     </button>
-    <div v-if="open" ref="list" role="menu" :aria-label="label" class="absolute right-0 top-full z-30 mt-1 w-64 rounded-xl bg-surface p-1 shadow-card ring-1 ring-line">
+    <div
+      v-if="open"
+      ref="list"
+      role="menu"
+      :aria-label="label"
+      :class="['absolute right-0 z-30 w-64 rounded-xl bg-surface p-1 shadow-card ring-1 ring-line', dropUp ? 'bottom-full mb-1' : 'top-full mt-1']"
+    >
       <button
         v-for="item in items"
         :key="item.key"
