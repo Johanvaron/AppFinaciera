@@ -26,7 +26,15 @@ const props = defineProps<{
 const message = ref('')
 const inUse = ref(false)
 
+/**
+ * Counts openings and closings. An answer that arrives after the dialog was
+ * closed (and maybe reopened on another item) belongs to an older session and
+ * must not close, fill or change the dialog now on screen.
+ */
+let session = 0
+
 watch(open, (isOpen) => {
+  session++
   if (isOpen) {
     message.value = ''
     inUse.value = false
@@ -37,21 +45,27 @@ const removal = useApiMutation(() => props.remove(), { success: props.deletedTex
 const archiving = useApiMutation(() => props.archive(), { success: props.archivedText, silentError: true })
 
 async function confirmRemove() {
+  const asked = session
   message.value = ''
   try {
     await removal.mutateAsync(undefined)
+    if (asked !== session) return
     open.value = false
   } catch (error) {
+    if (asked !== session) return
     message.value = errorMessage(error)
     inUse.value = error instanceof ApiRequestError && error.status === 409
   }
 }
 
 async function confirmArchive() {
+  const asked = session
   try {
     await archiving.mutateAsync(undefined)
+    if (asked !== session) return
     open.value = false
   } catch (error) {
+    if (asked !== session) return
     message.value = errorMessage(error)
   }
 }
