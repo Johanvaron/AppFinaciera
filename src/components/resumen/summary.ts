@@ -135,6 +135,15 @@ export function availableStat(available: number): { tone: Tone; value: string; d
  * the checklist of the month is not known (loading or failed). Unknown never
  * claims "Todo pagado" nor "Sin gastos fijos".
  */
+/** What is in the bank right now: the sum of every active account, all time. */
+export function balanceStat(totalBalance: number, accountCount: number): { tone: Tone; value: string; detail: string } {
+  return {
+    tone: totalBalance < 0 ? 'danger' : 'neutral',
+    value: formatMoney(totalBalance),
+    detail: accountCount === 1 ? 'saldo de tu cuenta' : `saldo de tus ${accountCount} cuentas`,
+  }
+}
+
 export function fixedStat(pendingFixed: number, pendingCount: number, fixedCount: number | null): { tone: Tone; value: string; detail: string | undefined } {
   const value = formatMoney(pendingFixed)
   if (pendingFixed > 0 || pendingCount > 0) {
