@@ -1,6 +1,6 @@
 import type { Category, CategoryTotal, DailyPoint } from '@shared/contract'
 import {
-  availableStat,
+  availableStat, balanceStat,
   categoryBars,
   changeDetail,
   dueText,
@@ -260,5 +260,16 @@ describe('empty month', () => {
     expect(welcomeDate('2026-10', '2026-10-02')).toBe('2026-10-02')
     expect(welcomeDate('2026-11', '2026-10-02')).toBe('2026-11-01')
     expect(welcomeDate('2025-12', '2026-10-02')).toBe('2025-12-01')
+  })
+})
+
+describe('balanceStat: what is in the bank', () => {
+  it('shows the sum of the accounts as the owner reads it', () => {
+    expect(balanceStat(2023734, 1)).toEqual({ tone: 'neutral', value: '$ 2.023.734', detail: 'saldo de tu cuenta' })
+    expect(balanceStat(8564084, 4)).toEqual({ tone: 'neutral', value: '$ 8.564.084', detail: 'saldo de tus 4 cuentas' })
+  })
+
+  it('warns when the accounts are in the red', () => {
+    expect(balanceStat(-904200, 2).tone).toBe('danger')
   })
 })
