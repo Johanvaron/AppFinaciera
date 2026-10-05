@@ -545,8 +545,9 @@ export const debtPatchSchema = z.strictObject({
   initialBalance: debtInputSchema.shape.initialBalance.optional(),
   startDate: debtInputSchema.shape.startDate.optional(),
   fixedExpenseId: idSchema.nullable().optional(),
-  note: debtInputSchema.shape.note.optional(),
-  archived: z.boolean().optional(),
+  /** `.unwrap()` drops the input defaults: a PATCH without `note` must leave the saved note alone. */
+  note: debtInputSchema.shape.note.unwrap().optional(),
+  archived: debtInputSchema.shape.archived.unwrap().optional(),
 })
 export type DebtPatch = z.input<typeof debtPatchSchema>
 
@@ -728,7 +729,7 @@ export interface ApiError {
  * GET    /fixed                         query monthQuerySchema -> 200 FixedMonthResponse
  * POST   /fixed                         fixedExpenseInputSchema -> 201 FixedExpense
  * PATCH  /fixed/:id                     fixedExpensePatchSchema -> 200 FixedExpense
- * DELETE /fixed/:id                     -> 204 (its payments stay as normal movements)
+ * DELETE /fixed/:id                     -> 204 (its payments stay as normal movements; 409 if a debt is linked to it: unlink or delete the debt first)
  * PUT    /fixed/order                   fixedOrderSchema -> 204
  * PUT    /fixed/:id/months/:month       fixedMonthOverrideSchema -> 200 FixedMonthItem (409 if skipped: true and the month already has payments)
  * POST   /fixed/:id/pay                 fixedPaySchema -> 201 FixedMonthItem
@@ -744,7 +745,7 @@ export interface ApiError {
  * GET    /debts                         -> 200 DebtsResponse
  * POST   /debts                         debtInputSchema -> 201 Debt (422 if fixedExpenseId does not exist or is already linked to another debt)
  * GET    /debts/:id                     -> 200 DebtDetail
- * PATCH  /debts/:id                     debtPatchSchema -> 200 Debt
+ * PATCH  /debts/:id                     debtPatchSchema (only the sent fields change) -> 200 Debt (422 if startDate is later than an existing entry, or fixedExpenseId is invalid/already linked)
  * DELETE /debts/:id                     -> 204 (deletes its entries; the fixed expense and its payments stay)
  * POST   /debts/:id/pay                 debtPaySchema -> 201 DebtDetail (creates an expense movement linked to the debt; 422 if the date is before startDate)
  * POST   /debts/:id/entries             debtEntryInputSchema -> 201 DebtDetail

@@ -79,8 +79,11 @@ function movementsOf(record: DebtRecord, entries: DebtEntry[], payments: Transac
   })
 }
 
+/** One row per month from the start date up to today or the last movement, whichever is later, so the last row always closes at the balance. */
 function monthlyOf(record: DebtRecord, movements: DebtMovement[], today: string): DebtMonthRow[] {
-  const months = monthRange(monthOf(record.startDate), monthOf(today))
+  const last = movements.length > 0 ? movements[movements.length - 1]!.date : record.startDate
+  const end = monthOf(last > today ? last : today)
+  const months = monthRange(monthOf(record.startDate), end)
   let balance = record.initialBalance
   return months.map((month) => {
     const inMonth = movements.filter((m) => monthOf(m.date) === month)
@@ -130,6 +133,11 @@ export class DebtService {
   update(id: number, patch: DebtPatchData): Debt {
     const current = this.mustGet(id)
     this.checkDefinition({ ...current, ...patch }, id)
+    // Entries older than the start date would still count in the balance but fall outside the monthly rows.
+    if (patch.startDate != null && patch.startDate > current.startDate) {
+      const first = this.deps.entries.firstDate(id)
+      if (first != null && first < patch.startDate) throw invalid({ startDate: 'Hay registros anteriores a esa fecha' })
+    }
     return this.withTotals(this.deps.debts.update(id, patch) as DebtRecord)
   }
 

@@ -5,7 +5,7 @@
  */
 import type { DebtMonthRow } from '@shared/contract'
 import { formatMoney, monthLabel } from '@/lib/format'
-import { monthBarRatio } from './debts'
+import { balanceText, monthBarRatio } from './debts'
 
 defineProps<{ monthly: DebtMonthRow[] }>()
 </script>
@@ -17,8 +17,9 @@ defineProps<{ monthly: DebtMonthRow[] }>()
       <li v-for="row in monthly" :key="row.month" class="py-2 [&+li]:shadow-[inset_0_1px_0_rgb(var(--fill))]">
         <div class="flex items-center justify-between gap-2">
           <span class="truncate text-[14px] font-medium">{{ monthLabel(row.month) }}</span>
+          <!-- Ink while it is owed (the bar already shows it going down); green when paid or in favor. -->
           <span :class="['num text-[14px] font-semibold', row.balanceEnd > 0 ? 'text-ink' : 'text-success']">
-            {{ row.balanceEnd > 0 ? formatMoney(row.balanceEnd) : 'Pagada' }}
+            {{ row.balanceEnd > 0 ? formatMoney(row.balanceEnd) : balanceText({ balance: row.balanceEnd }).text }}
           </span>
         </div>
         <div class="mt-1 h-2 w-full overflow-hidden rounded-full bg-fill" aria-hidden="true">

@@ -95,6 +95,53 @@ describe('debts: credit cards and loans', () => {
     expect(fake.status).toBe(422)
   })
 
+  it('keeps the saved note when a PATCH does not mention it, and empties it only when asked', async () => {
+    const card = await debt({ name: 'BBVA 1', initialBalance: 2_500_000, note: 'Cuota 12 de 24' })
+    const archived = await api.ok('PATCH', `/debts/${card.id}`, { archived: true })
+    expect(archived).toMatchObject({ note: 'Cuota 12 de 24', archived: true })
+    const detail = await api.ok('GET', `/debts/${card.id}`)
+    expect(detail.debt).toMatchObject({ note: 'Cuota 12 de 24', archived: true })
+
+    const renamed = await api.ok('PATCH', `/debts/${card.id}`, { name: 'BBVA Visa' })
+    expect(renamed).toMatchObject({ name: 'BBVA Visa', note: 'Cuota 12 de 24', archived: true })
+
+    const cleared = await api.ok('PATCH', `/debts/${card.id}`, { note: '' })
+    expect(cleared.note).toBe('')
+    expect((await api.ok('GET', `/debts/${card.id}`)).debt.note).toBe('')
+  })
+
+  it('refuses to move the start date past an existing entry, so balance and monthly keep agreeing', async () => {
+    const card = await debt({ name: 'Rappi', initialBalance: 1_000_000 })
+    await api.ok('POST', `/debts/${card.id}/entries`, { date: '2026-09-05', type: 'cargo', amount: 50_000 }, 201)
+    const late = await api.call('PATCH', `/debts/${card.id}`, { startDate: '2026-10-01' })
+    expect(late.status).toBe(422)
+    expect(late.body.fields.startDate).toBe('Hay registros anteriores a esa fecha')
+
+    const moved = await api.ok('PATCH', `/debts/${card.id}`, { startDate: '2026-09-05' })
+    expect(moved.balance).toBe(1_050_000)
+    const detail = await api.ok('GET', `/debts/${card.id}`)
+    expect(detail.monthly.at(-1).balanceEnd).toBe(detail.debt.balance)
+    expect(detail.monthly).toEqual([
+      { month: '2026-09', paid: 0, charged: 50_000, balanceEnd: 1_050_000 },
+      { month: '2026-10', paid: 0, charged: 0, balanceEnd: 1_050_000 },
+    ])
+  })
+
+  it('extends the monthly rows to a future movement so the last row closes at the balance', async () => {
+    const card = await debt({ name: 'BBVA 1', initialBalance: 1_000_000, fixedExpenseId: bbva })
+    await api.ok('POST', `/debts/${card.id}/entries`, { date: '2026-12-05', type: 'cargo', amount: 50_000 }, 201)
+    await pay(bbva, '2026-11', 200_000, '2026-11-20')
+    const detail = await api.ok('GET', `/debts/${card.id}`)
+    expect(detail.debt.balance).toBe(850_000)
+    expect(detail.monthly.at(-1).balanceEnd).toBe(detail.debt.balance)
+    expect(detail.monthly).toEqual([
+      { month: '2026-09', paid: 0, charged: 0, balanceEnd: 1_000_000 },
+      { month: '2026-10', paid: 0, charged: 0, balanceEnd: 1_000_000 },
+      { month: '2026-11', paid: 200_000, charged: 0, balanceEnd: 800_000 },
+      { month: '2026-12', paid: 0, charged: 50_000, balanceEnd: 850_000 },
+    ])
+  })
+
   it('deleting the debt keeps the fixed expense and its payments as they were', async () => {
     const card = await debt({ name: 'BBVA 1', initialBalance: 10, fixedExpenseId: bbva })
     await pay(bbva, '2026-10', 5, '2026-10-03')
@@ -133,6 +180,20 @@ describe('debts: credit cards and loans', () => {
     expect(early.body.fields.date).toBe('La fecha es anterior al inicio de la deuda')
     const noAccount = await api.call('POST', `/debts/${card.id}/pay`, { date: '2026-10-05', amount: 1, accountId: 99 })
     expect(noAccount.body.fields.accountId).toBe('La cuenta no existe')
+  })
+
+  it('refuses to delete a linked fixed expense (409) so its payments do not vanish from the balance', async () => {
+    const card = await debt({ name: 'BBVA 1', initialBalance: 1_000_000, fixedExpenseId: bbva })
+    await pay(bbva, '2026-09', 300_000, '2026-09-10')
+    const response = await api.call('DELETE', `/fixed/${bbva}`)
+    expect(response.status).toBe(409)
+    expect(response.body.error).toBe('Ese gasto fijo está enlazado a la deuda "BBVA 1"; desenlázalo primero.')
+    const after = await api.ok('GET', `/debts/${card.id}`)
+    expect(after.debt).toMatchObject({ balance: 700_000, fixedExpenseId: bbva })
+    expect((await api.ok('GET', '/fixed?month=2026-09')).items[0]).toMatchObject({ status: 'paid', paidAmount: 300_000 })
+
+    await api.ok('PATCH', `/debts/${card.id}`, { fixedExpenseId: null })
+    await api.ok('DELETE', `/fixed/${bbva}`, undefined, 204)
   })
 
   it('survives a backup round trip', async () => {

@@ -1,6 +1,6 @@
 import type { Component } from 'vue'
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
-import { ArrowLeftRight, ChartColumn, CreditCard, LayoutDashboard, ListChecks, PiggyBank, Settings } from 'lucide-vue-next'
+import { ArrowLeftRight, ChartColumn, LayoutDashboard, ListChecks, PiggyBank, Settings } from 'lucide-vue-next'
 import AppShell from '@/components/layout/AppShell.vue'
 
 interface NavItem {
@@ -15,7 +15,6 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/resumen', label: 'Resumen', short: 'Resumen', icon: LayoutDashboard },
   { to: '/fijos', label: 'Gastos fijos', short: 'Fijos', icon: ListChecks },
   { to: '/movimientos', label: 'Movimientos', short: 'Movim.', icon: ArrowLeftRight },
-  { to: '/deudas', label: 'Deudas', short: 'Deudas', icon: CreditCard },
   { to: '/presupuesto', label: 'Presupuesto', short: 'Presup.', icon: PiggyBank },
   { to: '/reportes', label: 'Reportes', short: 'Reportes', icon: ChartColumn },
   { to: '/ajustes', label: 'Ajustes', short: 'Ajustes', icon: Settings },

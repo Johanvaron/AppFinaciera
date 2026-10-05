@@ -2,16 +2,24 @@
  * Pure logic of the debts screen: every text and figure a row, the totals
  * and the detail show is decided here so it can be tested without mounting.
  */
-import type { Debt, DebtInput, DebtMonthRow, DebtMovement, DebtPatch } from '@shared/contract'
-import { dateShort, formatMoney } from '@/lib/format'
+import type { Debt, DebtInput, DebtMonthRow, DebtMovement, DebtPatch, Month } from '@shared/contract'
+import { currentMonth, dateShort, formatMoney, monthLabel } from '@/lib/format'
 
 export type Tone = 'success' | 'danger' | 'warning' | 'neutral'
 
+/** Text class of each tone, shared by every figure of the screen. */
+export const TONE_TEXT: Record<Tone, string> = { success: 'text-success', danger: 'text-danger', warning: 'text-warning', neutral: 'text-ink' }
+
 type BalanceFields = Pick<Debt, 'balance'>
 
-/** The big figure at the right of a row. A debt at or under zero is paid. */
+/**
+ * The big figure at the right of a row. A debt at zero is paid; one under zero
+ * was overpaid, and that money is real, so it shows as a figure in favor
+ * instead of collapsing into "Pagada".
+ */
 export function balanceText(debt: BalanceFields): { text: string; tone: Tone } {
   if (debt.balance > 0) return { text: formatMoney(debt.balance), tone: 'danger' }
+  if (debt.balance < 0) return { text: `Saldo a favor ${formatMoney(-debt.balance)}`, tone: 'success' }
   return { text: 'Pagada', tone: 'success' }
 }
 
@@ -19,6 +27,17 @@ export function balanceText(debt: BalanceFields): { text: string; tone: Tone } {
 export function totalDebtStat(totalDebt: number): { value: string; tone: Tone } {
   if (totalDebt > 0) return { value: formatMoney(totalDebt), tone: 'danger' }
   return { value: 'Sin deudas', tone: 'success' }
+}
+
+/**
+ * What is owed across the active debts, computed from the rows on screen so the
+ * headline always agrees with them. The API's `totalDebt` adds raw balances, so
+ * an overpaid debt (negative) hides what is still owed on another one: a saldo
+ * a favor on one card does not pay the loan next to it.
+ */
+export function headlineTotal(debts: ReadonlyArray<Pick<Debt, 'balance' | 'archived'>>): { value: string; tone: Tone } {
+  const owed = debts.filter((d) => !d.archived).reduce((sum, d) => sum + Math.max(d.balance, 0), 0)
+  return totalDebtStat(owed)
 }
 
 type ProgressFields = Pick<Debt, 'initialBalance' | 'chargedTotal' | 'paidTotal'>
@@ -33,8 +52,21 @@ export function progressRatio(debt: ProgressFields): number | null {
   return debt.paidTotal / owed
 }
 
-export function paidThisMonthText(debt: Pick<Debt, 'paidThisMonth'>): string {
-  return debt.paidThisMonth > 0 ? `Pagaste ${formatMoney(debt.paidThisMonth)} este mes` : 'Sin pagos este mes'
+/** "octubre": the month's name alone, for a label that already says "en". */
+const monthName = (month: Month) => monthLabel(month).split(' ')[0]!.toLowerCase()
+
+/**
+ * The API counts `paidThisMonth` by the DATE of each payment, while the fixed
+ * checklist counts a payment for the month it applies to (C3): a September
+ * installment paid on October 2nd is "October" here and "September" there.
+ * The label says so, so the two figures are not read as the same thing.
+ */
+export function paidThisMonthLabel(month: Month = currentMonth()): string {
+  return `Pagado en ${monthName(month)} (por fecha de pago)`
+}
+
+export function paidThisMonthText(debt: Pick<Debt, 'paidThisMonth'>, month: Month = currentMonth()): string {
+  return debt.paidThisMonth > 0 ? `Pagaste ${formatMoney(debt.paidThisMonth)} en ${monthName(month)} (por fecha de pago)` : `Sin pagos en ${monthName(month)}`
 }
 
 export function lastPaymentText(debt: Pick<Debt, 'lastPaymentDate'>): string | null {

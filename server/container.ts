@@ -35,6 +35,7 @@ export function buildServices(db: DatabaseSync, options: AppOptions = {}) {
   const fixedRepo = new FixedExpenseRepository(db)
   const fixedMonthRepo = new FixedMonthRepository(db)
   const budgetRepo = new BudgetRepository(db)
+  const debtRepo = new DebtRepository(db)
 
   const accounts = new AccountService(accountRepo, transactionRepo, fixedRepo)
   const fixed = new FixedService({
@@ -43,6 +44,7 @@ export function buildServices(db: DatabaseSync, options: AppOptions = {}) {
     transactions: transactionRepo,
     categories: categoryRepo,
     accounts: accountRepo,
+    debts: debtRepo,
     transact: run,
     clock,
   })
@@ -53,7 +55,7 @@ export function buildServices(db: DatabaseSync, options: AppOptions = {}) {
     transactions: new TransactionService(transactionRepo, accountRepo, categoryRepo),
     fixed,
     debts: new DebtService({
-      debts: new DebtRepository(db),
+      debts: debtRepo,
       entries: new DebtEntryRepository(db),
       fixed: fixedRepo,
       transactions: transactionRepo,

@@ -19,7 +19,10 @@ const props = defineProps<{
   editing: Debt | null
   /** Fixed expenses of the current month, to pick the one that pays this debt. */
   fixedExpenses: FixedExpense[]
+  /** The list above could not be loaded: the select would offer "Ninguno" alone and look complete. */
+  fixedError?: boolean
 }>()
+const emit = defineEmits<{ retryFixed: [] }>()
 
 const toasts = useToasts()
 
@@ -105,6 +108,7 @@ async function submit() {
   open.value = false
 }
 
+const FIXED_LOAD_ERROR = 'No se pudieron cargar los gastos fijos: la lista está incompleta. Puedes guardar sin enlazar y enlazar después.'
 const VISIBLE_FIELDS = ['name', 'kind', 'initialBalance', 'startDate', 'fixedExpenseId', 'note']
 const FIELD_MESSAGES: Record<string, string> = {
   startDate: 'Elige la fecha desde la que cuentas la deuda',
@@ -149,13 +153,19 @@ const FIELD_MESSAGES: Record<string, string> = {
         </UiField>
       </div>
 
-      <UiField label="Gasto fijo que la paga" :error="errors.fixedExpenseId" hint="Cada pago de ese gasto fijo baja esta deuda por sí solo">
-        <select v-model="form.fixedExpenseId" class="control" :aria-invalid="!!errors.fixedExpenseId || undefined">
-          <option :value="null">Ninguno</option>
-          <option v-if="linkedButMissing != null" :value="linkedButMissing">Gasto fijo enlazado (no aplica este mes)</option>
-          <option v-for="fixed in fixedExpenses" :key="fixed.id" :value="fixed.id">{{ fixed.name }}</option>
-        </select>
-      </UiField>
+      <div>
+        <UiField label="Gasto fijo que la paga" :error="errors.fixedExpenseId" hint="Cada pago de ese gasto fijo baja esta deuda por sí solo">
+          <select v-model="form.fixedExpenseId" class="control" :aria-invalid="!!errors.fixedExpenseId || undefined">
+            <option :value="null">Ninguno</option>
+            <option v-if="linkedButMissing != null" :value="linkedButMissing">Gasto fijo enlazado (no aplica este mes)</option>
+            <option v-for="fixed in fixedExpenses" :key="fixed.id" :value="fixed.id">{{ fixed.name }}</option>
+          </select>
+        </UiField>
+        <p v-if="fixedError" class="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-danger" role="alert">
+          <span>{{ FIXED_LOAD_ERROR }}</span>
+          <button type="button" class="font-semibold underline" @click="emit('retryFixed')">Reintentar</button>
+        </p>
+      </div>
 
       <UiField label="Nota" :error="errors.note">
         <input v-model="form.note" type="text" class="control" maxlength="500" placeholder="Opcional" />
