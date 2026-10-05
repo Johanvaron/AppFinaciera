@@ -104,6 +104,20 @@ describe('debts: credit cards and loans', () => {
     expect((await api.call('GET', `/debts/${card.id}`)).status).toBe(404)
   })
 
+  it('refuses to delete a linked fixed expense (409) so its payments do not vanish from the balance', async () => {
+    const card = await debt({ name: 'BBVA 1', initialBalance: 1_000_000, fixedExpenseId: bbva })
+    await pay(bbva, '2026-09', 300_000, '2026-09-10')
+    const response = await api.call('DELETE', `/fixed/${bbva}`)
+    expect(response.status).toBe(409)
+    expect(response.body.error).toBe('Ese gasto fijo está enlazado a la deuda "BBVA 1"; desenlázalo primero.')
+    const after = await api.ok('GET', `/debts/${card.id}`)
+    expect(after.debt).toMatchObject({ balance: 700_000, fixedExpenseId: bbva })
+    expect((await api.ok('GET', '/fixed?month=2026-09')).items[0]).toMatchObject({ status: 'paid', paidAmount: 300_000 })
+
+    await api.ok('PATCH', `/debts/${card.id}`, { fixedExpenseId: null })
+    await api.ok('DELETE', `/fixed/${bbva}`, undefined, 204)
+  })
+
   it('survives a backup round trip', async () => {
     const card = await debt({ name: 'Rappi', initialBalance: 777 })
     await api.ok('POST', `/debts/${card.id}/entries`, { date: '2026-10-02', type: 'cargo', amount: 23 }, 201)
