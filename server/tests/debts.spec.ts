@@ -95,6 +95,23 @@ describe('debts: credit cards and loans', () => {
     expect(fake.status).toBe(422)
   })
 
+  it('refuses to move the start date past an existing entry, so balance and monthly keep agreeing', async () => {
+    const card = await debt({ name: 'Rappi', initialBalance: 1_000_000 })
+    await api.ok('POST', `/debts/${card.id}/entries`, { date: '2026-09-05', type: 'cargo', amount: 50_000 }, 201)
+    const late = await api.call('PATCH', `/debts/${card.id}`, { startDate: '2026-10-01' })
+    expect(late.status).toBe(422)
+    expect(late.body.fields.startDate).toBe('Hay registros anteriores a esa fecha')
+
+    const moved = await api.ok('PATCH', `/debts/${card.id}`, { startDate: '2026-09-05' })
+    expect(moved.balance).toBe(1_050_000)
+    const detail = await api.ok('GET', `/debts/${card.id}`)
+    expect(detail.monthly.at(-1).balanceEnd).toBe(detail.debt.balance)
+    expect(detail.monthly).toEqual([
+      { month: '2026-09', paid: 0, charged: 50_000, balanceEnd: 1_050_000 },
+      { month: '2026-10', paid: 0, charged: 0, balanceEnd: 1_050_000 },
+    ])
+  })
+
   it('deleting the debt keeps the fixed expense and its payments as they were', async () => {
     const card = await debt({ name: 'BBVA 1', initialBalance: 10, fixedExpenseId: bbva })
     await pay(bbva, '2026-10', 5, '2026-10-03')

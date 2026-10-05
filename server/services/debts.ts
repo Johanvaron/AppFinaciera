@@ -112,6 +112,11 @@ export class DebtService {
   update(id: number, patch: DebtPatchData): Debt {
     const current = this.mustGet(id)
     this.checkDefinition({ ...current, ...patch }, id)
+    // Entries older than the start date would still count in the balance but fall outside the monthly rows.
+    if (patch.startDate != null && patch.startDate > current.startDate) {
+      const first = this.deps.entries.firstDate(id)
+      if (first != null && first < patch.startDate) throw invalid({ startDate: 'Hay registros anteriores a esa fecha' })
+    }
     return this.withTotals(this.deps.debts.update(id, patch) as DebtRecord)
   }
 
