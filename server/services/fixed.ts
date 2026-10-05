@@ -16,6 +16,7 @@ import { dueDateFor, isRealDate, monthOf, type Clock } from '../lib/dates.ts'
 import { conflict, invalid, notFound } from '../lib/errors.ts'
 import type { AccountRepository } from '../repositories/accounts.ts'
 import type { CategoryRepository } from '../repositories/categories.ts'
+import type { DebtRepository } from '../repositories/debts.ts'
 import type { FixedExpenseRepository } from '../repositories/fixed-expenses.ts'
 import type { FixedMonthRecord, FixedMonthRepository } from '../repositories/fixed-months.ts'
 import type { TransactionRepository } from '../repositories/transactions.ts'
@@ -30,6 +31,7 @@ export interface FixedServiceDeps {
   transactions: TransactionRepository
   categories: CategoryRepository
   accounts: AccountRepository
+  debts: DebtRepository
   transact: Transact
   clock: Clock
 }
@@ -151,9 +153,11 @@ export class FixedService {
     if (Object.keys(fields).length > 0) throw invalid(fields)
   }
 
-  /** Its payments stay as plain movements; its overrides go away. */
+  /** Its payments stay as plain movements; its overrides go away. A linked debt counts those payments: unlinking them would silently raise its balance. */
   remove(id: number): void {
     this.mustGet(id)
+    const debt = this.deps.debts.byFixedExpense(id)
+    if (debt) throw conflict(`Ese gasto fijo está enlazado a la deuda "${debt.name}"; desenlázalo primero.`)
     this.deps.transact(() => {
       this.deps.transactions.unlinkFixed(id)
       this.deps.months.deleteFor(id)
