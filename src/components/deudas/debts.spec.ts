@@ -3,6 +3,7 @@ import {
   balanceText,
   debtPatch,
   formValues,
+  headlineTotal,
   lastPaymentText,
   linkText,
   monthBarRatio,
@@ -36,9 +37,19 @@ describe('balance and totals', () => {
     expect(balanceText(BBVA)).toEqual({ text: '$ 1.798.427', tone: 'danger' })
   })
 
-  it('shows "Pagada" at zero and when more was paid than owed', () => {
+  it('shows "Pagada" at zero and the money in favor when more was paid than owed', () => {
     expect(balanceText({ balance: 0 })).toEqual({ text: 'Pagada', tone: 'success' })
-    expect(balanceText({ balance: -50_000 })).toEqual({ text: 'Pagada', tone: 'success' })
+    expect(balanceText({ balance: -76_726_311 })).toEqual({ text: 'Saldo a favor $ 76.726.311', tone: 'success' })
+  })
+
+  it('headline adds only what is owed: a saldo a favor on one debt does not hide the other', () => {
+    // Reproduced against the API: BBVA 1 overpaid + Moto with 9.6M gave totalDebt = -67.126.311 and "Sin deudas".
+    const rows = [
+      { balance: -76_726_311, archived: false },
+      { balance: 9_600_000, archived: false },
+    ]
+    expect(headlineTotal(rows)).toEqual({ value: '$ 9.600.000', tone: 'danger' })
+    expect(headlineTotal([{ balance: 5_000, archived: true }, { balance: 0, archived: false }])).toEqual({ value: 'Sin deudas', tone: 'success' })
   })
 
   it('headline total: red figure, or "Sin deudas" at zero', () => {

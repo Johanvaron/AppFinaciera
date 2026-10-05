@@ -9,9 +9,14 @@ export type Tone = 'success' | 'danger' | 'warning' | 'neutral'
 
 type BalanceFields = Pick<Debt, 'balance'>
 
-/** The big figure at the right of a row. A debt at or under zero is paid. */
+/**
+ * The big figure at the right of a row. A debt at zero is paid; one under zero
+ * was overpaid, and that money is real, so it shows as a figure in favor
+ * instead of collapsing into "Pagada".
+ */
 export function balanceText(debt: BalanceFields): { text: string; tone: Tone } {
   if (debt.balance > 0) return { text: formatMoney(debt.balance), tone: 'danger' }
+  if (debt.balance < 0) return { text: `Saldo a favor ${formatMoney(-debt.balance)}`, tone: 'success' }
   return { text: 'Pagada', tone: 'success' }
 }
 
@@ -19,6 +24,17 @@ export function balanceText(debt: BalanceFields): { text: string; tone: Tone } {
 export function totalDebtStat(totalDebt: number): { value: string; tone: Tone } {
   if (totalDebt > 0) return { value: formatMoney(totalDebt), tone: 'danger' }
   return { value: 'Sin deudas', tone: 'success' }
+}
+
+/**
+ * What is owed across the active debts, computed from the rows on screen so the
+ * headline always agrees with them. The API's `totalDebt` adds raw balances, so
+ * an overpaid debt (negative) hides what is still owed on another one: a saldo
+ * a favor on one card does not pay the loan next to it.
+ */
+export function headlineTotal(debts: ReadonlyArray<Pick<Debt, 'balance' | 'archived'>>): { value: string; tone: Tone } {
+  const owed = debts.filter((d) => !d.archived).reduce((sum, d) => sum + Math.max(d.balance, 0), 0)
+  return totalDebtStat(owed)
 }
 
 type ProgressFields = Pick<Debt, 'initialBalance' | 'chargedTotal' | 'paidTotal'>

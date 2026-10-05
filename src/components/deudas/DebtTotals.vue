@@ -3,12 +3,13 @@
 import { computed } from 'vue'
 import { CreditCard, HandCoins, Layers } from 'lucide-vue-next'
 import StatCard from '@/components/ui/StatCard.vue'
+import type { Debt } from '@shared/contract'
 import { formatMoney } from '@/lib/format'
-import { totalDebtStat } from './debts'
+import { headlineTotal } from './debts'
 
-const props = defineProps<{ totalDebt: number; paidThisMonth: number; activeCount: number }>()
+const props = defineProps<{ debts: Debt[]; paidThisMonth: number; activeCount: number }>()
 
-const total = computed(() => totalDebtStat(props.totalDebt))
+const total = computed(() => headlineTotal(props.debts))
 const countText = computed(() => (props.activeCount === 1 ? '1 deuda' : `${props.activeCount} deudas`))
 </script>
 

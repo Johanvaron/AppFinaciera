@@ -106,7 +106,7 @@ async function confirmRemove() {
       </section>
 
       <template v-else>
-        <DebtTotals :total-debt="data.totalDebt" :paid-this-month="data.paidThisMonth" :active-count="sections.active.length" />
+        <DebtTotals :debts="data.debts" :paid-this-month="data.paidThisMonth" :active-count="sections.active.length" />
 
         <section class="card py-2" aria-label="Lista de deudas">
           <p v-if="sections.active.length === 0" class="py-3 text-xs text-muted">Todas tus deudas están archivadas.</p>
