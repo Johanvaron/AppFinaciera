@@ -2,8 +2,8 @@
  * Pure logic of the debts screen: every text and figure a row, the totals
  * and the detail show is decided here so it can be tested without mounting.
  */
-import type { Debt, DebtInput, DebtMonthRow, DebtMovement, DebtPatch } from '@shared/contract'
-import { dateShort, formatMoney } from '@/lib/format'
+import type { Debt, DebtInput, DebtMonthRow, DebtMovement, DebtPatch, Month } from '@shared/contract'
+import { currentMonth, dateShort, formatMoney, monthLabel } from '@/lib/format'
 
 export type Tone = 'success' | 'danger' | 'warning' | 'neutral'
 
@@ -52,8 +52,21 @@ export function progressRatio(debt: ProgressFields): number | null {
   return debt.paidTotal / owed
 }
 
-export function paidThisMonthText(debt: Pick<Debt, 'paidThisMonth'>): string {
-  return debt.paidThisMonth > 0 ? `Pagaste ${formatMoney(debt.paidThisMonth)} este mes` : 'Sin pagos este mes'
+/** "octubre": the month's name alone, for a label that already says "en". */
+const monthName = (month: Month) => monthLabel(month).split(' ')[0]!.toLowerCase()
+
+/**
+ * The API counts `paidThisMonth` by the DATE of each payment, while the fixed
+ * checklist counts a payment for the month it applies to (C3): a September
+ * installment paid on October 2nd is "October" here and "September" there.
+ * The label says so, so the two figures are not read as the same thing.
+ */
+export function paidThisMonthLabel(month: Month = currentMonth()): string {
+  return `Pagado en ${monthName(month)} (por fecha de pago)`
+}
+
+export function paidThisMonthText(debt: Pick<Debt, 'paidThisMonth'>, month: Month = currentMonth()): string {
+  return debt.paidThisMonth > 0 ? `Pagaste ${formatMoney(debt.paidThisMonth)} en ${monthName(month)} (por fecha de pago)` : `Sin pagos en ${monthName(month)}`
 }
 
 export function lastPaymentText(debt: Pick<Debt, 'lastPaymentDate'>): string | null {

@@ -10,6 +10,7 @@ import {
   movementAmountText,
   movementText,
   movementTone,
+  paidThisMonthLabel,
   paidThisMonthText,
   progressRatio,
   splitDebts,
@@ -72,8 +73,13 @@ describe('progress', () => {
 
 describe('row lines', () => {
   it('says how much was paid this month, with this month\'s figure and not the total', () => {
-    expect(paidThisMonthText(BBVA)).toBe('Pagaste $ 201.573 este mes')
-    expect(paidThisMonthText({ paidThisMonth: 0 })).toBe('Sin pagos este mes')
+    expect(paidThisMonthText(BBVA, '2026-10')).toBe('Pagaste $ 201.573 en octubre (por fecha de pago)')
+    expect(paidThisMonthText({ paidThisMonth: 0 }, '2026-10')).toBe('Sin pagos en octubre')
+  })
+
+  it('labels the monthly figure by payment date, so it is not read as the checklist month', () => {
+    expect(paidThisMonthLabel('2026-10')).toBe('Pagado en octubre (por fecha de pago)')
+    expect(paidThisMonthLabel('2027-01')).toBe('Pagado en enero (por fecha de pago)')
   })
 
   it('shows the last payment date when there is one', () => {

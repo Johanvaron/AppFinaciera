@@ -26,7 +26,8 @@ describe('DebtRow', () => {
   it('shows the figures a person reads: balance, this month, last payment, kind and the fixed expense', () => {
     const text = mountRow(MOTO, 'Moto').text()
     expect(text).toContain('$ 8.400.000')
-    expect(text).toContain('Pagaste $ 600.000 este mes')
+    expect(text).toContain('Pagaste $ 600.000 en ')
+    expect(text).toContain('(por fecha de pago)')
     expect(text).toContain('Último pago: jue 1 oct')
     expect(text).toContain('Préstamo')
     expect(text).toContain('Se descuenta sola con «Moto»')
