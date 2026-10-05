@@ -1,67 +1,45 @@
+import type { Component } from 'vue'
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import AppLayout from '@/components/layout/AppLayout.vue'
+import { ArrowLeftRight, ChartColumn, CreditCard, LayoutDashboard, ListChecks, PiggyBank, Settings } from 'lucide-vue-next'
+import AppShell from '@/components/layout/AppShell.vue'
+
+interface NavItem {
+  to: string
+  label: string
+  /** Label for the phone tab bar. */
+  short: string
+  icon: Component
+}
+
+export const NAV_ITEMS: NavItem[] = [
+  { to: '/resumen', label: 'Resumen', short: 'Resumen', icon: LayoutDashboard },
+  { to: '/fijos', label: 'Gastos fijos', short: 'Fijos', icon: ListChecks },
+  { to: '/movimientos', label: 'Movimientos', short: 'Movim.', icon: ArrowLeftRight },
+  { to: '/deudas', label: 'Deudas', short: 'Deudas', icon: CreditCard },
+  { to: '/presupuesto', label: 'Presupuesto', short: 'Presup.', icon: PiggyBank },
+  { to: '/reportes', label: 'Reportes', short: 'Reportes', icon: ChartColumn },
+  { to: '/ajustes', label: 'Ajustes', short: 'Ajustes', icon: Settings },
+]
 
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    redirect: '/dashboard'
-  },
-  {
-    path: '/login',
-    name: 'login',
-    component: () => import('@/views/LoginView.vue'),
-    meta: { requiresAuth: false }
-  },
-  {
-    path: '/',
-    component: AppLayout,
-    meta: { requiresAuth: true },
+    component: AppShell,
     children: [
-      {
-        path: 'dashboard',
-        name: 'dashboard',
-        component: () => import('@/views/DashboardView.vue')
-      },
-      {
-        path: 'transactions',
-        name: 'transactions',
-        component: () => import('@/views/TransactionsView.vue')
-      },
-      {
-        path: 'add-transaction',
-        name: 'add-transaction',
-        component: () => import('@/views/AddTransactionView.vue')
-      }
-    ]
+      { path: '', redirect: '/resumen' },
+      { path: 'resumen', name: 'resumen', component: () => import('@/views/ResumenView.vue') },
+      { path: 'fijos', name: 'fijos', component: () => import('@/views/FijosView.vue') },
+      { path: 'movimientos', name: 'movimientos', component: () => import('@/views/MovimientosView.vue') },
+      { path: 'deudas', name: 'deudas', component: () => import('@/views/DeudasView.vue') },
+      { path: 'presupuesto', name: 'presupuesto', component: () => import('@/views/PresupuestoView.vue') },
+      { path: 'reportes', name: 'reportes', component: () => import('@/views/ReportesView.vue') },
+      { path: 'ajustes', name: 'ajustes', component: () => import('@/views/AjustesView.vue') },
+    ],
   },
-  {
-    path: '/:pathMatch(.*)*',
-    redirect: '/dashboard'
-  }
+  { path: '/:pathMatch(.*)*', redirect: '/resumen' },
 ]
 
-const router = createRouter({
+export default createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes
+  routes,
 })
-
-// Navigation guard
-router.beforeEach((to, _from, next) => {
-  const authStore = useAuthStore()
-  
-  // Inicializar autenticación desde localStorage
-  if (!authStore.user && localStorage.getItem('token')) {
-    authStore.initAuth()
-  }
-
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next('/login')
-  } else if (to.path === '/login' && authStore.isAuthenticated) {
-    next('/dashboard')
-  } else {
-    next()
-  }
-})
-
-export default router
