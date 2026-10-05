@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
- * One debt in the list. The whole row opens the detail; the menu at the right
- * holds the edits. On a phone the figure goes under the name (two lines).
+ * One debt in the list. The name is the button that opens the detail (keyboard
+ * path); a click anywhere on the content does the same for the mouse. The menu
+ * at the right holds the edits. On a phone the figure goes under the name.
  */
 import { computed } from 'vue'
 import { Archive, ArchiveRestore, Pencil, Trash2 } from 'lucide-vue-next'
@@ -38,15 +39,13 @@ const TONE_TEXT = { success: 'text-success', danger: 'text-danger', warning: 'te
 
 <template>
   <li class="flex items-start gap-2 py-3 sm:items-center">
-    <button
-      type="button"
-      class="flex min-w-0 flex-1 flex-col gap-2 rounded-lg text-left hover:bg-fill/60 focus-visible:bg-fill/60 sm:flex-row sm:items-center sm:gap-4"
-      :aria-label="`Ver detalle de ${debt.name}`"
-      @click="emit('open')"
-    >
+    <!-- The button's click bubbles here, so a keyboard Enter and a mouse click open the detail once each. -->
+    <div class="flex min-w-0 flex-1 cursor-pointer flex-col gap-2 sm:flex-row sm:items-center sm:gap-4" @click="emit('open')">
       <div class="min-w-0 flex-1">
         <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          <span class="truncate font-medium">{{ debt.name }}</span>
+          <button type="button" class="min-w-0 truncate rounded text-left font-medium hover:text-primary" :aria-label="`Ver detalle de ${debt.name}`">
+            {{ debt.name }}
+          </button>
           <UiBadge>{{ DEBT_KIND_LABELS[debt.kind] }}</UiBadge>
           <UiBadge v-if="debt.archived">Archivada</UiBadge>
         </div>
@@ -57,7 +56,7 @@ const TONE_TEXT = { success: 'text-success', danger: 'text-danger', warning: 'te
         <ProgressBar class="mt-2 max-w-md" :ratio="ratio" tone="success" :label="`Pagado de ${debt.name}`" />
       </div>
       <p :class="['num shrink-0 text-[18px] font-semibold leading-tight sm:text-right', TONE_TEXT[balance.tone]]">{{ balance.text }}</p>
-    </button>
+    </div>
     <RowMenu :label="`Acciones de ${debt.name}`" :items="menu" @select="emit('action', $event as RowAction)" />
   </li>
 </template>
