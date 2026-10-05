@@ -57,6 +57,8 @@ export function buildServices(db: DatabaseSync, options: AppOptions = {}) {
       entries: new DebtEntryRepository(db),
       fixed: fixedRepo,
       transactions: transactionRepo,
+      accounts: accountRepo,
+      categories: categoryRepo,
       clock,
     }),
     budgets: new BudgetService(budgetRepo, categoryRepo, transactionRepo, clock),

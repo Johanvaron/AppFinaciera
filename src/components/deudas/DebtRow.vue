@@ -5,14 +5,14 @@
  * at the right holds the edits. On a phone the figure goes under the name.
  */
 import { computed } from 'vue'
-import { Archive, ArchiveRestore, Pencil, Trash2 } from 'lucide-vue-next'
+import { Archive, ArchiveRestore, Pencil, Trash2, HandCoins } from 'lucide-vue-next'
 import { DEBT_KIND_LABELS, type Debt } from '@shared/contract'
 import ProgressBar from '@/components/ui/ProgressBar.vue'
 import UiBadge from '@/components/ui/UiBadge.vue'
 import RowMenu, { type MenuItem } from '@/components/fijos/RowMenu.vue'
 import { balanceText, lastPaymentText, linkText, paidThisMonthText, progressRatio } from './debts'
 
-export type RowAction = 'edit' | 'archive' | 'remove'
+export type RowAction = 'pay' | 'edit' | 'archive' | 'remove'
 
 const props = defineProps<{
   debt: Debt
@@ -27,6 +27,7 @@ const lastPayment = computed(() => lastPaymentText(props.debt))
 const ratio = computed(() => progressRatio(props.debt))
 
 const menu = computed<MenuItem[]>(() => [
+  { key: 'pay', label: 'Abonar', icon: HandCoins },
   { key: 'edit', label: 'Editar', icon: Pencil },
   props.debt.archived
     ? { key: 'archive', label: 'Restaurar', icon: ArchiveRestore }

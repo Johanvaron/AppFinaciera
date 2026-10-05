@@ -30,6 +30,7 @@ const GROCERIES: Transaction = {
   note: '',
   fixedExpenseId: null,
   fixedMonth: null,
+  debtId: null,
   createdAt: '2026-10-02T12:00:00',
 }
 

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * History of a debt, newest first. A line that comes from the linked fixed
- * expense is marked and cannot be deleted here (it is a normal transaction).
+ * expense is marked and cannot be deleted here; an "Abonar" payment can (it
+ * deletes the movement of the account too).
  */
 import { Trash2 } from 'lucide-vue-next'
 import type { DebtMovement } from '@shared/contract'
@@ -9,7 +10,7 @@ import UiBadge from '@/components/ui/UiBadge.vue'
 import { dateShort, formatMoney } from '@/lib/format'
 import { movementAmountText, movementText, movementTone } from './debts'
 
-defineProps<{ movements: DebtMovement[]; deleting: number | null }>()
+defineProps<{ movements: DebtMovement[]; deleting: DebtMovement | null }>()
 const emit = defineEmits<{ remove: [movement: DebtMovement] }>()
 
 const TONE_TEXT = { success: 'text-success', warning: 'text-warning', danger: 'text-danger', neutral: 'text-ink' }
@@ -28,7 +29,7 @@ const rowKey = (m: DebtMovement, index: number) => (m.entryId != null ? `e${m.en
             <UiBadge :tone="movementTone(movement.type)">{{ movement.type === 'cargo' ? 'Cargo' : 'Abono' }}</UiBadge>
           </div>
           <p class="text-xs text-muted">
-            {{ dateShort(movement.date) }}<template v-if="movement.source === 'payment'"> · Pago del gasto fijo</template>
+            {{ dateShort(movement.date) }}<template v-if="movement.source === 'payment'"> · Pago del gasto fijo</template><template v-else-if="movement.source === 'account'"> · Desde tu cuenta</template>
           </p>
         </div>
         <div class="shrink-0 text-right">
@@ -37,11 +38,11 @@ const rowKey = (m: DebtMovement, index: number) => (m.entryId != null ? `e${m.en
         </div>
         <!-- A payment of the fixed expense keeps the space so the figures stay aligned. -->
         <button
-          v-if="movement.source === 'entry' && movement.entryId != null"
+          v-if="(movement.source === 'entry' && movement.entryId != null) || (movement.source === 'account' && movement.transactionId != null)"
           type="button"
           class="flex size-10 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-danger-soft hover:text-danger disabled:opacity-60 sm:size-8"
           :aria-label="`Eliminar ${movementText(movement)} del ${dateShort(movement.date)}`"
-          :disabled="deleting === movement.entryId"
+          :disabled="deleting != null && deleting.entryId === movement.entryId && deleting.transactionId === movement.transactionId"
           @click="emit('remove', movement)"
         >
           <Trash2 class="size-4" aria-hidden="true" />

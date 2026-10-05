@@ -75,6 +75,11 @@ export class TransactionRepository extends BaseRepository<Transaction, Transacti
     return this.select('WHERE fixed_expense_id = ? AND date >= ? ORDER BY date, id', fixedExpenseId, since)
   }
 
+  /** Movements paid straight to a debt, oldest first. */
+  debtPayments(debtId: number): Transaction[] {
+    return this.select('WHERE debt_id = ? ORDER BY date, id', debtId)
+  }
+
   deleteFixedPayments(fixedExpenseId: number, month: Month): number {
     return this.run('DELETE FROM transactions WHERE fixed_expense_id = ? AND fixed_month = ?', fixedExpenseId, month)
   }

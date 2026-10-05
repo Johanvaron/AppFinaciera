@@ -67,6 +67,7 @@ export function movementTone(type: DebtMovement['type']): Tone {
 export function movementText(movement: MovementFields): string {
   if (movement.description) return movement.description
   if (movement.source === 'payment') return 'Pago del gasto fijo'
+  if (movement.source === 'account') return 'Abono desde tu cuenta'
   return movement.type === 'cargo' ? 'Cargo' : 'Abono'
 }
 

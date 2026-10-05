@@ -183,6 +183,8 @@ export interface Transaction {
   fixedExpenseId: number | null
   /** Month the fixed-expense payment applies to (may differ from the date's month). */
   fixedMonth: Month | null
+  /** Set when the movement is a payment made straight to a debt from the Deudas screen. */
+  debtId: number | null
   createdAt: string
 }
 
@@ -584,6 +586,15 @@ export const debtEntryInputSchema = z.strictObject({
 })
 export type DebtEntryInput = z.input<typeof debtEntryInputSchema>
 
+/** POST /debts/:id/pay: money that leaves an account and lowers the debt in one go. */
+export const debtPaySchema = z.strictObject({
+  date: dateSchema,
+  amount: moneySchema.min(1, 'El monto debe ser mayor a cero'),
+  accountId: idSchema,
+  description: z.string().trim().max(120).default(''),
+})
+export type DebtPayInput = z.input<typeof debtPaySchema>
+
 export interface DebtEntry {
   id: number
   debtId: number
@@ -599,10 +610,16 @@ export interface DebtMovement {
   type: DebtEntryType
   amount: number
   description: string
-  /** 'entry' = hand-entered (deletable here); 'payment' = a movement of the linked fixed expense. */
-  source: 'entry' | 'payment'
+  /**
+   * 'entry' = hand-entered (deletable here); 'payment' = a movement of the linked fixed
+   * expense; 'account' = paid straight to the debt from an account (POST /debts/:id/pay),
+   * deletable through DELETE /transactions/:id.
+   */
+  source: 'entry' | 'payment' | 'account'
   entryId: number | null
   transactionId: number | null
+  /** Account the money left from, for 'payment' and 'account' lines. */
+  accountId: number | null
   /** Balance after this line, in chronological order. */
   balanceAfter: number
 }
@@ -729,6 +746,7 @@ export interface ApiError {
  * GET    /debts/:id                     -> 200 DebtDetail
  * PATCH  /debts/:id                     debtPatchSchema -> 200 Debt
  * DELETE /debts/:id                     -> 204 (deletes its entries; the fixed expense and its payments stay)
+ * POST   /debts/:id/pay                 debtPaySchema -> 201 DebtDetail (creates an expense movement linked to the debt; 422 if the date is before startDate)
  * POST   /debts/:id/entries             debtEntryInputSchema -> 201 DebtDetail
  * DELETE /debts/:id/entries/:entryId    -> 200 DebtDetail
  *

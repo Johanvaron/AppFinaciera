@@ -212,6 +212,7 @@ export class FixedService {
         note: '',
         fixedExpenseId: fixed.id,
         fixedMonth: data.month,
+        debtId: null,
       })
       // Paying a month that was marked "does not apply" means it does apply after all.
       const override = this.deps.months.find(id, data.month)

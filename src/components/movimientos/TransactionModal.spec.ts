@@ -41,6 +41,7 @@ const RENT_PAYMENT: Transaction = {
   note: '',
   fixedExpenseId: 5,
   fixedMonth: '2026-10',
+  debtId: null,
   createdAt: '2026-10-01T12:00:00',
 }
 

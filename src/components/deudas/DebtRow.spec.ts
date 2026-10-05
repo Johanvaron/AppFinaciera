@@ -52,6 +52,6 @@ describe('DebtRow', () => {
     const wrapper = mountRow({ ...MOTO, archived: true })
     await wrapper.find('button[aria-label="Acciones de Moto"]').trigger('click')
     const labels = wrapper.findAll('[role="menuitem"]').map((b) => b.text())
-    expect(labels).toEqual(['Editar', 'Restaurar', 'Eliminar'])
+    expect(labels).toEqual(['Abonar', 'Editar', 'Restaurar', 'Eliminar'])
   })
 })

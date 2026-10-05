@@ -104,14 +104,46 @@ describe('debts: credit cards and loans', () => {
     expect((await api.call('GET', `/debts/${card.id}`)).status).toBe(404)
   })
 
+  it('"Abonar" takes the money out of the account and off the debt in one movement', async () => {
+    const moto = await debt({ name: 'Moto', kind: 'prestamo', initialBalance: 9_600_000 })
+    const detail = await api.ok('POST', `/debts/${moto.id}/pay`, { date: '2026-10-04', amount: 1_000_000, accountId: bank }, 201)
+    expect(detail.debt).toMatchObject({ balance: 8_600_000, paidTotal: 1_000_000, paidThisMonth: 1_000_000, lastPaymentDate: '2026-10-04' })
+    expect(detail.movements[0]).toMatchObject({ source: 'account', type: 'abono', amount: 1_000_000, accountId: bank, description: 'Abono a Moto', balanceAfter: 8_600_000 })
+
+    const accounts = await api.ok('GET', '/accounts')
+    expect(accounts[0].balance).toBe(2_000_000)
+    const movements = await api.ok('GET', '/transactions?month=2026-10')
+    expect(movements[0]).toMatchObject({ type: 'expense', amount: 1_000_000, debtId: moto.id, categoryId: cards, description: 'Abono a Moto' })
+    expect((await api.ok('GET', '/summary?month=2026-10')).expenses).toBe(1_000_000)
+
+    // deleting the movement puts the money back on both sides
+    await api.ok('DELETE', `/transactions/${movements[0].id}`, undefined, 204)
+    expect((await api.ok('GET', `/debts/${moto.id}`)).debt.balance).toBe(9_600_000)
+    expect((await api.ok('GET', '/accounts'))[0].balance).toBe(3_000_000)
+  })
+
+  it('"Abonar" uses the linked fixed expense category, rejects dates before the start and unknown accounts', async () => {
+    const card = await debt({ name: 'BBVA 1', initialBalance: 500_000, fixedExpenseId: bbva })
+    const detail = await api.ok('POST', `/debts/${card.id}/pay`, { date: '2026-10-05', amount: 50_000, accountId: bank, description: 'Abono extra' }, 201)
+    expect(detail.movements[0]).toMatchObject({ source: 'account', description: 'Abono extra', balanceAfter: 450_000 })
+    expect((await api.ok('GET', '/transactions?month=2026-10'))[0].categoryId).toBe(cards)
+
+    const early = await api.call('POST', `/debts/${card.id}/pay`, { date: '2026-08-31', amount: 1, accountId: bank })
+    expect(early.status).toBe(422)
+    expect(early.body.fields.date).toBe('La fecha es anterior al inicio de la deuda')
+    const noAccount = await api.call('POST', `/debts/${card.id}/pay`, { date: '2026-10-05', amount: 1, accountId: 99 })
+    expect(noAccount.body.fields.accountId).toBe('La cuenta no existe')
+  })
+
   it('survives a backup round trip', async () => {
     const card = await debt({ name: 'Rappi', initialBalance: 777 })
     await api.ok('POST', `/debts/${card.id}/entries`, { date: '2026-10-02', type: 'cargo', amount: 23 }, 201)
+    await api.ok('POST', `/debts/${card.id}/pay`, { date: '2026-10-03', amount: 100, accountId: bank }, 201)
     const file = await api.ok('GET', '/backup')
     expect(file.debts).toHaveLength(1)
     expect(file.debtEntries).toHaveLength(1)
     await api.ok('POST', '/backup/restore', file)
-    expect((await api.ok('GET', '/debts')).debts[0].balance).toBe(800)
+    expect((await api.ok('GET', '/debts')).debts[0].balance).toBe(700)
   })
 
   it('restores a backup made before debts existed', async () => {

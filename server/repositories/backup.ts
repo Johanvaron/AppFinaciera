@@ -10,11 +10,12 @@ const TABLES: readonly (readonly [BackupKey, string])[] = [
   ['accounts', 'accounts'],
   ['categories', 'categories'],
   ['fixedExpenses', 'fixed_expenses'],
+  // Debts come before movements: a movement may point at a debt (debt_id).
+  ['debts', 'debts'],
+  ['debtEntries', 'debt_entries'],
   ['transactions', 'transactions'],
   ['fixedMonths', 'fixed_months'],
   ['budgets', 'budgets'],
-  ['debts', 'debts'],
-  ['debtEntries', 'debt_entries'],
 ]
 
 /** Raw dump / restore of every data table. */

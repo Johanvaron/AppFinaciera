@@ -49,7 +49,7 @@ export class TransactionService {
 
   create(data: TransactionData): Transaction {
     this.checkReferences(data)
-    return this.transactions.insert({ ...data, fixedExpenseId: null, fixedMonth: null })
+    return this.transactions.insert({ ...data, fixedExpenseId: null, fixedMonth: null, debtId: null })
   }
 
   /** Full replacement of the editable fields; the fixed-expense link is kept. */
@@ -58,6 +58,9 @@ export class TransactionService {
     if (!current) throw notFound('El movimiento no existe')
     if (current.fixedExpenseId != null && data.type !== 'expense') {
       throw invalid({ type: 'El pago de un gasto fijo tiene que seguir siendo un gasto' })
+    }
+    if (current.debtId != null && data.type !== 'expense') {
+      throw invalid({ type: 'El abono a una deuda tiene que seguir siendo un gasto' })
     }
     this.checkReferences(data)
     return this.transactions.update(id, data) as Transaction

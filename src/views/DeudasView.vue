@@ -13,6 +13,7 @@ import UiButton from '@/components/ui/UiButton.vue'
 import UiModal from '@/components/ui/UiModal.vue'
 import DebtDetailModal from '@/components/deudas/DebtDetailModal.vue'
 import DebtFormModal from '@/components/deudas/DebtFormModal.vue'
+import DebtPayModal from '@/components/deudas/DebtPayModal.vue'
 import DebtRow, { type RowAction } from '@/components/deudas/DebtRow.vue'
 import DebtTotals from '@/components/deudas/DebtTotals.vue'
 import { splitDebts } from '@/components/deudas/debts'
@@ -33,6 +34,8 @@ const archivedOpen = ref(false)
 const formOpen = ref(false)
 const formEditing = ref<Debt | null>(null)
 const detailOpen = ref(false)
+const payOpen = ref(false)
+const paying = ref<Debt | null>(null)
 const detailId = ref<number | null>(null)
 const removeOpen = ref(false)
 const target = ref<Debt | null>(null)
@@ -52,7 +55,10 @@ const archive = useApiMutation((input: { debt: Debt; archived: boolean }) => api
 const remove = useApiMutation((id: number) => api.debts.remove(id), { success: 'Deuda eliminada' })
 
 function onAction(debt: Debt, action: RowAction) {
-  if (action === 'edit') openForm(debt)
+  if (action === 'pay') {
+    paying.value = debt
+    payOpen.value = true
+  } else if (action === 'edit') openForm(debt)
   else if (action === 'archive') archive.mutate({ debt, archived: !debt.archived })
   else {
     target.value = debt
@@ -148,6 +154,7 @@ async function confirmRemove() {
 
     <DebtFormModal v-model:open="formOpen" :editing="formEditing" :fixed-expenses="fixedExpenses" />
     <DebtDetailModal v-model:open="detailOpen" :debt-id="detailId" />
+    <DebtPayModal v-model:open="payOpen" :debt="paying" />
 
     <UiModal v-model:open="removeOpen" :title="`Eliminar ${target?.name ?? ''}`" size="sm">
       <p class="text-[14px]">Se borra la deuda con sus cargos y abonos anotados a mano.</p>

@@ -10,9 +10,12 @@ import type {
   debtEntryInputSchema,
   debtInputSchema,
   debtPatchSchema,
+  debtPaySchema,
 } from '../../shared/contract.ts'
 import { isRealDate, monthOf, monthRange, type Clock } from '../lib/dates.ts'
 import { invalid, notFound } from '../lib/errors.ts'
+import type { AccountRepository } from '../repositories/accounts.ts'
+import type { CategoryRepository } from '../repositories/categories.ts'
 import type { DebtEntryRepository, DebtRecord, DebtRepository } from '../repositories/debts.ts'
 import type { FixedExpenseRepository } from '../repositories/fixed-expenses.ts'
 import type { TransactionRepository } from '../repositories/transactions.ts'
@@ -20,19 +23,22 @@ import type { TransactionRepository } from '../repositories/transactions.ts'
 type DebtData = z.output<typeof debtInputSchema>
 type DebtPatchData = z.output<typeof debtPatchSchema>
 type EntryData = z.output<typeof debtEntryInputSchema>
+type PayData = z.output<typeof debtPaySchema>
 
 interface DebtServiceDeps {
   debts: DebtRepository
   entries: DebtEntryRepository
   fixed: FixedExpenseRepository
   transactions: TransactionRepository
+  accounts: AccountRepository
+  categories: CategoryRepository
   clock: Clock
 }
 
 const sum = (values: number[]): number => values.reduce((total, value) => total + value, 0)
 
 /** The movements that change a debt: manual entries plus the linked fixed expense's payments since the start date. */
-function movementsOf(record: DebtRecord, entries: DebtEntry[], payments: Transaction[]): DebtMovement[] {
+function movementsOf(record: DebtRecord, entries: DebtEntry[], payments: Transaction[], accountPayments: Transaction[]): DebtMovement[] {
   const lines: Omit<DebtMovement, 'balanceAfter'>[] = [
     ...entries.map((entry) => ({
       date: entry.date,
@@ -42,6 +48,7 @@ function movementsOf(record: DebtRecord, entries: DebtEntry[], payments: Transac
       source: 'entry' as const,
       entryId: entry.id,
       transactionId: null,
+      accountId: null,
     })),
     ...payments.map((payment) => ({
       date: payment.date,
@@ -51,6 +58,17 @@ function movementsOf(record: DebtRecord, entries: DebtEntry[], payments: Transac
       source: 'payment' as const,
       entryId: null,
       transactionId: payment.id,
+      accountId: payment.accountId,
+    })),
+    ...accountPayments.map((payment) => ({
+      date: payment.date,
+      type: 'abono' as const,
+      amount: payment.amount,
+      description: payment.description,
+      source: 'account' as const,
+      entryId: null,
+      transactionId: payment.id,
+      accountId: payment.accountId,
     })),
   ]
   lines.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (a.entryId ?? a.transactionId ?? 0) - (b.entryId ?? b.transactionId ?? 0)))
@@ -129,6 +147,39 @@ export class DebtService {
     return this.detail(id)
   }
 
+  /** Pays the debt from an account: one expense movement that lowers both the account and the debt. */
+  pay(id: number, data: PayData): DebtDetail {
+    const record = this.mustGet(id)
+    if (!isRealDate(data.date)) throw invalid({ date: 'Esa fecha no existe en el calendario' })
+    if (data.date < record.startDate) throw invalid({ date: 'La fecha es anterior al inicio de la deuda' })
+    if (!this.deps.accounts.exists(data.accountId)) throw invalid({ accountId: 'La cuenta no existe' })
+    this.deps.transactions.insert({
+      date: data.date,
+      amount: data.amount,
+      type: 'expense',
+      accountId: data.accountId,
+      toAccountId: null,
+      categoryId: this.paymentCategory(record),
+      description: data.description || `Abono a ${record.name}`,
+      note: '',
+      fixedExpenseId: null,
+      fixedMonth: null,
+      debtId: id,
+    })
+    return this.detail(id)
+  }
+
+  /** The linked fixed expense's category when there is one, else the first expense category named like a debt, else any expense category. */
+  private paymentCategory(record: DebtRecord): number {
+    const fixed = record.fixedExpenseId == null ? undefined : this.deps.fixed.get(record.fixedExpenseId)
+    if (fixed) return fixed.categoryId
+    const expense = this.deps.categories.list().filter((c) => c.kind === 'expense' && !c.archived)
+    const debtLike = expense.find((c) => /deuda|tarjeta|cr[ée]dito|pr[ée]stamo/i.test(c.name))
+    const chosen = debtLike ?? expense[0]
+    if (!chosen) throw invalid({ _: 'Crea una categoría de gasto antes de abonar' })
+    return chosen.id
+  }
+
   removeEntry(id: number, entryId: number): DebtDetail {
     this.mustGet(id)
     const entry = this.deps.entries.get(entryId)
@@ -147,7 +198,7 @@ export class DebtService {
 
   private movements(record: DebtRecord): DebtMovement[] {
     const payments = record.fixedExpenseId == null ? [] : this.deps.transactions.fixedPaymentsSince(record.fixedExpenseId, record.startDate)
-    return movementsOf(record, this.deps.entries.listByDebt(record.id), payments)
+    return movementsOf(record, this.deps.entries.listByDebt(record.id), payments, this.deps.transactions.debtPayments(record.id))
   }
 
   private withTotals(record: DebtRecord, movements = this.movements(record)): Debt {

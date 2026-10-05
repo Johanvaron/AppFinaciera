@@ -5,7 +5,7 @@
  * wide dialog with the history and the months side by side.
  */
 import { computed, ref } from 'vue'
-import { Minus, Plus } from 'lucide-vue-next'
+import { HandCoins, Minus, Plus } from 'lucide-vue-next'
 import type { DebtEntryType, DebtMovement } from '@shared/contract'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiModal from '@/components/ui/UiModal.vue'
@@ -15,6 +15,7 @@ import { errorMessage, useApiMutation, useDebtDetail } from '@/lib/queries'
 import DebtEntryModal from './DebtEntryModal.vue'
 import DebtMonthly from './DebtMonthly.vue'
 import DebtMovements from './DebtMovements.vue'
+import DebtPayModal from './DebtPayModal.vue'
 import { balanceText, movementAmountText, movementText } from './debts'
 
 const open = defineModel<boolean>('open', { required: true })
@@ -32,10 +33,13 @@ function openEntry(type: DebtEntryType) {
   entryOpen.value = true
 }
 
-// ---- delete a hand-entered line ----
+const payOpen = ref(false)
+
+// ---- delete a hand-entered line, or an account payment (a normal movement) ----
 const removeOpen = ref(false)
 const removing = ref<DebtMovement | null>(null)
 const remove = useApiMutation((input: { debtId: number; entryId: number }) => api.debts.removeEntry(input.debtId, input.entryId), { success: 'Registro eliminado' })
+const removePayment = useApiMutation((transactionId: number) => api.transactions.remove(transactionId), { success: 'Abono eliminado' })
 
 function askRemove(movement: DebtMovement) {
   removing.value = movement
@@ -44,8 +48,16 @@ function askRemove(movement: DebtMovement) {
 
 async function confirmRemove() {
   const target = removing.value
-  if (!target || target.entryId == null || props.debtId == null) return
-  await remove.mutateAsync({ debtId: props.debtId, entryId: target.entryId }).then(() => (removeOpen.value = false), () => undefined)
+  if (!target || props.debtId == null) return
+  const request =
+    target.source === 'account' && target.transactionId != null
+      ? removePayment.mutateAsync(target.transactionId)
+      : target.entryId != null
+        ? remove.mutateAsync({ debtId: props.debtId, entryId: target.entryId })
+        : null
+  if (!request) return
+  // The toast already explains a failure; the dialog stays open to retry.
+  await request.then(() => (removeOpen.value = false), () => undefined)
 }
 
 const TONE_TEXT = { success: 'text-success', danger: 'text-danger', warning: 'text-warning', neutral: 'text-ink' }
@@ -88,6 +100,10 @@ const TONE_TEXT = { success: 'text-success', danger: 'text-danger', warning: 'te
       <p v-if="debt.note" class="text-xs text-muted">{{ debt.note }}</p>
 
       <div class="flex flex-wrap gap-2">
+        <UiButton variant="primary" @click="payOpen = true">
+          <HandCoins class="size-4" aria-hidden="true" />
+          Abonar
+        </UiButton>
         <UiButton @click="openEntry('cargo')">
           <Plus class="size-4" aria-hidden="true" />
           Anotar cargo
@@ -99,12 +115,13 @@ const TONE_TEXT = { success: 'text-success', danger: 'text-danger', warning: 'te
       </div>
 
       <div class="grid grid-cols-1 gap-6 sm:grid-cols-[3fr_2fr]">
-        <DebtMovements :movements="data.movements" :deleting="remove.isPending.value ? (removing?.entryId ?? null) : null" @remove="askRemove" />
+        <DebtMovements :movements="data.movements" :deleting="remove.isPending.value || removePayment.isPending.value ? removing : null" @remove="askRemove" />
         <DebtMonthly :monthly="data.monthly" />
       </div>
     </div>
 
     <DebtEntryModal v-model:open="entryOpen" :debt="debt" :type="entryType" />
+    <DebtPayModal v-model:open="payOpen" :debt="debt" />
 
     <UiModal v-model:open="removeOpen" title="Eliminar registro" size="sm">
       <p v-if="removing" class="text-[14px]">

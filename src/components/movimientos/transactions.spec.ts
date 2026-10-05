@@ -21,6 +21,7 @@ import {
 let nextId = 1
 function tx(partial: Partial<Transaction>): Transaction {
   return {
+    debtId: null,
     id: nextId++,
     date: '2026-10-02',
     amount: 1000,
