@@ -22,7 +22,7 @@ import { errorMessage, useApiMutation, useDebts, useFixedMonth } from '@/lib/que
 
 const { data, isPending, isError, error, refetch, isFetching } = useDebts()
 // The fixed expenses of THIS month (not the month on screen): the link is about what pays the debt now.
-const { data: fixedMonth } = useFixedMonth(currentMonth())
+const { data: fixedMonth, isError: fixedError, refetch: refetchFixed } = useFixedMonth(currentMonth())
 
 const sections = computed(() => splitDebts(data.value?.debts ?? []))
 const fixedExpenses = computed(() => (fixedMonth.value?.items ?? []).map((item) => item.fixed))
@@ -108,6 +108,12 @@ async function confirmRemove() {
       <template v-else>
         <DebtTotals :debts="data.debts" :paid-this-month="data.paidThisMonth" :active-count="sections.active.length" />
 
+        <!-- Without the checklist the linked rows cannot name their fixed expense: say so instead of a generic line. -->
+        <p v-if="fixedError && !fixedMonth" class="flex flex-wrap items-center gap-x-3 rounded-lg bg-danger-soft px-3 py-2 text-xs text-danger" role="alert">
+          <span>No se pudieron cargar los gastos fijos de este mes: no se ve cuál paga cada deuda.</span>
+          <button type="button" class="font-semibold underline" @click="refetchFixed()">Reintentar</button>
+        </p>
+
         <section class="card py-2" aria-label="Lista de deudas">
           <p v-if="sections.active.length === 0" class="py-3 text-xs text-muted">Todas tus deudas están archivadas.</p>
           <ul v-else class="[&>li+li]:shadow-[inset_0_1px_0_rgb(var(--fill))]">
@@ -146,7 +152,7 @@ async function confirmRemove() {
       </template>
     </template>
 
-    <DebtFormModal v-model:open="formOpen" :editing="formEditing" :fixed-expenses="fixedExpenses" />
+    <DebtFormModal v-model:open="formOpen" :editing="formEditing" :fixed-expenses="fixedExpenses" :fixed-error="fixedError && !fixedMonth" @retry-fixed="refetchFixed()" />
     <DebtDetailModal v-model:open="detailOpen" :debt-id="detailId" />
 
     <UiModal v-model:open="removeOpen" :title="`Eliminar ${target?.name ?? ''}`" size="sm">
