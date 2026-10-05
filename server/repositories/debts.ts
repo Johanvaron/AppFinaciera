@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite'
-import type { DebtEntry, DebtEntryType, DebtKind, IsoDate } from '../../shared/contract.ts'
+import type { DebtEntry, DebtKind, IsoDate } from '../../shared/contract.ts'
 import { BaseRepository } from './base.ts'
 
 export interface DebtRecord {
@@ -36,9 +36,9 @@ export class DebtEntryRepository extends BaseRepository<DebtEntry, DebtEntryInse
     return this.select('WHERE debt_id = ? ORDER BY date, id', debtId)
   }
 
-  /** Sums per debt of one entry type, for the list screen in a single query. */
-  totalsByType(type: DebtEntryType): Map<number, number> {
-    const rows = this.all('SELECT debt_id, SUM(amount) AS total FROM debt_entries WHERE type = ? GROUP BY debt_id', type)
-    return new Map(rows.map((row) => [Number(row.debt_id), Number(row.total)]))
+  /** Date of the oldest entry of a debt; undefined when it has none. */
+  firstDate(debtId: number): IsoDate | undefined {
+    const row = this.one('SELECT MIN(date) AS first FROM debt_entries WHERE debt_id = ?', debtId)
+    return row?.first == null ? undefined : String(row.first)
   }
 }

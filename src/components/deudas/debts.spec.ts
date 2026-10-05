@@ -3,12 +3,14 @@ import {
   balanceText,
   debtPatch,
   formValues,
+  headlineTotal,
   lastPaymentText,
   linkText,
   monthBarRatio,
   movementAmountText,
   movementText,
   movementTone,
+  paidThisMonthLabel,
   paidThisMonthText,
   progressRatio,
   splitDebts,
@@ -36,9 +38,19 @@ describe('balance and totals', () => {
     expect(balanceText(BBVA)).toEqual({ text: '$ 1.798.427', tone: 'danger' })
   })
 
-  it('shows "Pagada" at zero and when more was paid than owed', () => {
+  it('shows "Pagada" at zero and the money in favor when more was paid than owed', () => {
     expect(balanceText({ balance: 0 })).toEqual({ text: 'Pagada', tone: 'success' })
-    expect(balanceText({ balance: -50_000 })).toEqual({ text: 'Pagada', tone: 'success' })
+    expect(balanceText({ balance: -76_726_311 })).toEqual({ text: 'Saldo a favor $ 76.726.311', tone: 'success' })
+  })
+
+  it('headline adds only what is owed: a saldo a favor on one debt does not hide the other', () => {
+    // Reproduced against the API: BBVA 1 overpaid + Moto with 9.6M gave totalDebt = -67.126.311 and "Sin deudas".
+    const rows = [
+      { balance: -76_726_311, archived: false },
+      { balance: 9_600_000, archived: false },
+    ]
+    expect(headlineTotal(rows)).toEqual({ value: '$ 9.600.000', tone: 'danger' })
+    expect(headlineTotal([{ balance: 5_000, archived: true }, { balance: 0, archived: false }])).toEqual({ value: 'Sin deudas', tone: 'success' })
   })
 
   it('headline total: red figure, or "Sin deudas" at zero', () => {
@@ -61,8 +73,13 @@ describe('progress', () => {
 
 describe('row lines', () => {
   it('says how much was paid this month, with this month\'s figure and not the total', () => {
-    expect(paidThisMonthText(BBVA)).toBe('Pagaste $ 201.573 este mes')
-    expect(paidThisMonthText({ paidThisMonth: 0 })).toBe('Sin pagos este mes')
+    expect(paidThisMonthText(BBVA, '2026-10')).toBe('Pagaste $ 201.573 en octubre (por fecha de pago)')
+    expect(paidThisMonthText({ paidThisMonth: 0 }, '2026-10')).toBe('Sin pagos en octubre')
+  })
+
+  it('labels the monthly figure by payment date, so it is not read as the checklist month', () => {
+    expect(paidThisMonthLabel('2026-10')).toBe('Pagado en octubre (por fecha de pago)')
+    expect(paidThisMonthLabel('2027-01')).toBe('Pagado en enero (por fecha de pago)')
   })
 
   it('shows the last payment date when there is one', () => {
