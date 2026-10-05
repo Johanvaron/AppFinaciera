@@ -543,8 +543,9 @@ export const debtPatchSchema = z.strictObject({
   initialBalance: debtInputSchema.shape.initialBalance.optional(),
   startDate: debtInputSchema.shape.startDate.optional(),
   fixedExpenseId: idSchema.nullable().optional(),
-  note: debtInputSchema.shape.note.optional(),
-  archived: z.boolean().optional(),
+  /** `.unwrap()` drops the input defaults: a PATCH without `note` must leave the saved note alone. */
+  note: debtInputSchema.shape.note.unwrap().optional(),
+  archived: debtInputSchema.shape.archived.unwrap().optional(),
 })
 export type DebtPatch = z.input<typeof debtPatchSchema>
 

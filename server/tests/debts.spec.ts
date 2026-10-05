@@ -95,6 +95,21 @@ describe('debts: credit cards and loans', () => {
     expect(fake.status).toBe(422)
   })
 
+  it('keeps the saved note when a PATCH does not mention it, and empties it only when asked', async () => {
+    const card = await debt({ name: 'BBVA 1', initialBalance: 2_500_000, note: 'Cuota 12 de 24' })
+    const archived = await api.ok('PATCH', `/debts/${card.id}`, { archived: true })
+    expect(archived).toMatchObject({ note: 'Cuota 12 de 24', archived: true })
+    const detail = await api.ok('GET', `/debts/${card.id}`)
+    expect(detail.debt).toMatchObject({ note: 'Cuota 12 de 24', archived: true })
+
+    const renamed = await api.ok('PATCH', `/debts/${card.id}`, { name: 'BBVA Visa' })
+    expect(renamed).toMatchObject({ name: 'BBVA Visa', note: 'Cuota 12 de 24', archived: true })
+
+    const cleared = await api.ok('PATCH', `/debts/${card.id}`, { note: '' })
+    expect(cleared.note).toBe('')
+    expect((await api.ok('GET', `/debts/${card.id}`)).debt.note).toBe('')
+  })
+
   it('refuses to move the start date past an existing entry, so balance and monthly keep agreeing', async () => {
     const card = await debt({ name: 'Rappi', initialBalance: 1_000_000 })
     await api.ok('POST', `/debts/${card.id}/entries`, { date: '2026-09-05', type: 'cargo', amount: 50_000 }, 201)
