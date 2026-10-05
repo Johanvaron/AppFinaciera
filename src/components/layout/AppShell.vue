@@ -77,9 +77,10 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
         :to="item.to"
         class="flex h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-muted"
         active-class="!text-primary"
+        :aria-label="item.label"
       >
         <component :is="item.icon" class="size-5" aria-hidden="true" />
-        <span class="max-w-full truncate text-xs font-medium">{{ item.short }}</span>
+        <span class="hidden max-w-full truncate text-xs font-medium min-[380px]:block">{{ item.short }}</span>
       </RouterLink>
     </nav>
     <button

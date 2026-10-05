@@ -7,7 +7,7 @@ import { computed } from 'vue'
 import { ArrowDown, ArrowUp, ArrowUpDown, Pencil, Trash2 } from 'lucide-vue-next'
 import type { Account, Category, Transaction } from '@shared/contract'
 import UiBadge from '@/components/ui/UiBadge.vue'
-import { formatMoney } from '@/lib/format'
+import { formatMoney, dateShort } from '@/lib/format'
 import { categoryHex } from '@/lib/palette'
 import { groupByDay, rowView, type RowView, type SortDir, type SortKey } from './transactions'
 
@@ -30,13 +30,13 @@ const emit = defineEmits<{
 }>()
 
 type Line =
-  | { kind: 'day'; key: string; label: string; spent: number }
+  | { kind: 'day'; key: string; label: string; shortLabel: string; spent: number }
   | { kind: 'row'; key: string; tx: Transaction; view: RowView }
 
 const lines = computed<Line[]>(() => {
   const toRow = (tx: Transaction): Line => ({ kind: 'row', key: `tx-${tx.id}`, tx, view: rowView(tx, props.categories, props.accounts) })
   if (props.sortKey !== 'date') return props.rows.map(toRow)
-  return groupByDay(props.rows).flatMap((group) => [{ kind: 'day', key: `day-${group.date}`, label: group.label, spent: group.spent } as Line, ...group.items.map(toRow)])
+  return groupByDay(props.rows).flatMap((group) => [{ kind: 'day', key: `day-${group.date}`, label: group.label, shortLabel: dateShort(group.date), spent: group.spent } as Line, ...group.items.map(toRow)])
 })
 
 const allSelected = computed(() => props.rows.length > 0 && props.rows.every((tx) => props.selectedIds.has(tx.id)))
@@ -132,7 +132,7 @@ function sortIcon(key: SortKey) {
   <ul class="flex min-w-0 flex-col sm:hidden">
     <template v-for="line in lines" :key="line.key">
       <li v-if="line.kind === 'day'" class="flex items-center justify-between gap-3 rounded-lg bg-fill px-2 py-1.5 text-xs font-semibold text-muted">
-        <span class="min-w-0 truncate">{{ line.label }}</span>
+        <span class="min-w-0 truncate">{{ line.shortLabel }}</span>
         <span v-if="line.spent > 0" class="num font-medium">Gastado {{ formatMoney(line.spent) }}</span>
       </li>
       <li v-else class="flex min-w-0 items-center gap-1">

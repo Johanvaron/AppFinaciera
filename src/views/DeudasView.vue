@@ -116,7 +116,7 @@ async function confirmRemove() {
 
         <section class="card py-2" aria-label="Lista de deudas">
           <p v-if="sections.active.length === 0" class="py-3 text-xs text-muted">Todas tus deudas están archivadas.</p>
-          <ul v-else class="[&>li+li]:shadow-[inset_0_1px_0_rgb(var(--fill))]">
+          <ul v-else class="grid grid-cols-1 gap-x-8 2xl:grid-cols-2 [&>li]:shadow-[inset_0_1px_0_rgb(var(--fill))] [&>li:first-child]:shadow-none 2xl:[&>li:nth-child(2)]:shadow-none">
             <DebtRow
               v-for="debt in sections.active"
               :key="debt.id"
@@ -137,7 +137,7 @@ async function confirmRemove() {
               <ChevronDown :class="['size-4 transition-transform', archivedOpen && 'rotate-180']" aria-hidden="true" />
               Archivadas ({{ sections.archived.length }})
             </button>
-            <ul v-if="archivedOpen" class="[&>li+li]:shadow-[inset_0_1px_0_rgb(var(--fill))]">
+            <ul v-if="archivedOpen" class="grid grid-cols-1 gap-x-8 2xl:grid-cols-2 [&>li]:shadow-[inset_0_1px_0_rgb(var(--fill))] [&>li:first-child]:shadow-none 2xl:[&>li:nth-child(2)]:shadow-none">
               <DebtRow
                 v-for="debt in sections.archived"
                 :key="debt.id"
