@@ -87,6 +87,16 @@ describe('DebtEntryModal', () => {
     await vi.waitFor(() => expect(wrapper.emitted('update:open')).toEqual([[false]]))
   })
 
+  it('rejects a future date before sending: the line would move the balance without showing in any month', async () => {
+    await openAs('cargo')
+    expect(dateInput().getAttribute('max')).toBe(dateInput().value)
+    await type(amountInput(), '85000')
+    await type(dateInput(), '2027-03-01')
+    await submitForm()
+    expect(alerts()).toEqual(['La fecha no puede ser futura: anota el cargo o el abono el día que pase'])
+    expect(api.debts.addEntry).not.toHaveBeenCalled()
+  })
+
   it('paints a 422 of the amount under its field', async () => {
     vi.mocked(api.debts.addEntry).mockRejectedValue(new ApiRequestError(422, 'Revisa el formulario', { amount: 'El monto debe ser mayor a cero' }))
     await openAs('abono')

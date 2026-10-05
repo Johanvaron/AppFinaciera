@@ -57,6 +57,11 @@ async function submit() {
     }
     return
   }
+  // The server takes any date: a future line would change the balance today without showing in any month on screen.
+  if (parsed.data.date > todayIso()) {
+    errors.value.date = FUTURE_DATE_MESSAGE
+    return
+  }
   try {
     await save.mutateAsync({ id: props.debt.id, body: parsed.data })
   } catch (error) {
@@ -71,6 +76,7 @@ async function submit() {
 }
 
 const VISIBLE_FIELDS = ['date', 'amount', 'description']
+const FUTURE_DATE_MESSAGE = 'La fecha no puede ser futura: anota el cargo o el abono el día que pase'
 </script>
 
 <template>
@@ -79,7 +85,7 @@ const VISIBLE_FIELDS = ['date', 'amount', 'description']
       <p class="text-xs text-muted">{{ copy.hint }}</p>
 
       <UiField label="Fecha" :error="errors.date">
-        <input v-model="form.date" type="date" class="control" :aria-invalid="!!errors.date || undefined" />
+        <input v-model="form.date" type="date" class="control" :max="todayIso()" :aria-invalid="!!errors.date || undefined" />
       </UiField>
 
       <UiField label="Monto" :error="errors.amount" hint="Puedes escribir 85k o 1,2m">
