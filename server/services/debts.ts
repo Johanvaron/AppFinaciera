@@ -61,8 +61,11 @@ function movementsOf(record: DebtRecord, entries: DebtEntry[], payments: Transac
   })
 }
 
+/** One row per month from the start date up to today or the last movement, whichever is later, so the last row always closes at the balance. */
 function monthlyOf(record: DebtRecord, movements: DebtMovement[], today: string): DebtMonthRow[] {
-  const months = monthRange(monthOf(record.startDate), monthOf(today))
+  const last = movements.length > 0 ? movements[movements.length - 1]!.date : record.startDate
+  const end = monthOf(last > today ? last : today)
+  const months = monthRange(monthOf(record.startDate), end)
   let balance = record.initialBalance
   return months.map((month) => {
     const inMonth = movements.filter((m) => monthOf(m.date) === month)

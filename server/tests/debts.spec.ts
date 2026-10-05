@@ -112,6 +112,21 @@ describe('debts: credit cards and loans', () => {
     ])
   })
 
+  it('extends the monthly rows to a future movement so the last row closes at the balance', async () => {
+    const card = await debt({ name: 'BBVA 1', initialBalance: 1_000_000, fixedExpenseId: bbva })
+    await api.ok('POST', `/debts/${card.id}/entries`, { date: '2026-12-05', type: 'cargo', amount: 50_000 }, 201)
+    await pay(bbva, '2026-11', 200_000, '2026-11-20')
+    const detail = await api.ok('GET', `/debts/${card.id}`)
+    expect(detail.debt.balance).toBe(850_000)
+    expect(detail.monthly.at(-1).balanceEnd).toBe(detail.debt.balance)
+    expect(detail.monthly).toEqual([
+      { month: '2026-09', paid: 0, charged: 0, balanceEnd: 1_000_000 },
+      { month: '2026-10', paid: 0, charged: 0, balanceEnd: 1_000_000 },
+      { month: '2026-11', paid: 200_000, charged: 0, balanceEnd: 800_000 },
+      { month: '2026-12', paid: 0, charged: 50_000, balanceEnd: 850_000 },
+    ])
+  })
+
   it('deleting the debt keeps the fixed expense and its payments as they were', async () => {
     const card = await debt({ name: 'BBVA 1', initialBalance: 10, fixedExpenseId: bbva })
     await pay(bbva, '2026-10', 5, '2026-10-03')
