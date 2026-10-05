@@ -7,6 +7,9 @@ import { dateShort, formatMoney } from '@/lib/format'
 
 export type Tone = 'success' | 'danger' | 'warning' | 'neutral'
 
+/** Text class of each tone, shared by every figure of the screen. */
+export const TONE_TEXT: Record<Tone, string> = { success: 'text-success', danger: 'text-danger', warning: 'text-warning', neutral: 'text-ink' }
+
 type BalanceFields = Pick<Debt, 'balance'>
 
 /**

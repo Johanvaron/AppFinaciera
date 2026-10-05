@@ -15,7 +15,7 @@ import { errorMessage, useApiMutation, useDebtDetail } from '@/lib/queries'
 import DebtEntryModal from './DebtEntryModal.vue'
 import DebtMonthly from './DebtMonthly.vue'
 import DebtMovements from './DebtMovements.vue'
-import { balanceText, movementAmountText, movementText } from './debts'
+import { TONE_TEXT, balanceText, movementAmountText, movementText } from './debts'
 
 const open = defineModel<boolean>('open', { required: true })
 const props = defineProps<{ debtId: number | null }>()
@@ -47,8 +47,6 @@ async function confirmRemove() {
   if (!target || target.entryId == null || props.debtId == null) return
   await remove.mutateAsync({ debtId: props.debtId, entryId: target.entryId }).then(() => (removeOpen.value = false), () => undefined)
 }
-
-const TONE_TEXT = { success: 'text-success', danger: 'text-danger', warning: 'text-warning', neutral: 'text-ink' }
 </script>
 
 <template>

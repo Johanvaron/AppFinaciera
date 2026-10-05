@@ -10,7 +10,7 @@ import { DEBT_KIND_LABELS, type Debt } from '@shared/contract'
 import ProgressBar from '@/components/ui/ProgressBar.vue'
 import UiBadge from '@/components/ui/UiBadge.vue'
 import RowMenu, { type MenuItem } from '@/components/fijos/RowMenu.vue'
-import { balanceText, lastPaymentText, linkText, paidThisMonthText, progressRatio } from './debts'
+import { TONE_TEXT, balanceText, lastPaymentText, linkText, paidThisMonthText, progressRatio } from './debts'
 
 export type RowAction = 'edit' | 'archive' | 'remove'
 
@@ -33,8 +33,6 @@ const menu = computed<MenuItem[]>(() => [
     : { key: 'archive', label: 'Archivar', icon: Archive },
   { key: 'remove', label: 'Eliminar', icon: Trash2, danger: true },
 ])
-
-const TONE_TEXT = { success: 'text-success', danger: 'text-danger', warning: 'text-warning', neutral: 'text-ink' }
 </script>
 
 <template>
