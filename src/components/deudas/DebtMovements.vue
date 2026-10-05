@@ -8,12 +8,11 @@ import { Trash2 } from 'lucide-vue-next'
 import type { DebtMovement } from '@shared/contract'
 import UiBadge from '@/components/ui/UiBadge.vue'
 import { dateShort, formatMoney } from '@/lib/format'
-import { movementAmountText, movementText, movementTone } from './debts'
+import { TONE_TEXT, movementAmountText, movementText, movementTone } from './debts'
 
 defineProps<{ movements: DebtMovement[]; deleting: DebtMovement | null }>()
 const emit = defineEmits<{ remove: [movement: DebtMovement] }>()
 
-const TONE_TEXT = { success: 'text-success', warning: 'text-warning', danger: 'text-danger', neutral: 'text-ink' }
 const rowKey = (m: DebtMovement, index: number) => (m.entryId != null ? `e${m.entryId}` : m.transactionId != null ? `t${m.transactionId}` : `i${index}`)
 </script>
 

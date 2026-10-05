@@ -16,7 +16,7 @@ import DebtEntryModal from './DebtEntryModal.vue'
 import DebtMonthly from './DebtMonthly.vue'
 import DebtMovements from './DebtMovements.vue'
 import DebtPayModal from './DebtPayModal.vue'
-import { balanceText, movementAmountText, movementText } from './debts'
+import { TONE_TEXT, balanceText, movementAmountText, movementText } from './debts'
 
 const open = defineModel<boolean>('open', { required: true })
 const props = defineProps<{ debtId: number | null }>()
@@ -59,8 +59,6 @@ async function confirmRemove() {
   // The toast already explains a failure; the dialog stays open to retry.
   await request.then(() => (removeOpen.value = false), () => undefined)
 }
-
-const TONE_TEXT = { success: 'text-success', danger: 'text-danger', warning: 'text-warning', neutral: 'text-ink' }
 </script>
 
 <template>
