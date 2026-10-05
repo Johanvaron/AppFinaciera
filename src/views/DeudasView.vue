@@ -48,12 +48,14 @@ function openDetail(debt: Debt) {
 }
 
 // ---- writes ----
-const archive = useApiMutation((input: { debt: Debt; archived: boolean }) => api.debts.update(input.debt.id, { archived: input.archived }))
+// Two mutations so each one can carry its own success toast: the row only moves between sections, which is easy to miss.
+const archive = useApiMutation((debt: Debt) => api.debts.update(debt.id, { archived: true }), { success: 'Deuda archivada' })
+const restore = useApiMutation((debt: Debt) => api.debts.update(debt.id, { archived: false }), { success: 'Deuda restaurada' })
 const remove = useApiMutation((id: number) => api.debts.remove(id), { success: 'Deuda eliminada' })
 
 function onAction(debt: Debt, action: RowAction) {
   if (action === 'edit') openForm(debt)
-  else if (action === 'archive') archive.mutate({ debt, archived: !debt.archived })
+  else if (action === 'archive') (debt.archived ? restore : archive).mutate(debt)
   else {
     target.value = debt
     removeOpen.value = true
