@@ -21,10 +21,12 @@ export const backupRestoreSchema = z.object({
   fixedExpenses: rowsSchema,
   fixedMonths: rowsSchema,
   budgets: rowsSchema,
+  debts: rowsSchema.default([]),
+  debtEntries: rowsSchema.default([]),
 })
 type BackupRestore = z.output<typeof backupRestoreSchema>
 
-const TABLE_KEYS: BackupKey[] = ['accounts', 'categories', 'transactions', 'fixedExpenses', 'fixedMonths', 'budgets']
+const TABLE_KEYS: BackupKey[] = ['accounts', 'categories', 'transactions', 'fixedExpenses', 'fixedMonths', 'budgets', 'debts', 'debtEntries']
 
 const isDate = (value: unknown): boolean => dateSchema.safeParse(value).success && isRealDate(value as string)
 const isMonth = (value: unknown): boolean => monthSchema.safeParse(value).success
@@ -41,6 +43,8 @@ const DATE_COLUMNS: Partial<Record<BackupKey, Record<string, { valid: (value: un
   },
   fixedMonths: { month: { valid: isMonth, message: 'Mes inválido (YYYY-MM)' } },
   budgets: { month: { valid: isMonth, message: 'Mes inválido (YYYY-MM)' } },
+  debts: { start_date: { valid: isDate, message: 'Fecha inválida (YYYY-MM-DD)' } },
+  debtEntries: { date: { valid: isDate, message: 'Fecha inválida (YYYY-MM-DD)' } },
 }
 
 /**

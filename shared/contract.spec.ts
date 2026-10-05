@@ -69,7 +69,8 @@ describe('backupRestoreSchema', () => {
   }
 
   it('accepts a downloaded backup without changing its rows', () => {
-    expect(backupRestoreSchema.parse(backup)).toEqual(backup)
+    // A backup from before the debts feature gets the two new tables as empty lists.
+    expect(backupRestoreSchema.parse(backup)).toEqual({ ...backup, debts: [], debtEntries: [] })
   })
 
   it('rejects a file from another app or version with a clear message', () => {

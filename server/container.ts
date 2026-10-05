@@ -6,6 +6,7 @@ import { AccountRepository } from './repositories/accounts.ts'
 import { BackupRepository } from './repositories/backup.ts'
 import { BudgetRepository } from './repositories/budgets.ts'
 import { CategoryRepository } from './repositories/categories.ts'
+import { DebtEntryRepository, DebtRepository } from './repositories/debts.ts'
 import { FixedExpenseRepository } from './repositories/fixed-expenses.ts'
 import { FixedMonthRepository } from './repositories/fixed-months.ts'
 import { TransactionRepository } from './repositories/transactions.ts'
@@ -13,6 +14,7 @@ import { AccountService } from './services/accounts.ts'
 import { BackupService } from './services/backup.ts'
 import { BudgetService } from './services/budgets.ts'
 import { CategoryService } from './services/categories.ts'
+import { DebtService } from './services/debts.ts'
 import { FixedService } from './services/fixed.ts'
 import { ReportService } from './services/reports.ts'
 import { SummaryService } from './services/summary.ts'
@@ -50,6 +52,13 @@ export function buildServices(db: DatabaseSync, options: AppOptions = {}) {
     categories: new CategoryService(categoryRepo, transactionRepo, fixedRepo, budgetRepo, run),
     transactions: new TransactionService(transactionRepo, accountRepo, categoryRepo),
     fixed,
+    debts: new DebtService({
+      debts: new DebtRepository(db),
+      entries: new DebtEntryRepository(db),
+      fixed: fixedRepo,
+      transactions: transactionRepo,
+      clock,
+    }),
     budgets: new BudgetService(budgetRepo, categoryRepo, transactionRepo, clock),
     summary: new SummaryService(transactionRepo, categoryRepo, accounts, fixed, clock),
     reports: new ReportService(transactionRepo, categoryRepo, clock),

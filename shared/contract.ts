@@ -509,6 +509,129 @@ export const categoryReportQuerySchema = z
   })
 export type CategoryReportQuery = z.input<typeof categoryReportQuerySchema>
 
+// ---------- debts (credit cards and loans) ----------
+export const DEBT_KINDS = ['tarjeta', 'prestamo'] as const
+export type DebtKind = (typeof DEBT_KINDS)[number]
+export const DEBT_KIND_LABELS: Record<DebtKind, string> = {
+  tarjeta: 'Tarjeta de crédito',
+  prestamo: 'Préstamo',
+}
+
+/**
+ * A debt starts at `initialBalance` on `startDate`. From then on its balance is
+ *   initialBalance + charges (entries 'cargo') - manual payments (entries 'abono')
+ *   - every payment of the linked fixed expense dated on or after startDate.
+ * Linking the fixed expense (e.g. "BBVA 1") makes the monthly checklist payment
+ * lower the debt by itself; charges (purchases, interest) are entered by hand.
+ */
+export const debtInputSchema = z.strictObject({
+  name: z.string().trim().min(1, 'Ponle un nombre').max(60),
+  kind: z.enum(DEBT_KINDS),
+  /** What was owed on startDate. */
+  initialBalance: moneySchema,
+  startDate: dateSchema,
+  /** Fixed expense whose payments lower this debt. Null = only manual entries. */
+  fixedExpenseId: idSchema.nullable().default(null),
+  note: z.string().trim().max(500).default(''),
+  archived: z.boolean().default(false),
+})
+export type DebtInput = z.input<typeof debtInputSchema>
+
+export const debtPatchSchema = z.strictObject({
+  name: debtInputSchema.shape.name.optional(),
+  kind: debtInputSchema.shape.kind.optional(),
+  initialBalance: debtInputSchema.shape.initialBalance.optional(),
+  startDate: debtInputSchema.shape.startDate.optional(),
+  fixedExpenseId: idSchema.nullable().optional(),
+  note: debtInputSchema.shape.note.optional(),
+  archived: z.boolean().optional(),
+})
+export type DebtPatch = z.input<typeof debtPatchSchema>
+
+export interface Debt {
+  id: number
+  name: string
+  kind: DebtKind
+  initialBalance: number
+  startDate: IsoDate
+  fixedExpenseId: number | null
+  note: string
+  archived: boolean
+  /** What is owed right now. Can be negative when more was paid than owed. */
+  balance: number
+  /** Sum of every payment (manual + linked fixed expense) since startDate. */
+  paidTotal: number
+  /** Sum of every charge since startDate. */
+  chargedTotal: number
+  /** Payments dated in the current calendar month. */
+  paidThisMonth: number
+  lastPaymentDate: IsoDate | null
+}
+
+export const DEBT_ENTRY_TYPES = ['cargo', 'abono'] as const
+export type DebtEntryType = (typeof DEBT_ENTRY_TYPES)[number]
+export const DEBT_ENTRY_TYPE_LABELS: Record<DebtEntryType, string> = {
+  cargo: 'Cargo (compra, interés, cuota de manejo)',
+  abono: 'Abono registrado a mano',
+}
+
+/** A hand-entered charge or payment. Payments made through the fixed expense are NOT entries. */
+export const debtEntryInputSchema = z.strictObject({
+  date: dateSchema,
+  type: z.enum(DEBT_ENTRY_TYPES),
+  amount: moneySchema.min(1, 'El monto debe ser mayor a cero'),
+  description: z.string().trim().max(120).default(''),
+})
+export type DebtEntryInput = z.input<typeof debtEntryInputSchema>
+
+export interface DebtEntry {
+  id: number
+  debtId: number
+  date: IsoDate
+  type: DebtEntryType
+  amount: number
+  description: string
+}
+
+/** One line of a debt's history: a manual entry or a linked fixed-expense payment. */
+export interface DebtMovement {
+  date: IsoDate
+  type: DebtEntryType
+  amount: number
+  description: string
+  /** 'entry' = hand-entered (deletable here); 'payment' = a movement of the linked fixed expense. */
+  source: 'entry' | 'payment'
+  entryId: number | null
+  transactionId: number | null
+  /** Balance after this line, in chronological order. */
+  balanceAfter: number
+}
+
+export interface DebtMonthRow {
+  month: Month
+  paid: number
+  charged: number
+  /** Balance at the end of the month. */
+  balanceEnd: number
+}
+
+export interface DebtDetail {
+  debt: Debt
+  /** Newest first. */
+  movements: DebtMovement[]
+  /** From the start month to the current month, oldest first. */
+  monthly: DebtMonthRow[]
+}
+
+export interface DebtsResponse {
+  /** Active debts first, then archived. */
+  debts: Debt[]
+  /** Sum of the balance of non-archived debts. */
+  totalDebt: number
+  /** Sum of paidThisMonth of non-archived debts. */
+  paidThisMonth: number
+}
+
 // ---------- backup ----------
 export interface BackupFile {
   app: 'app-financiera'
@@ -520,6 +643,9 @@ export interface BackupFile {
   fixedExpenses: unknown[]
   fixedMonths: unknown[]
   budgets: unknown[]
+  /** Added with the debts feature; a backup from before has neither. */
+  debts?: unknown[]
+  debtEntries?: unknown[]
 }
 
 /** One table of a backup: flat rows of column -> value. */
@@ -540,6 +666,8 @@ export const backupRestoreSchema = z.object({
   fixedExpenses: backupRowsSchema,
   fixedMonths: backupRowsSchema,
   budgets: backupRowsSchema,
+  debts: backupRowsSchema.default([]),
+  debtEntries: backupRowsSchema.default([]),
 })
 export type BackupRestoreInput = z.input<typeof backupRestoreSchema>
 
@@ -595,6 +723,14 @@ export interface ApiError {
  * GET    /summary                       query monthQuerySchema -> 200 MonthSummary
  * GET    /reports/monthly               query monthlyReportQuerySchema -> 200 MonthlyReportRow[] (oldest first)
  * GET    /reports/categories            query categoryReportQuerySchema -> 200 CategoryReport
+ *
+ * GET    /debts                         -> 200 DebtsResponse
+ * POST   /debts                         debtInputSchema -> 201 Debt (422 if fixedExpenseId does not exist or is already linked to another debt)
+ * GET    /debts/:id                     -> 200 DebtDetail
+ * PATCH  /debts/:id                     debtPatchSchema -> 200 Debt
+ * DELETE /debts/:id                     -> 204 (deletes its entries; the fixed expense and its payments stay)
+ * POST   /debts/:id/entries             debtEntryInputSchema -> 201 DebtDetail
+ * DELETE /debts/:id/entries/:entryId    -> 200 DebtDetail
  *
  * GET    /backup                        -> 200 BackupFile (download)
  * POST   /backup/restore                backupRestoreSchema -> 200 BackupRestoreResult (replaces everything)

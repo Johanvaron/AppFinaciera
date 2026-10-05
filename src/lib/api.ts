@@ -14,6 +14,12 @@ import type {
   CategoryInput,
   CategoryKind,
   CategoryReport,
+  Debt,
+  DebtDetail,
+  DebtEntryInput,
+  DebtInput,
+  DebtPatch,
+  DebtsResponse,
   FixedExpense,
   FixedExpenseInput,
   FixedMonthItem,
@@ -128,6 +134,15 @@ export const api = {
   budgets: {
     month: (month: Month) => request<BudgetMonthResponse>('GET', '/budgets', { query: { month } }),
     set: (body: BudgetInput) => request<BudgetMonthResponse>('PUT', '/budgets', { body }),
+  },
+  debts: {
+    list: () => request<DebtsResponse>('GET', '/debts'),
+    detail: (id: number) => request<DebtDetail>('GET', `/debts/${id}`),
+    create: (body: DebtInput) => request<Debt>('POST', '/debts', { body }),
+    update: (id: number, body: DebtPatch) => request<Debt>('PATCH', `/debts/${id}`, { body }),
+    remove: (id: number) => request<void>('DELETE', `/debts/${id}`),
+    addEntry: (id: number, body: DebtEntryInput) => request<DebtDetail>('POST', `/debts/${id}/entries`, { body }),
+    removeEntry: (id: number, entryId: number) => request<DebtDetail>('DELETE', `/debts/${id}/entries/${entryId}`),
   },
   summary: (month: Month) => request<MonthSummary>('GET', '/summary', { query: { month } }),
   reports: {

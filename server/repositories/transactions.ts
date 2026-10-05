@@ -70,6 +70,11 @@ export class TransactionRepository extends BaseRepository<Transaction, Transacti
     return this.select('WHERE fixed_month = ? AND fixed_expense_id = ? ORDER BY date, id', month, fixedExpenseId)
   }
 
+  /** Payments of one fixed expense dated on or after `since` (by payment date, not by fixed month), oldest first. */
+  fixedPaymentsSince(fixedExpenseId: number, since: IsoDate): Transaction[] {
+    return this.select('WHERE fixed_expense_id = ? AND date >= ? ORDER BY date, id', fixedExpenseId, since)
+  }
+
   deleteFixedPayments(fixedExpenseId: number, month: Month): number {
     return this.run('DELETE FROM transactions WHERE fixed_expense_id = ? AND fixed_month = ?', fixedExpenseId, month)
   }

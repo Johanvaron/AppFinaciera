@@ -33,6 +33,15 @@ export const useBudgets = (month: MaybeRefOrGetter<Month>) =>
     placeholderData: (previous) => previous,
   })
 
+export const useDebts = () => useQuery({ queryKey: ['debts'], queryFn: api.debts.list })
+
+export const useDebtDetail = (id: MaybeRefOrGetter<number | null>) =>
+  useQuery({
+    queryKey: computed(() => ['debts', toValue(id)]),
+    queryFn: () => api.debts.detail(toValue(id) as number),
+    enabled: computed(() => toValue(id) != null),
+  })
+
 export const useSummary = (month: MaybeRefOrGetter<Month>) =>
   useQuery({
     queryKey: computed(() => ['summary', toValue(month)]),

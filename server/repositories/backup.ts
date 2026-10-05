@@ -13,6 +13,8 @@ const TABLES: readonly (readonly [BackupKey, string])[] = [
   ['transactions', 'transactions'],
   ['fixedMonths', 'fixed_months'],
   ['budgets', 'budgets'],
+  ['debts', 'debts'],
+  ['debtEntries', 'debt_entries'],
 ]
 
 /** Raw dump / restore of every data table. */

@@ -7,6 +7,7 @@ import { AppError } from './lib/errors.ts'
 import { accountRoutes } from './routes/accounts.ts'
 import { backupRoutes } from './routes/backup.ts'
 import { categoryRoutes } from './routes/categories.ts'
+import { debtRoutes } from './routes/debts.ts'
 import { fixedRoutes } from './routes/fixed.ts'
 import { budgetRoutes, reportRoutes, summaryRoutes } from './routes/insights.ts'
 import { transactionRoutes } from './routes/transactions.ts'
@@ -30,6 +31,7 @@ export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
   app.route('/api/categories', categoryRoutes(services))
   app.route('/api/transactions', transactionRoutes(services))
   app.route('/api/fixed', fixedRoutes(services))
+  app.route('/api/debts', debtRoutes(services))
   app.route('/api/budgets', budgetRoutes(services))
   app.route('/api/summary', summaryRoutes(services))
   app.route('/api/reports', reportRoutes(services))

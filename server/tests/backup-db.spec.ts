@@ -145,7 +145,7 @@ describe('database', () => {
     let created = 0
     const db = openDatabase(':memory:', { onCreate: () => created++ })
     const names = db.prepare('SELECT name FROM _migrations ORDER BY name').all().map((row) => row.name)
-    expect(names).toEqual(['001-init.sql'])
+    expect(names).toEqual(['001-init.sql', '002-debts.sql'])
     expect(created).toBe(1)
     expect(db.prepare('PRAGMA foreign_keys').get()).toEqual({ foreign_keys: 1 })
   })
